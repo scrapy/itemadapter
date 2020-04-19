@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import unittest
 
 from tests.mock_classes import Item, Field
@@ -59,15 +60,20 @@ class ItemAdapterTestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             ItemAdapter(1234)
 
+    @unittest.skipIf(sys.version_info.minor < 6, "dicts are not guaranteed to be ordered in py<36")
+    def test_repr_dict_dict(self):
+        item = dict(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            repr(adapter), "ItemAdapter for type dict: {'name': 'asdf', 'value': 1234}"
+        )
+
     def test_repr_dict_item(self):
-        for cls in [ExampleItem, dict]:
-            item = cls(name="asdf", value=1234)
-            adapter = ItemAdapter(item)
-            self.assertEqual(
-                repr(adapter),
-                "ItemAdapter for type %s: {'name': 'asdf', 'value': 1234}"
-                % item.__class__.__name__,
-            )
+        item = ExampleItem(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            repr(adapter), "ItemAdapter for type ExampleItem: {'name': 'asdf', 'value': 1234}"
+        )
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_repr_dataclass(self):
