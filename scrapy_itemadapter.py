@@ -1,3 +1,4 @@
+import importlib
 from collections.abc import MutableMapping
 from typing import Any, Iterator, List, Optional
 
@@ -12,11 +13,11 @@ def _is_dataclass_instance(obj: Any) -> bool:
     Taken from https://docs.python.org/3/library/dataclasses.html#dataclasses.is_dataclass.
     """
     try:
-        from dataclasses import is_dataclass
+        dataclasses = importlib.import_module("dataclasses")
     except ImportError:
         return False
     else:
-        return is_dataclass(obj) and not isinstance(obj, type)
+        return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
 class ItemAdapter(MutableMapping):

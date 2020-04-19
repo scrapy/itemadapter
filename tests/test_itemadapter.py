@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import unittest
+from unittest.mock import patch
 
 from tests.mock_classes import Item, Field
 from scrapy_itemadapter import _is_dataclass_instance, ItemAdapter
@@ -25,6 +26,10 @@ class ExampleItem(Item):
     value = Field(serializer=int)
 
 
+def mocked_import_module(module_name):
+    raise ImportError(module_name)
+
+
 class DataclassTestCase(unittest.TestCase):
     def test_false_always(self):
         """These objects should return False whether or not the dataclasses module is available"""
@@ -40,6 +45,11 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(_is_dataclass_instance(["a", "list"]))
         self.assertFalse(_is_dataclass_instance(("a", "tuple")))
         self.assertFalse(_is_dataclass_instance({"a", "set"}))
+
+    @patch("importlib.import_module", mocked_import_module)
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    def test_module_not_available(self):
+        self.assertFalse(_is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_false_only_if_installed(self):
