@@ -65,7 +65,8 @@ class ItemAdapterTestCase(unittest.TestCase):
             adapter = ItemAdapter(item)
             self.assertEqual(
                 repr(adapter),
-                "ItemAdapter for type %s: {'name': 'asdf', 'value': 1234}" % item.__class__.__name__,
+                "ItemAdapter for type %s: {'name': 'asdf', 'value': 1234}"
+                % item.__class__.__name__,
             )
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
