@@ -51,15 +51,7 @@ class DataclassTestCase(unittest.TestCase):
         self.assertTrue(_is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
 
-class ItemAdapterTestCase(unittest.TestCase):
-    def test_non_item(self):
-        with self.assertRaises(TypeError):
-            ItemAdapter(Item)
-        with self.assertRaises(TypeError):
-            ItemAdapter(dict)
-        with self.assertRaises(TypeError):
-            ItemAdapter(1234)
-
+class ItemAdapterReprTestCase(unittest.TestCase):
     @unittest.skipIf(sys.version_info.minor < 6, "dicts are not guaranteed to be ordered in py<36")
     def test_repr_dict_dict(self):
         item = dict(name="asdf", value=1234)
@@ -83,6 +75,16 @@ class ItemAdapterTestCase(unittest.TestCase):
             repr(adapter),
             "ItemAdapter for type DataClassItem: DataClassItem(name='asdf', value=1234)",
         )
+
+
+class ItemAdapterTestCase(unittest.TestCase):
+    def test_non_item(self):
+        with self.assertRaises(TypeError):
+            ItemAdapter(Item)
+        with self.assertRaises(TypeError):
+            ItemAdapter(dict)
+        with self.assertRaises(TypeError):
+            ItemAdapter(1234)
 
     def test_get_set_value(self):
         for cls in filter(None, [ExampleItem, dict, DataClassItem]):
@@ -143,7 +145,9 @@ class ItemAdapterTestCase(unittest.TestCase):
 
             with self.assertRaises(KeyError):
                 del adapter["name"]
+            with self.assertRaises(KeyError):
                 del adapter["value"]
+            with self.assertRaises(KeyError):
                 del adapter["undefined_field"]
 
     def test_get_field(self):
