@@ -54,7 +54,7 @@ class ItemAdapter(MutableMapping):
 
     def __delitem__(self, field_name: str) -> None:
         if _is_dataclass_instance(self.item):
-            if field_name in iter(self):
+            if field_name in self.field_names():
                 try:
                     delattr(self.item, field_name)
                 except AttributeError:
