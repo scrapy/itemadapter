@@ -94,10 +94,7 @@ class ItemAdapter(MutableMapping):
             from dataclasses import fields
 
             return [field.name for field in fields(self.item)]
-        elif isinstance(self.item, dict):
-            return list(self.item.keys())
+        elif hasattr(self.item, "fields"):
+            return list(self.item.fields.keys())
         else:
-            try:
-                return list(self.item.fields.keys())
-            except AttributeError:
-                return []
+            return list(self.item.keys())
