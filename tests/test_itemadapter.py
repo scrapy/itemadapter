@@ -59,6 +59,24 @@ class ItemAdapterTestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             ItemAdapter(1234)
 
+    def test_repr_dict_item(self):
+        for cls in [ExampleItem, dict]:
+            item = cls(name="asdf", value=1234)
+            adapter = ItemAdapter(item)
+            self.assertEqual(
+                repr(adapter),
+                "ItemAdapter for type %s: {'name': 'asdf', 'value': 1234}" % item.__class__.__name__,
+            )
+
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    def test_repr_dataclass(self):
+        item = DataClassItem(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            repr(adapter),
+            "ItemAdapter for type DataClassItem: DataClassItem(name='asdf', value=1234)",
+        )
+
     def test_get_set_value(self):
         for cls in filter(None, [ExampleItem, dict, DataClassItem]):
             item = cls()

@@ -6,6 +6,7 @@ See https://github.com/scrapy/scrapy/blob/master/scrapy/item.py
 
 from abc import ABCMeta
 from collections.abc import MutableMapping
+from pprint import pformat
 
 
 class Field(dict):
@@ -37,6 +38,9 @@ class DictItem(MutableMapping):
         if args or kwargs:
             for k, v in dict(*args, **kwargs).items():
                 self[k] = v
+
+    def __repr__(self):
+        return pformat(dict(self))
 
     def __getitem__(self, key):
         return self._values[key]
