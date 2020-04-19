@@ -1,4 +1,3 @@
-import importlib
 from collections.abc import MutableMapping
 from typing import Any, Iterator, List, Optional
 
@@ -13,7 +12,7 @@ def _is_dataclass_instance(obj: Any) -> bool:
     Taken from https://docs.python.org/3/library/dataclasses.html#dataclasses.is_dataclass.
     """
     try:
-        dataclasses = importlib.import_module("dataclasses")
+        import dataclasses
     except ImportError:
         return False
     else:

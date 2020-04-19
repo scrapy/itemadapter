@@ -26,8 +26,8 @@ class ExampleItem(Item):
     value = Field(serializer=int)
 
 
-def mocked_import_module(module_name):
-    raise ImportError(module_name)
+def mocked_import(name, *args, **kwargs):
+    raise ImportError(name)
 
 
 class DataclassTestCase(unittest.TestCase):
@@ -46,8 +46,8 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(_is_dataclass_instance(("a", "tuple")))
         self.assertFalse(_is_dataclass_instance({"a", "set"}))
 
-    @patch("importlib.import_module", mocked_import_module)
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(_is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
