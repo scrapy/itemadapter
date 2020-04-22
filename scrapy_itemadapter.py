@@ -19,6 +19,20 @@ def _is_dataclass_instance(obj: Any) -> bool:
         return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
+def _is_attrs_instance(obj: Any) -> bool:
+    """
+    Return True if *obj* is a attrs-based object, False otherwise.
+
+    This helper function exists only to avoid catching the ImportError every time
+    """
+    try:
+        import attr
+    except ImportError:
+        return False
+    else:
+        return attr.has(obj)
+
+
 class ItemAdapter(MutableMapping):
     """
     Wrapper class to interact with items. It provides a common interface for components
@@ -27,7 +41,11 @@ class ItemAdapter(MutableMapping):
     """
 
     def __init__(self, item: Any) -> None:
-        if not isinstance(item, MutableMapping) and not _is_dataclass_instance(item):
+        if not (
+            isinstance(item, MutableMapping)
+            or _is_dataclass_instance(item)
+            or _is_attrs_instance(item)
+        ):
             raise TypeError("Expected a valid item, got %r instead: %s" % (type(item), item))
         self.item = item
 
@@ -35,14 +53,14 @@ class ItemAdapter(MutableMapping):
         return "ItemAdapter for type %s: %r" % (self.item.__class__.__name__, self.item)
 
     def __getitem__(self, field_name: str) -> Any:
-        if _is_dataclass_instance(self.item):
+        if _is_dataclass_instance(self.item) or _is_attrs_instance(self.item):
             if field_name in iter(self):
                 return getattr(self.item, field_name)
             raise KeyError(field_name)
         return self.item[field_name]
 
     def __setitem__(self, field_name: str, value: Any) -> None:
-        if _is_dataclass_instance(self.item):
+        if _is_dataclass_instance(self.item) or _is_attrs_instance(self.item):
             if field_name in iter(self):
                 setattr(self.item, field_name, value)
             else:
@@ -53,7 +71,7 @@ class ItemAdapter(MutableMapping):
             self.item[field_name] = value
 
     def __delitem__(self, field_name: str) -> None:
-        if _is_dataclass_instance(self.item):
+        if _is_dataclass_instance(self.item) or _is_attrs_instance(self.item):
             if field_name in self.field_names():
                 try:
                     delattr(self.item, field_name)
@@ -67,12 +85,12 @@ class ItemAdapter(MutableMapping):
             del self.item[field_name]
 
     def __iter__(self) -> Iterator:
-        if _is_dataclass_instance(self.item):
+        if _is_dataclass_instance(self.item) or _is_attrs_instance(self.item):
             return iter(attr for attr in dir(self.item) if attr in self.field_names())
         return iter(self.item)
 
     def __len__(self) -> int:
-        if _is_dataclass_instance(self.item):
+        if _is_dataclass_instance(self.item) or _is_attrs_instance(self.item):
             return len(list(iter(self)))
         return len(self.item)
 
@@ -91,9 +109,13 @@ class ItemAdapter(MutableMapping):
         Return a list with the names of all the defined fields for the item
         """
         if _is_dataclass_instance(self.item):
-            from dataclasses import fields
+            import dataclasses
 
-            return [field.name for field in fields(self.item)]
+            return [field.name for field in dataclasses.fields(self.item)]
+        elif _is_attrs_instance(self.item):
+            import attr
+
+            return [field.name for field in attr.fields(self.item.__class__)]
         else:
             try:
                 return list(self.item.fields.keys())

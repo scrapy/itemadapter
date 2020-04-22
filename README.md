@@ -7,9 +7,10 @@ The `scrapy_itemadapter.ItemAdapter` class wraps Scrapy items. It aims to provid
 interface to handle different types of items in an uniform manner. Currently supported item
 types are:
 
-* Classes inheriting from `scrapy.item.Item`
-* `dict` objects
-* `dataclass`-based objects
+* Classes inheriting from [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html)
+* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict) objects
+* [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based objects
+* [`attrs`](https://www.attrs.org)-based classes
 
 
 ## API
@@ -81,6 +82,28 @@ True
 ... class InventoryItem:
 ...     name: str
 ...     price: int
+...
+>>> item = InventoryItem(name="foo", price=10)
+>>> adapter = ItemAdapter(item)
+>>> adapter.item is item
+True
+>>> adapter["name"]
+'foo'
+>>> adapter["name"] = "bar"
+>>> adapter["price"] = 5
+>>> item
+InventoryItem(name='bar', price=5)
+```
+
+### attrs-based items
+
+```python
+>>> import attr
+>>> from scrapy_itemadapter import ItemAdapter
+>>> @attr.s
+... class InventoryItem:
+...     name = attr.ib()
+...     price = attr.ib()
 ...
 >>> item = InventoryItem(name="foo", price=10)
 >>> adapter = ItemAdapter(item)

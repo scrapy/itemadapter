@@ -3,8 +3,10 @@ import sys
 import unittest
 from unittest.mock import patch
 
+import attr
+
 from tests.mock_classes import Item, Field
-from scrapy_itemadapter import _is_dataclass_instance, ItemAdapter
+from scrapy_itemadapter import _is_attrs_instance, _is_dataclass_instance, ItemAdapter
 
 
 try:
@@ -19,6 +21,12 @@ else:
             ("value", int, field(default_factory=lambda: None)),
         ],
     )
+
+
+@attr.s
+class AttrsItem:
+    name = attr.ib(default=attr.Factory(lambda: None))
+    value = attr.ib(default=attr.Factory(lambda: None))
 
 
 class ExampleItem(Item):
@@ -38,6 +46,7 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(_is_dataclass_instance(1234))
         self.assertFalse(_is_dataclass_instance(object()))
         self.assertFalse(_is_dataclass_instance(Item()))
+        self.assertFalse(_is_dataclass_instance(AttrsItem()))
         self.assertFalse(_is_dataclass_instance(ExampleItem()))
         self.assertFalse(_is_dataclass_instance("a string"))
         self.assertFalse(_is_dataclass_instance(b"some bytes"))
@@ -59,6 +68,30 @@ class DataclassTestCase(unittest.TestCase):
     def test_true_only_if_installed(self):
         self.assertTrue(_is_dataclass_instance(DataClassItem()))
         self.assertTrue(_is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+
+
+class AttrsTestCase(unittest.TestCase):
+    def test_false(self):
+        self.assertFalse(_is_attrs_instance(int))
+        self.assertFalse(_is_attrs_instance(sum))
+        self.assertFalse(_is_attrs_instance(1234))
+        self.assertFalse(_is_attrs_instance(object()))
+        self.assertFalse(_is_attrs_instance(Item()))
+        self.assertFalse(_is_attrs_instance(ExampleItem()))
+        self.assertFalse(_is_attrs_instance("a string"))
+        self.assertFalse(_is_attrs_instance(b"some bytes"))
+        self.assertFalse(_is_attrs_instance({"a": "dict"}))
+        self.assertFalse(_is_attrs_instance(["a", "list"]))
+        self.assertFalse(_is_attrs_instance(("a", "tuple")))
+        self.assertFalse(_is_attrs_instance({"a", "set"}))
+
+    @patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(_is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+
+    def test_true(self):
+        self.assertTrue(_is_attrs_instance(AttrsItem()))
+        self.assertTrue(_is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
@@ -86,6 +119,13 @@ class ItemAdapterReprTestCase(unittest.TestCase):
             "ItemAdapter for type DataClassItem: DataClassItem(name='asdf', value=1234)",
         )
 
+    def test_repr_attrs(self):
+        item = AttrsItem(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            repr(adapter), "ItemAdapter for type AttrsItem: AttrsItem(name='asdf', value=1234)",
+        )
+
 
 class ItemAdapterTestCase(unittest.TestCase):
     def test_non_item(self):
@@ -97,7 +137,7 @@ class ItemAdapterTestCase(unittest.TestCase):
             ItemAdapter(1234)
 
     def test_get_set_value(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem]):
+        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls()
             adapter = ItemAdapter(item)
             self.assertEqual(adapter.get("name"), None)
@@ -109,7 +149,7 @@ class ItemAdapterTestCase(unittest.TestCase):
             self.assertEqual(adapter["name"], "asdf")
             self.assertEqual(adapter["value"], 1234)
 
-        for cls in filter(None, [ExampleItem, dict, DataClassItem]):
+        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertEqual(adapter.get("name"), "asdf")
@@ -118,13 +158,16 @@ class ItemAdapterTestCase(unittest.TestCase):
             self.assertEqual(adapter["value"], 1234)
 
     def test_get_value_keyerror_all(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem]):
+        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls()
             adapter = ItemAdapter(item)
             with self.assertRaises(KeyError):
                 adapter["undefined_field"]
 
     def test_get_value_keyerror_item_dict(self):
+        """
+        scrapy.item.Item and dicts can be initialized without default values for all fields
+        """
         for cls in [ExampleItem, dict]:
             item = cls()
             adapter = ItemAdapter(item)
@@ -132,14 +175,14 @@ class ItemAdapterTestCase(unittest.TestCase):
                 adapter["name"]
 
     def test_set_value_keyerror(self):
-        for cls in filter(None, [ExampleItem, DataClassItem]):
+        for cls in filter(None, [ExampleItem, DataClassItem, AttrsItem]):
             item = cls()
             adapter = ItemAdapter(item)
             with self.assertRaises(KeyError):
                 adapter["undefined_field"] = "some value"
 
     def test_delitem_len_iter(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem]):
+        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertEqual(len(adapter), 2)
@@ -161,7 +204,10 @@ class ItemAdapterTestCase(unittest.TestCase):
                 del adapter["undefined_field"]
 
     def test_get_field(self):
-        for cls in filter(None, [dict, DataClassItem]):
+        """
+        Field objects are only defined for scrapy.item.Item objects
+        """
+        for cls in filter(None, [dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertIsNone(adapter.get_field("undefined_field"))
@@ -177,13 +223,13 @@ class ItemAdapterTestCase(unittest.TestCase):
         self.assertIs(adapter.get_field("value")["serializer"], int)
 
     def test_as_dict(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem]):
+        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
 
     def test_field_names(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem]):
+        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertIsInstance(adapter.field_names(), list)
