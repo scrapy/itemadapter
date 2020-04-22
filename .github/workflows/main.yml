@@ -4,12 +4,13 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    name: Lint, typing, coverage
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python version
+    - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
         python-version: 3.8
@@ -34,12 +35,13 @@ jobs:
     - name: Upload coverage report
       run: bash <(curl -s https://codecov.io/bash)
 
-  tests:
-    runs-on: ${{ matrix.os }}
+
+  tests-ubuntu:
+    name: "Tests: Python ${{ matrix.python-version }}, Ubuntu"
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
-        python-version: [3.5, 3.6, 3.7, 3.8]
+        python-version: [3.5, 3.6, 3.7, 3.8, pypy2, pypy3]
 
     steps:
     - uses: actions/checkout@v2
@@ -48,6 +50,27 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Install tox
+      run: pip install tox
+
+    - name: Run tests
+      run: tox -e py
+
+  tests-other-os:
+    name: "Tests: Python 3.8, ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
 
     - name: Install tox
       run: pip install tox
