@@ -1,11 +1,16 @@
 import setuptools
 
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+
 setuptools.setup(
     name="scrapy-itemadapter",
     version="0.0.1",
     license="BSD",
     description="Common interface for Scrapy items",
+    long_description=long_description,
     author="Eugenio Lacuesta",
     author_email="eugenio.lacuesta@gmail.com",
     url="https://github.com/elacuesta/scrapy-itemadapter",
