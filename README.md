@@ -2,4 +2,94 @@
 [![actions](https://github.com/elacuesta/scrapy-itemadapter/workflows/Build/badge.svg)](https://github.com/elacuesta/scrapy-itemadapter/actions)
 [![codecov](https://codecov.io/gh/elacuesta/scrapy-itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/scrapy-itemadapter)
 
-_Work in progress_
+
+The `scrapy_itemadapter.ItemAdapter` class wraps Scrapy items. It aims to provide a common
+interface to handle different types of items in an uniform manner. Currently supported item
+types are:
+
+* Classes inheriting from `scrapy.item.Item`
+* `dict` objects
+* `dataclass`-based objects
+
+
+## API
+
+The `ItemAdapter` class implements the
+[`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
+providing a `dict`-like API to manipulate data for the objects it adapts.
+
+Two additional methods are defined:
+
+`get_field(field_name: str) -> Optional[Any]`
+
+_Return the appropriate object if the wrapped item has a Mapping attribute
+called "fields" and the requested field name can be found in it,
+None otherwise._
+
+
+`field_names() -> List[str]`
+
+_Return a list with the names of all the defined fields for the item_
+
+
+## Examples
+
+### scrapy.item.Item objects
+
+```python
+>>> from scrapy.item import Item, Field
+>>> from scrapy_itemadapter import ItemAdapter
+>>> class InventoryItem(Item):
+...     name = Field()
+...     price = Field()
+...
+>>> item = InventoryItem(name="foo", price=10)
+>>> adapter = ItemAdapter(item)
+>>> adapter.item is item
+True
+>>> adapter["name"]
+'foo'
+>>> adapter["name"] = "bar"
+>>> adapter["price"] = 5
+>>> item
+{'name': 'bar', 'price': 5}
+```
+
+### Dictionaries
+
+```python
+>>> from scrapy_itemadapter import ItemAdapter
+>>> item = dict(name="foo", price=10)
+>>> adapter = ItemAdapter(item)
+>>> adapter.item is item
+True
+>>> adapter["name"]
+'foo'
+>>> adapter["name"] = "bar"
+>>> adapter["price"] = 5
+>>> item
+{'name': 'bar', 'price': 5}
+```
+
+
+### dataclass-based items
+
+```python
+>>> from dataclasses import dataclass
+>>> from scrapy_itemadapter import ItemAdapter
+>>> @dataclass
+... class InventoryItem:
+...     name: str
+...     price: int
+...
+>>> item = InventoryItem(name="foo", price=10)
+>>> adapter = ItemAdapter(item)
+>>> adapter.item is item
+True
+>>> adapter["name"]
+'foo'
+>>> adapter["name"] = "bar"
+>>> adapter["price"] = 5
+>>> item
+InventoryItem(name='bar', price=5)
+```
