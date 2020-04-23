@@ -35,9 +35,9 @@ None otherwise._
 _Return a list with the names of all the defined fields for the item_
 
 
-### `scrapy_itemadapter.ItemAdapter.is_item`
+### `scrapy_itemadapter.is_item`
 
-`scrapy_itemadapter.ItemAdapter.is_item(obj: Any) -> bool`
+`scrapy_itemadapter.is_item(obj: Any) -> bool`
 
 _Helper function which returns `True` if the given object can be handled as
 an item, `False` otherwise_
