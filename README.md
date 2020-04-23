@@ -3,49 +3,51 @@
 [![codecov](https://codecov.io/gh/elacuesta/scrapy-itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/scrapy-itemadapter)
 
 
-The `scrapy_itemadapter.ItemAdapter` class wraps Scrapy items. It aims to provide a common
-interface to handle different types of items in an uniform manner. Currently supported item
-types are:
+The `ItemAdapter` class is a wrapper for Scrapy items, which provides a common
+interface to handle different types of items in an uniform manner, regardless
+of their underlying implementation. Currently supported item types are:
 
 * Classes inheriting from [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html)
-* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict) objects
-* [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based objects
+* Regular [dictionaries](https://docs.python.org/3/library/stdtypes.html#dict) (in fact, any class
+  that implements the [`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping))
+* [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
 
 
 ## API
 
-### `scrapy_itemadapter.ItemAdapter`
+### `ItemAdapter` class
 
-The `ItemAdapter` class implements the
+_class `scrapy_itemadapter.ItemAdapter(item: Any)`_
+
+`ItemAdapter` implements the
 [`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
-providing a `dict`-like API to manipulate data for the objects it adapts.
+providing a `dict`-like API to manipulate data for the object it wraps
+(which is modified in-place).
 
-Two additional methods are defined:
+Two additional methods are available:
 
-`scrapy_itemadapter.ItemAdapter.get_field(field_name: str) -> Optional[Any]`
+`get_field(field_name: str) -> Optional[Any]`
 
-_Return the appropriate object if the wrapped item has a Mapping attribute
+Return the appropriate object if the wrapped item has a `Mapping` attribute
 called "fields" and the requested field name can be found in it,
-None otherwise._
+`None` otherwise.
 
+`field_names() -> List[str]`
 
-`scrapy_itemadapter.ItemAdapter.field_names() -> List[str]`
+Return a list with the names of all the defined fields for the item.
 
-_Return a list with the names of all the defined fields for the item_
+### `is_item` function
 
+_`scrapy_itemadapter.is_item(obj: Any) -> bool`_
 
-### `scrapy_itemadapter.is_item`
-
-`scrapy_itemadapter.is_item(obj: Any) -> bool`
-
-_Helper function which returns `True` if the given object can be handled as
-an item, `False` otherwise_
+Return `True` if the given object belongs to one of the supported types,
+`False` otherwise.
 
 
 ## Examples
 
-### scrapy.item.Item objects
+### `scrapy.item.Item` objects
 
 ```python
 >>> from scrapy.item import Item, Field
@@ -66,7 +68,7 @@ True
 {'name': 'bar', 'price': 5}
 ```
 
-### Dictionaries
+### `dict`s
 
 ```python
 >>> from scrapy_itemadapter import ItemAdapter
@@ -82,8 +84,7 @@ True
 {'name': 'bar', 'price': 5}
 ```
 
-
-### dataclass-based items
+### `dataclass`-based items
 
 ```python
 >>> from dataclasses import dataclass
@@ -105,7 +106,7 @@ True
 InventoryItem(name='bar', price=5)
 ```
 
-### attrs-based items
+### `attrs`-based items
 
 ```python
 >>> import attr
