@@ -37,11 +37,20 @@ providing a `dict`-like API to manipulate data for the object it wraps
 
 Two additional methods are available:
 
-`get_field(field_name: str) -> Optional[Any]`
+`get_field_meta(field_name: str) -> MappingProxyType`
 
-Return the appropriate object if the wrapped item has a `Mapping` attribute
-called "fields" and the requested field name can be found in it,
-`None` otherwise.
+Return a [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
+object with metadata about the given field, or raise `TypeError` if the item class does not
+support field metadata.
+
+The returned value is taken from the following sources, according to the item implementation:
+
+* [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
+  for `dataclass`-based items
+* [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
+  for `attrs`-based items
+* [`scrapy.item.Field`](https://docs.scrapy.org/en/latest/topics/items.html#item-fields)
+  for `scrapy.item.Item`s
 
 `field_names() -> List[str]`
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import unittest
+from types import MappingProxyType
 from unittest.mock import patch
 
 import attr
@@ -17,16 +18,16 @@ else:
     DataClassItem = make_dataclass(
         "DataClassItem",
         [
-            ("name", str, field(default_factory=lambda: None)),
-            ("value", int, field(default_factory=lambda: None)),
+            ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
+            ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
         ],
     )
 
 
 @attr.s
 class AttrsItem:
-    name = attr.ib(default=attr.Factory(lambda: None))
-    value = attr.ib(default=attr.Factory(lambda: None))
+    name = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": str})
+    value = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": int})
 
 
 class ExampleItem(Item):
@@ -231,25 +232,6 @@ class ItemAdapterTestCase(unittest.TestCase):
             with self.assertRaises(KeyError):
                 del adapter["undefined_field"]
 
-    def test_get_field(self):
-        """
-        Field objects are only defined for scrapy.item.Item objects
-        """
-        for cls in filter(None, [dict, DataClassItem, AttrsItem]):
-            item = cls(name="asdf", value=1234)
-            adapter = ItemAdapter(item)
-            self.assertIsNone(adapter.get_field("undefined_field"))
-            self.assertIsNone(adapter.get_field("name"))
-            self.assertIsNone(adapter.get_field("value"))
-
-        item = ExampleItem()
-        adapter = ItemAdapter(item)
-        self.assertIsNone(adapter.get_field("undefined_field"))
-        self.assertIsInstance(adapter.get_field("name"), Field)
-        self.assertIsInstance(adapter.get_field("value"), Field)
-        self.assertIs(adapter.get_field("name")["serializer"], str)
-        self.assertIs(adapter.get_field("value")["serializer"], int)
-
     def test_as_dict(self):
         for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
@@ -262,3 +244,30 @@ class ItemAdapterTestCase(unittest.TestCase):
             adapter = ItemAdapter(item)
             self.assertIsInstance(adapter.field_names(), list)
             self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
+
+
+class MetadataTestCase(unittest.TestCase):
+    def test_meta_common(self):
+        for cls in filter(None, [ExampleItem, DataClassItem, AttrsItem]):
+            adapter = ItemAdapter(cls())
+            self.assertIsInstance(adapter.get_field_meta("name"), MappingProxyType)
+            self.assertIsInstance(adapter.get_field_meta("value"), MappingProxyType)
+            with self.assertRaises(KeyError):
+                adapter.get_field_meta("undefined_field")
+
+    def test_meta_dict(self):
+        adapter = ItemAdapter(dict(name="foo", value=5))
+        with self.assertRaises(TypeError):
+            adapter.get_field_meta("name")
+        with self.assertRaises(TypeError):
+            adapter.get_field_meta("value")
+        with self.assertRaises(TypeError):
+            adapter.get_field_meta("undefined_field")
+
+    def test_get_field_meta_defined_fields(self):
+        for cls in filter(None, [ExampleItem, DataClassItem, AttrsItem]):
+            adapter = ItemAdapter(cls())
+            self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
+            self.assertEqual(
+                adapter.get_field_meta("value"), MappingProxyType({"serializer": int})
+            )

@@ -1,5 +1,6 @@
 from collections.abc import MutableMapping
-from typing import Any, Iterator, List, Optional
+from types import MappingProxyType
+from typing import Any, Iterator, List
 
 
 def _is_dataclass_instance(obj: Any) -> bool:
@@ -97,15 +98,38 @@ class ItemAdapter(MutableMapping):
             return len(list(iter(self)))
         return len(self.item)
 
-    def get_field(self, field_name: str) -> Optional[Any]:
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
         """
-        Return the appropriate class:`scrapy.item.Field` object if the wrapped item has a Mapping
-        attribute called "fields" and the requested field name can be found in it, None otherwise.
+        Return metadata for the given field name. If the wrapped item is a scrapy.item.Item
+        instance, return the corresponding scrapy.item.Field object.
         """
-        try:
-            return self.item.fields.get(field_name)
-        except AttributeError:
-            return None
+        if _is_dataclass_instance(self.item):
+            from dataclasses import fields
+
+            for field in fields(self.item):
+                if field.name == field_name:
+                    return field.metadata  # type: ignore
+            raise KeyError(
+                "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
+            )
+        elif _is_attrs_instance(self.item):
+            from attr import fields_dict
+
+            try:
+                return fields_dict(self.item.__class__)[field_name].metadata  # type: ignore
+            except KeyError:
+                raise KeyError(
+                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
+                )
+        elif hasattr(self.item, "fields"):
+            try:
+                return MappingProxyType(self.item.fields[field_name])
+            except KeyError:
+                raise KeyError(
+                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
+                )
+        else:
+            raise TypeError("Item of type %r does not support field metadata" % type(self.item))
 
     def field_names(self) -> List[str]:
         """
