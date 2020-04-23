@@ -4,10 +4,10 @@ from typing import Any, Iterator, List, Optional
 
 def _is_dataclass_instance(obj: Any) -> bool:
     """
-    Return True if *obj* is a dataclass object, False otherwise.
+    Return True if the given object is a dataclass object, False otherwise.
 
-    This function will always return False in py35 (in any case, the syntax for field definition
-    raises SyntaxError) and in py36 if the "dataclasses" backport module is not available.
+    This function always returns False in py35. In py36, it returns False
+    if the "dataclasses" backport is not available.
 
     Taken from https://docs.python.org/3/library/dataclasses.html#dataclasses.is_dataclass.
     """
@@ -21,9 +21,7 @@ def _is_dataclass_instance(obj: Any) -> bool:
 
 def _is_attrs_instance(obj: Any) -> bool:
     """
-    Return True if *obj* is a attrs-based object, False otherwise.
-
-    This helper function exists only to avoid catching the ImportError every time
+    Return True if the given object is a attrs-based object, False otherwise.
     """
     try:
         import attr
@@ -35,7 +33,7 @@ def _is_attrs_instance(obj: Any) -> bool:
 
 def is_item(obj: Any) -> bool:
     """
-    Return True if the passed item can be handled like an item, False otherwise
+    Return True if the given object belongs to one of the supported types, False otherwise.
     """
     return (
         isinstance(obj, MutableMapping) or _is_dataclass_instance(obj) or _is_attrs_instance(obj)

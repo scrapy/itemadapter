@@ -7,9 +7,10 @@ The `ItemAdapter` class is a wrapper for Scrapy items, which provides a common
 interface to handle different types of items in an uniform manner, regardless
 of their underlying implementation. Currently supported item types are:
 
-* Classes inheriting from [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html)
-* Regular [dictionaries](https://docs.python.org/3/library/stdtypes.html#dict) (in fact, any class
-  that implements the [`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping))
+* Classes that implement the [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping) interface,
+  including but not limited to:
+  * [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html)
+  * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
 
