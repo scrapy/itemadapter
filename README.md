@@ -1,6 +1,6 @@
-# scrapy-itemadapter
-[![actions](https://github.com/elacuesta/scrapy-itemadapter/workflows/Build/badge.svg)](https://github.com/elacuesta/scrapy-itemadapter/actions)
-[![codecov](https://codecov.io/gh/elacuesta/scrapy-itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/scrapy-itemadapter)
+# itemadapter
+[![actions](https://github.com/elacuesta/itemadapter/workflows/Build/badge.svg)](https://github.com/elacuesta/itemadapter/actions)
+[![codecov](https://codecov.io/gh/elacuesta/itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/itemadapter)
 
 
 The `ItemAdapter` class is a wrapper for Scrapy items, which provides a common
@@ -27,7 +27,7 @@ of their underlying implementation. Currently supported item types are:
 
 ### `ItemAdapter` class
 
-_class `scrapy_itemadapter.ItemAdapter(item: Any)`_
+_class `itemadapter.ItemAdapter(item: Any)`_
 
 `ItemAdapter` implements the
 [`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
@@ -48,7 +48,7 @@ Return a list with the names of all the defined fields for the item.
 
 ### `is_item` function
 
-_`scrapy_itemadapter.is_item(obj: Any) -> bool`_
+_`itemadapter.is_item(obj: Any) -> bool`_
 
 Return `True` if the given object belongs to one of the supported types,
 `False` otherwise.
@@ -60,7 +60,7 @@ Return `True` if the given object belongs to one of the supported types,
 
 ```python
 >>> from scrapy.item import Item, Field
->>> from scrapy_itemadapter import ItemAdapter
+>>> from itemadapter import ItemAdapter
 >>> class InventoryItem(Item):
 ...     name = Field()
 ...     price = Field()
@@ -80,7 +80,7 @@ True
 ### `dict`s
 
 ```python
->>> from scrapy_itemadapter import ItemAdapter
+>>> from itemadapter import ItemAdapter
 >>> item = dict(name="foo", price=10)
 >>> adapter = ItemAdapter(item)
 >>> adapter.item is item
@@ -97,7 +97,7 @@ True
 
 ```python
 >>> from dataclasses import dataclass
->>> from scrapy_itemadapter import ItemAdapter
+>>> from itemadapter import ItemAdapter
 >>> @dataclass
 ... class InventoryItem:
 ...     name: str
@@ -119,7 +119,7 @@ InventoryItem(name='bar', price=5)
 
 ```python
 >>> import attr
->>> from scrapy_itemadapter import ItemAdapter
+>>> from itemadapter import ItemAdapter
 >>> @attr.s
 ... class InventoryItem:
 ...     name = attr.ib()

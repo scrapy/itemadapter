@@ -6,15 +6,15 @@ with open("README.md", "r") as fh:
 
 
 setuptools.setup(
-    name="scrapy-itemadapter",
+    name="itemadapter",
     version="0.0.1",
     license="BSD",
     description="Common interface for Scrapy items",
     long_description=long_description,
     author="Eugenio Lacuesta",
     author_email="eugenio.lacuesta@gmail.com",
-    url="https://github.com/elacuesta/scrapy-itemadapter",
-    py_modules=["scrapy_itemadapter"],
+    url="https://github.com/elacuesta/itemadapter",
+    packages=["itemadapter"],
     classifiers=[
         "Development Status :: 1 - Planning",
         "License :: OSI Approved :: BSD License",

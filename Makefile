@@ -1,13 +1,13 @@
 .PHONY: lint types black clean
 
 lint:
-	@python -m flake8 --exclude=.git,venv* scrapy_itemadapter.py tests
+	@python -m flake8 --exclude=.git,venv* itemadapter tests
 
 types:
-	@mypy --ignore-missing-imports --follow-imports=skip scrapy_itemadapter.py
+	@mypy --ignore-missing-imports --follow-imports=skip itemadapter
 
 black:
-	@black --check scrapy_itemadapter.py tests
+	@black --check itemadapter tests
 
 clean:
 	@find . -name "*.pyc" -delete

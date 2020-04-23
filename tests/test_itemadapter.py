@@ -6,7 +6,7 @@ from unittest.mock import patch
 import attr
 
 from tests.mock_classes import Item, Field
-from scrapy_itemadapter import _is_attrs_instance, _is_dataclass_instance, is_item, ItemAdapter
+from itemadapter import _is_attrs_instance, _is_dataclass_instance, is_item, ItemAdapter
 
 
 try:
