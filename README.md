@@ -15,22 +15,32 @@ types are:
 
 ## API
 
+### `scrapy_itemadapter.ItemAdapter`
+
 The `ItemAdapter` class implements the
 [`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
 providing a `dict`-like API to manipulate data for the objects it adapts.
 
 Two additional methods are defined:
 
-`get_field(field_name: str) -> Optional[Any]`
+`scrapy_itemadapter.ItemAdapter.get_field(field_name: str) -> Optional[Any]`
 
 _Return the appropriate object if the wrapped item has a Mapping attribute
 called "fields" and the requested field name can be found in it,
 None otherwise._
 
 
-`field_names() -> List[str]`
+`scrapy_itemadapter.ItemAdapter.field_names() -> List[str]`
 
 _Return a list with the names of all the defined fields for the item_
+
+
+### `scrapy_itemadapter.ItemAdapter.is_item`
+
+`scrapy_itemadapter.ItemAdapter.is_item(obj: Any) -> bool`
+
+_Helper function which returns `True` if the given object can be handled as
+an item, `False` otherwise_
 
 
 ## Examples
