@@ -6,7 +6,7 @@ from unittest.mock import patch
 import attr
 
 from tests.mock_classes import Item, Field
-from scrapy_itemadapter import _is_attrs_instance, _is_dataclass_instance, ItemAdapter
+from scrapy_itemadapter import _is_attrs_instance, _is_dataclass_instance, is_item, ItemAdapter
 
 
 try:
@@ -36,6 +36,34 @@ class ExampleItem(Item):
 
 def mocked_import(name, *args, **kwargs):
     raise ImportError(name)
+
+
+class ItemLikeTestCase(unittest.TestCase):
+    def test_false(self):
+        self.assertFalse(is_item(int))
+        self.assertFalse(is_item(sum))
+        self.assertFalse(is_item(1234))
+        self.assertFalse(is_item(object()))
+        self.assertFalse(is_item("a string"))
+        self.assertFalse(is_item(b"some bytes"))
+        self.assertFalse(is_item(["a", "list"]))
+        self.assertFalse(is_item(("a", "tuple")))
+        self.assertFalse(is_item({"a", "set"}))
+        self.assertFalse(is_item(dict))
+        self.assertFalse(is_item(Item))
+        self.assertFalse(is_item(DataClassItem))
+        self.assertFalse(is_item(ExampleItem))
+        self.assertFalse(is_item(AttrsItem))
+
+    def test_true(self):
+        self.assertTrue(is_item({"a": "dict"}))
+        self.assertTrue(is_item(Item()))
+        self.assertTrue(is_item(ExampleItem(name="asdf", value=1234)))
+        self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
+
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    def test_dataclass(self):
+        self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
 
 
 class DataclassTestCase(unittest.TestCase):

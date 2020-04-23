@@ -30,7 +30,16 @@ def _is_attrs_instance(obj: Any) -> bool:
     except ImportError:
         return False
     else:
-        return attr.has(obj)
+        return attr.has(obj) and not isinstance(obj, type)
+
+
+def is_item(obj: Any) -> bool:
+    """
+    Return True if the passed item can be handled like an item, False otherwise
+    """
+    return (
+        isinstance(obj, MutableMapping) or _is_dataclass_instance(obj) or _is_attrs_instance(obj)
+    )
 
 
 class ItemAdapter(MutableMapping):
@@ -41,11 +50,7 @@ class ItemAdapter(MutableMapping):
     """
 
     def __init__(self, item: Any) -> None:
-        if not (
-            isinstance(item, MutableMapping)
-            or _is_dataclass_instance(item)
-            or _is_attrs_instance(item)
-        ):
+        if not is_item(item):
             raise TypeError("Expected a valid item, got %r instead: %s" % (type(item), item))
         self.item = item
 
