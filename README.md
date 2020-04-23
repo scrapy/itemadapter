@@ -14,6 +14,15 @@ of their underlying implementation. Currently supported item types are:
 * [`attrs`](https://www.attrs.org)-based classes
 
 
+## Requirements
+
+* Python 3.5+
+* `dataclasses` ([stdlib](https://docs.python.org/3/library/dataclasses.html) in Python 3.7+,
+  or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed
+  to interact with `dataclass`-based items
+* [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
+
+
 ## API
 
 ### `ItemAdapter` class
