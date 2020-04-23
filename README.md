@@ -43,7 +43,7 @@ Return a [`MappingProxyType`](https://docs.python.org/3/library/types.html#types
 object with metadata about the given field, or raise `TypeError` if the item class does not
 support field metadata.
 
-The returned value is taken from the following sources, according to the item implementation:
+The returned value is taken from the following sources, depending on the item type:
 
 * [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
   for `dataclass`-based items
