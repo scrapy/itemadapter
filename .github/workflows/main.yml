@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   build:
-    name: Lint, typing, coverage
+    name: Lint, typing, coverage, publish
     runs-on: ubuntu-latest
 
     steps:

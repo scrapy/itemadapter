@@ -11,6 +11,7 @@ setuptools.setup(
     license="BSD",
     description="Common interface for Scrapy items",
     long_description=long_description,
+    long_description_content_type="text/markdown",
     author="Eugenio Lacuesta",
     author_email="eugenio.lacuesta@gmail.com",
     url="https://github.com/elacuesta/itemadapter",
