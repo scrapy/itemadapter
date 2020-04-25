@@ -3,9 +3,16 @@
 [![codecov](https://codecov.io/gh/elacuesta/itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/itemadapter)
 
 
-The `ItemAdapter` class is a wrapper for Scrapy items, which provides a common
-interface to handle different types of items in an uniform manner, regardless
-of their underlying implementation. Currently supported item types are:
+The `ItemAdapter` class is a wrapper for data container objects, providing a
+common interface to handle objects of different types in an uniform manner,
+regardless of their underlying implementation.
+
+This package started as an initiative to
+[support `dataclass` objects as items](https://github.com/scrapy/scrapy/pull/3881)
+in [`Scrapy`](https://github.com/scrapy/scrapy). It was extracted out to a
+standalone package in order to allow it to be used independently.
+
+Currently supported types are:
 
 * Classes that implement the [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping) interface,
   including but not limited to:
@@ -64,6 +71,80 @@ Return `True` if the given object belongs to one of the supported types,
 `False` otherwise.
 
 
+## Metadata support
+
+`scrapy.item.Item`, `dataclass` and `attrs` objects allow the inclusion of
+arbitrary field metadata, which can be retrieved with the
+`ItemAdapter.get_field_meta` method. The definition procedure depends on the
+underlying type.
+
+#### `scrapy.item.Item` objects
+
+```python
+>>> from scrapy.item import Item, Field
+>>> from itemadapter import ItemAdapter
+>>> class InventoryItem(Item):
+...     name = Field(serializer=str)
+...     value = Field(serializer=int, limit=100)
+...
+>>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
+>>> adapter.get_field_meta("name")
+mappingproxy({'serializer': <class 'str'>})
+>>> adapter.get_field_meta("value")
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+```
+
+#### `dataclass` objects
+
+```python
+>>> from dataclasses import dataclass, field
+>>> @dataclass
+... class InventoryItem:
+...     name: str = field(metadata={"serializer": str})
+...     value: int = field(metadata={"serializer": int, "limit": 100})
+...
+>>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
+>>> adapter.get_field_meta("name")
+mappingproxy({'serializer': <class 'str'>})
+>>> adapter.get_field_meta("value")
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+```
+
+#### `attrs` objects
+
+```python
+>>> import attr
+>>> @attr.s
+... class InventoryItem:
+...     name = attr.ib(metadata={"serializer": str})
+...     value = attr.ib(metadata={"serializer": int})
+...
+>>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
+>>> adapter.get_field_meta("name")
+mappingproxy({'serializer': <class 'str'>})
+>>> adapter.get_field_meta("value")
+mappingproxy({'serializer': <class 'int'>})
+```
+
+#### Other types
+
+Any supported object with a `fields` attribute which values are mappings works:
+
+```python
+>>> class DictWithFields(dict):
+...     fields = {
+...         "name": {"serializer": str},
+...         "value": {"serializer": int, "limit": 100},
+...     }
+...
+>>> adapter = ItemAdapter(DictWithFields(name="foo", value=10))
+>>> adapter.get_field_meta("name")
+mappingproxy({'serializer': <class 'str'>})
+>>> adapter.get_field_meta("value")
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+```
+
+
 ## Examples
 
 ### `scrapy.item.Item` objects
@@ -87,7 +168,7 @@ True
 {'name': 'bar', 'price': 5}
 ```
 
-### `dict`s
+### `dict`
 
 ```python
 >>> from itemadapter import ItemAdapter
@@ -103,7 +184,7 @@ True
 {'name': 'bar', 'price': 5}
 ```
 
-### `dataclass`-based items
+### `dataclass` objects
 
 ```python
 >>> from dataclasses import dataclass
@@ -125,7 +206,7 @@ True
 InventoryItem(name='bar', price=5)
 ```
 
-### `attrs`-based items
+### `attrs` objects
 
 ```python
 >>> import attr

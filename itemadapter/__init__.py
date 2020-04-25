@@ -125,9 +125,7 @@ class ItemAdapter(MutableMapping):
             try:
                 return MappingProxyType(self.item.fields[field_name])
             except KeyError:
-                raise KeyError(
-                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-                )
+                raise KeyError("No metadata for field: %s" % field_name)
         else:
             raise TypeError("Item of type %r does not support field metadata" % type(self.item))
 
