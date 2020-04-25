@@ -16,7 +16,7 @@ setuptools.setup(
     url="https://github.com/elacuesta/itemadapter",
     packages=["itemadapter"],
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 4 - Beta",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.5",

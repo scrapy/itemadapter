@@ -1,4 +1,6 @@
 # itemadapter
+[![version](https://img.shields.io/pypi/v/itemadapter.svg)](https://pypi.python.org/pypi/itemadapter)
+[![pyversions](https://img.shields.io/pypi/pyversions/itemadapter.svg)](https://pypi.python.org/pypi/itemadapter)
 [![actions](https://github.com/elacuesta/itemadapter/workflows/Build/badge.svg)](https://github.com/elacuesta/itemadapter/actions)
 [![codecov](https://codecov.io/gh/elacuesta/itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/itemadapter)
 
@@ -128,7 +130,8 @@ mappingproxy({'serializer': <class 'int'>})
 
 #### Other types
 
-Any supported object with a `fields` attribute which values are mappings works:
+In fact, any supported object with a `fields`
+attribute which values are mappings works:
 
 ```python
 >>> class DictWithFields(dict):

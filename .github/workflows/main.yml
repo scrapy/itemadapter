@@ -35,6 +35,15 @@ jobs:
     - name: Upload coverage report
       run: bash <(curl -s https://codecov.io/bash)
 
+    - name: Publish to PyPI
+      if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+      run: |
+        pip install --upgrade setuptools wheel twine
+        python setup.py sdist bdist_wheel
+        export TWINE_USERNAME=__token__
+        export TWINE_PASSWORD=${{ secrets.PYPI_TOKEN }}
+        twine upload dist/*
+
 
   tests-ubuntu:
     name: "Tests: Python ${{ matrix.python-version }}, Ubuntu"
