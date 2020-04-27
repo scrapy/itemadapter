@@ -37,7 +37,7 @@ interface, including but not limited to:
 
 ### `ItemAdapter` class
 
-_class `itemadapter.ItemAdapter(item: Any)`_
+_class `itemadapter.adapter.ItemAdapter(item: Any)`_
 
 `ItemAdapter` implements the
 [`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
@@ -67,7 +67,7 @@ Return a list with the names of all the defined fields for the item.
 
 ### `is_item` function
 
-_`itemadapter.is_item(obj: Any) -> bool`_
+_`itemadapter.utils.is_item(obj: Any) -> bool`_
 
 Return `True` if the given object belongs to one of the supported types,
 `False` otherwise.

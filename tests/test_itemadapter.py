@@ -6,8 +6,10 @@ from unittest.mock import patch
 
 import attr
 
+from itemadapter.adapter import ItemAdapter
+from itemadapter.utils import is_attrs_instance, is_dataclass_instance, is_item
+
 from tests.mock_classes import Item, Field
-from itemadapter import _is_attrs_instance, _is_dataclass_instance, is_item, ItemAdapter
 
 
 try:
@@ -70,57 +72,57 @@ class ItemLikeTestCase(unittest.TestCase):
 class DataclassTestCase(unittest.TestCase):
     def test_false_always(self):
         """These objects should return False whether or not the dataclasses module is available"""
-        self.assertFalse(_is_dataclass_instance(int))
-        self.assertFalse(_is_dataclass_instance(sum))
-        self.assertFalse(_is_dataclass_instance(1234))
-        self.assertFalse(_is_dataclass_instance(object()))
-        self.assertFalse(_is_dataclass_instance(Item()))
-        self.assertFalse(_is_dataclass_instance(AttrsItem()))
-        self.assertFalse(_is_dataclass_instance(ExampleItem()))
-        self.assertFalse(_is_dataclass_instance("a string"))
-        self.assertFalse(_is_dataclass_instance(b"some bytes"))
-        self.assertFalse(_is_dataclass_instance({"a": "dict"}))
-        self.assertFalse(_is_dataclass_instance(["a", "list"]))
-        self.assertFalse(_is_dataclass_instance(("a", "tuple")))
-        self.assertFalse(_is_dataclass_instance({"a", "set"}))
+        self.assertFalse(is_dataclass_instance(int))
+        self.assertFalse(is_dataclass_instance(sum))
+        self.assertFalse(is_dataclass_instance(1234))
+        self.assertFalse(is_dataclass_instance(object()))
+        self.assertFalse(is_dataclass_instance(Item()))
+        self.assertFalse(is_dataclass_instance(AttrsItem()))
+        self.assertFalse(is_dataclass_instance(ExampleItem()))
+        self.assertFalse(is_dataclass_instance("a string"))
+        self.assertFalse(is_dataclass_instance(b"some bytes"))
+        self.assertFalse(is_dataclass_instance({"a": "dict"}))
+        self.assertFalse(is_dataclass_instance(["a", "list"]))
+        self.assertFalse(is_dataclass_instance(("a", "tuple")))
+        self.assertFalse(is_dataclass_instance({"a", "set"}))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     @patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
-        self.assertFalse(_is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+        self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_false_only_if_installed(self):
-        self.assertFalse(_is_dataclass_instance(DataClassItem))
+        self.assertFalse(is_dataclass_instance(DataClassItem))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true_only_if_installed(self):
-        self.assertTrue(_is_dataclass_instance(DataClassItem()))
-        self.assertTrue(_is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+        self.assertTrue(is_dataclass_instance(DataClassItem()))
+        self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
 
 class AttrsTestCase(unittest.TestCase):
     def test_false(self):
-        self.assertFalse(_is_attrs_instance(int))
-        self.assertFalse(_is_attrs_instance(sum))
-        self.assertFalse(_is_attrs_instance(1234))
-        self.assertFalse(_is_attrs_instance(object()))
-        self.assertFalse(_is_attrs_instance(Item()))
-        self.assertFalse(_is_attrs_instance(ExampleItem()))
-        self.assertFalse(_is_attrs_instance("a string"))
-        self.assertFalse(_is_attrs_instance(b"some bytes"))
-        self.assertFalse(_is_attrs_instance({"a": "dict"}))
-        self.assertFalse(_is_attrs_instance(["a", "list"]))
-        self.assertFalse(_is_attrs_instance(("a", "tuple")))
-        self.assertFalse(_is_attrs_instance({"a", "set"}))
+        self.assertFalse(is_attrs_instance(int))
+        self.assertFalse(is_attrs_instance(sum))
+        self.assertFalse(is_attrs_instance(1234))
+        self.assertFalse(is_attrs_instance(object()))
+        self.assertFalse(is_attrs_instance(Item()))
+        self.assertFalse(is_attrs_instance(ExampleItem()))
+        self.assertFalse(is_attrs_instance("a string"))
+        self.assertFalse(is_attrs_instance(b"some bytes"))
+        self.assertFalse(is_attrs_instance({"a": "dict"}))
+        self.assertFalse(is_attrs_instance(["a", "list"]))
+        self.assertFalse(is_attrs_instance(("a", "tuple")))
+        self.assertFalse(is_attrs_instance({"a", "set"}))
 
     @patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
-        self.assertFalse(_is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+        self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
     def test_true(self):
-        self.assertTrue(_is_attrs_instance(AttrsItem()))
-        self.assertTrue(_is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+        self.assertTrue(is_attrs_instance(AttrsItem()))
+        self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
