@@ -9,15 +9,15 @@ The `ItemAdapter` class is a wrapper for data container objects, providing a
 common interface to handle objects of different types in an uniform manner,
 regardless of their underlying implementation.
 
-This package started as an initiative to
-[support `dataclass` objects as items](https://github.com/scrapy/scrapy/pull/3881)
-in [`Scrapy`](https://github.com/scrapy/scrapy). It was extracted out to a
-standalone package in order to allow it to be used independently.
+This package started as an initiative to support `dataclass` objects as items
+<sup>[[1]](#dataclass-items)</sup>. It was extracted out to a standalone package
+in order to allow it to be used independently.
 
 Currently supported types are:
 
-* Classes that implement the [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping) interface,
-  including but not limited to:
+* Classes that implement the
+[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+interface, including but not limited to:
   * [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html)
   * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
@@ -230,3 +230,11 @@ True
 >>> item
 InventoryItem(name='bar', price=5)
 ```
+
+
+---
+
+
+<a name="dataclass-items">[1]</a>: `dataclass` objects as items:
+[issue](https://github.com/scrapy/scrapy/issues/3761) and
+[pull request](https://github.com/scrapy/scrapy/pull/3881)
