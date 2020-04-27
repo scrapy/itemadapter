@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="itemadapter",
-    version="0.0.1",
+    version="0.0.2",
     license="BSD",
     description="Common interface for Scrapy items",
     long_description=long_description,
