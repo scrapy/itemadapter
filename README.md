@@ -128,25 +128,6 @@ mappingproxy({'serializer': <class 'str'>})
 mappingproxy({'serializer': <class 'int'>})
 ```
 
-#### Other types
-
-In fact, any supported object with a `fields`
-attribute which values are mappings works:
-
-```python
->>> class DictWithFields(dict):
-...     fields = {
-...         "name": {"serializer": str},
-...         "value": {"serializer": int, "limit": 100},
-...     }
-...
->>> adapter = ItemAdapter(DictWithFields(name="foo", value=10))
->>> adapter.get_field_meta("name")
-mappingproxy({'serializer': <class 'str'>})
->>> adapter.get_field_meta("value")
-mappingproxy({'serializer': <class 'int'>, 'limit': 100})
-```
-
 
 ## Examples
 

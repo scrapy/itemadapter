@@ -2,3 +2,4 @@ attrs
 dataclasses; python_version == "3.6"
 pytest-cov>=2.8
 pytest<5.4
+scrapy>=2.0

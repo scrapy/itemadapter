@@ -31,6 +31,18 @@ def is_attrs_instance(obj: Any) -> bool:
         return attr.has(obj) and not isinstance(obj, type)
 
 
+def is_scrapy_item(obj: Any) -> bool:
+    """
+    Return True if the given object belongs to a subclass of scrapy.item.Item, False otherwise.
+    """
+    try:
+        from scrapy.item import Item
+    except ImportError:
+        return False
+    else:
+        return isinstance(obj, Item)
+
+
 def is_item(obj: Any) -> bool:
     """
     Return True if the given object belongs to one of the supported types, False otherwise.

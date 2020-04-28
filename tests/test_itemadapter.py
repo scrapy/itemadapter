@@ -5,11 +5,10 @@ from types import MappingProxyType
 from unittest.mock import patch
 
 import attr
+from scrapy.item import Item, Field
 
 from itemadapter.adapter import ItemAdapter
-from itemadapter.utils import is_attrs_instance, is_dataclass_instance, is_item
-
-from tests.mock_classes import Item, Field
+from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
 
 try:
@@ -32,7 +31,7 @@ class AttrsItem:
     value = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": int})
 
 
-class ExampleItem(Item):
+class ScrapyItem(Item):
     name = Field(serializer=str)
     value = Field(serializer=int)
 
@@ -55,18 +54,43 @@ class ItemLikeTestCase(unittest.TestCase):
         self.assertFalse(is_item(dict))
         self.assertFalse(is_item(Item))
         self.assertFalse(is_item(DataClassItem))
-        self.assertFalse(is_item(ExampleItem))
+        self.assertFalse(is_item(ScrapyItem))
         self.assertFalse(is_item(AttrsItem))
 
     def test_true(self):
         self.assertTrue(is_item({"a": "dict"}))
         self.assertTrue(is_item(Item()))
-        self.assertTrue(is_item(ExampleItem(name="asdf", value=1234)))
+        self.assertTrue(is_item(ScrapyItem(name="asdf", value=1234)))
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_dataclass(self):
         self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
+
+
+class ScrapyItemTestCase(unittest.TestCase):
+    def test_false(self):
+        self.assertFalse(is_scrapy_item(int))
+        self.assertFalse(is_scrapy_item(sum))
+        self.assertFalse(is_scrapy_item(1234))
+        self.assertFalse(is_scrapy_item(object()))
+        self.assertFalse(is_scrapy_item(AttrsItem()))
+        self.assertFalse(is_scrapy_item("a string"))
+        self.assertFalse(is_scrapy_item(b"some bytes"))
+        self.assertFalse(is_scrapy_item({"a": "dict"}))
+        self.assertFalse(is_scrapy_item(["a", "list"]))
+        self.assertFalse(is_scrapy_item(("a", "tuple")))
+        self.assertFalse(is_scrapy_item({"a", "set"}))
+        self.assertFalse(is_scrapy_item(ScrapyItem))
+
+    @patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(is_scrapy_item(ScrapyItem(name="asdf", value=1234)))
+
+    def test_true_only(self):
+        self.assertTrue(is_scrapy_item(ScrapyItem()))
+        self.assertTrue(is_scrapy_item(Item()))
+        self.assertTrue(is_scrapy_item(ScrapyItem(name="asdf", value=1234)))
 
 
 class DataclassTestCase(unittest.TestCase):
@@ -78,7 +102,7 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance(object()))
         self.assertFalse(is_dataclass_instance(Item()))
         self.assertFalse(is_dataclass_instance(AttrsItem()))
-        self.assertFalse(is_dataclass_instance(ExampleItem()))
+        self.assertFalse(is_dataclass_instance(ScrapyItem()))
         self.assertFalse(is_dataclass_instance("a string"))
         self.assertFalse(is_dataclass_instance(b"some bytes"))
         self.assertFalse(is_dataclass_instance({"a": "dict"}))
@@ -108,7 +132,7 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance(1234))
         self.assertFalse(is_attrs_instance(object()))
         self.assertFalse(is_attrs_instance(Item()))
-        self.assertFalse(is_attrs_instance(ExampleItem()))
+        self.assertFalse(is_attrs_instance(ScrapyItem()))
         self.assertFalse(is_attrs_instance("a string"))
         self.assertFalse(is_attrs_instance(b"some bytes"))
         self.assertFalse(is_attrs_instance({"a": "dict"}))
@@ -135,10 +159,10 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         )
 
     def test_repr_dict_item(self):
-        item = ExampleItem(name="asdf", value=1234)
+        item = ScrapyItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "ItemAdapter for type ExampleItem: {'name': 'asdf', 'value': 1234}"
+            repr(adapter), "ItemAdapter for type ScrapyItem: {'name': 'asdf', 'value': 1234}"
         )
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
@@ -168,7 +192,7 @@ class ItemAdapterTestCase(unittest.TestCase):
             ItemAdapter(1234)
 
     def test_get_set_value(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, dict, DataClassItem, AttrsItem]):
             item = cls()
             adapter = ItemAdapter(item)
             self.assertEqual(adapter.get("name"), None)
@@ -180,7 +204,7 @@ class ItemAdapterTestCase(unittest.TestCase):
             self.assertEqual(adapter["name"], "asdf")
             self.assertEqual(adapter["value"], 1234)
 
-        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertEqual(adapter.get("name"), "asdf")
@@ -189,7 +213,7 @@ class ItemAdapterTestCase(unittest.TestCase):
             self.assertEqual(adapter["value"], 1234)
 
     def test_get_value_keyerror_all(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, dict, DataClassItem, AttrsItem]):
             item = cls()
             adapter = ItemAdapter(item)
             with self.assertRaises(KeyError):
@@ -199,21 +223,21 @@ class ItemAdapterTestCase(unittest.TestCase):
         """
         scrapy.item.Item and dicts can be initialized without default values for all fields
         """
-        for cls in [ExampleItem, dict]:
+        for cls in [ScrapyItem, dict]:
             item = cls()
             adapter = ItemAdapter(item)
             with self.assertRaises(KeyError):
                 adapter["name"]
 
     def test_set_value_keyerror(self):
-        for cls in filter(None, [ExampleItem, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, DataClassItem, AttrsItem]):
             item = cls()
             adapter = ItemAdapter(item)
             with self.assertRaises(KeyError):
                 adapter["undefined_field"] = "some value"
 
     def test_delitem_len_iter(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertEqual(len(adapter), 2)
@@ -235,13 +259,13 @@ class ItemAdapterTestCase(unittest.TestCase):
                 del adapter["undefined_field"]
 
     def test_as_dict(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
 
     def test_field_names(self):
-        for cls in filter(None, [ExampleItem, dict, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, dict, DataClassItem, AttrsItem]):
             item = cls(name="asdf", value=1234)
             adapter = ItemAdapter(item)
             self.assertIsInstance(adapter.field_names(), list)
@@ -250,7 +274,7 @@ class ItemAdapterTestCase(unittest.TestCase):
 
 class MetadataTestCase(unittest.TestCase):
     def test_meta_common(self):
-        for cls in filter(None, [ExampleItem, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, DataClassItem, AttrsItem]):
             adapter = ItemAdapter(cls())
             self.assertIsInstance(adapter.get_field_meta("name"), MappingProxyType)
             self.assertIsInstance(adapter.get_field_meta("value"), MappingProxyType)
@@ -267,7 +291,7 @@ class MetadataTestCase(unittest.TestCase):
             adapter.get_field_meta("undefined_field")
 
     def test_get_field_meta_defined_fields(self):
-        for cls in filter(None, [ExampleItem, DataClassItem, AttrsItem]):
+        for cls in filter(None, [ScrapyItem, DataClassItem, AttrsItem]):
             adapter = ItemAdapter(cls())
             self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
             self.assertEqual(
