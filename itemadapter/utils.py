@@ -1,4 +1,3 @@
-from collections.abc import MutableMapping
 from typing import Any
 
 
@@ -47,4 +46,9 @@ def is_item(obj: Any) -> bool:
     """
     Return True if the given object belongs to one of the supported types, False otherwise.
     """
-    return isinstance(obj, MutableMapping) or is_dataclass_instance(obj) or is_attrs_instance(obj)
+    return (
+        isinstance(obj, dict)
+        or is_scrapy_item(obj)
+        or is_dataclass_instance(obj)
+        or is_attrs_instance(obj)
+    )

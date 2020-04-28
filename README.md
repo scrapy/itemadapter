@@ -15,11 +15,8 @@ in order to allow it to be used independently.
 
 Currently supported types are:
 
-* Classes that implement the
-[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
-interface, including but not limited to:
-  * [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html)
-  * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
+* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
+* [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html) and subclasses
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
 
@@ -54,12 +51,12 @@ support field metadata.
 
 The returned value is taken from the following sources, depending on the item type:
 
+* [`scrapy.item.Field`](https://docs.scrapy.org/en/latest/topics/items.html#item-fields)
+for `scrapy.item.Item`s
 * [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
   for `dataclass`-based items
 * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
   for `attrs`-based items
-* [`scrapy.item.Field`](https://docs.scrapy.org/en/latest/topics/items.html#item-fields)
-  for `scrapy.item.Item`s
 
 `field_names() -> List[str]`
 
