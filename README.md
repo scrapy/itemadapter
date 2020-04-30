@@ -27,17 +27,17 @@ Currently supported types are:
 > as it doesn't provide any functionality on its own:
 >
 > ```python
->>> from scrapy.item import BaseItem, Field
->>>
->>> class CustomItem(BaseItem):
-...     name = Field()
-...
->>> item = CustomItem(name="foo")
->>> print(item["name"])
-Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-TypeError: 'CustomItem' object is not subscriptable
-```
+> >>> from scrapy.item import BaseItem, Field
+> >>>
+> >>> class CustomItem(BaseItem):
+> ...     name = Field()
+> ...
+> >>> item = CustomItem(name="foo")
+> >>> print(item["name"])
+> Traceback (most recent call last):
+>   File "<stdin>", line 1, in <module>
+> TypeError: 'CustomItem' object is not subscriptable
+> ```
 
 ## Requirements
 
