@@ -14,8 +14,7 @@ def is_dataclass_instance(obj: Any) -> bool:
         import dataclasses
     except ImportError:
         return False
-    else:
-        return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
+    return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
 def is_attrs_instance(obj: Any) -> bool:
@@ -26,20 +25,23 @@ def is_attrs_instance(obj: Any) -> bool:
         import attr
     except ImportError:
         return False
-    else:
-        return attr.has(obj) and not isinstance(obj, type)
+    return attr.has(obj) and not isinstance(obj, type)
 
 
 def is_scrapy_item(obj: Any) -> bool:
     """
-    Return True if the given object belongs to a subclass of scrapy.item.Item, False otherwise.
+    Return True if the given object is a Scrapy item, False otherwise.
     """
     try:
-        from scrapy.item import Item
+        import scrapy
     except ImportError:
         return False
-    else:
-        return isinstance(obj, Item)
+    if isinstance(obj, scrapy.item.Item):
+        return True
+    try:
+        return isinstance(obj, scrapy.item.BaseItem)
+    except AttributeError:
+        return False
 
 
 def is_item(obj: Any) -> bool:

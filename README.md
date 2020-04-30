@@ -16,14 +16,33 @@ in order to allow it to be used independently.
 Currently supported types are:
 
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
-* [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html) and subclasses
+* [Scrapy items](https://docs.scrapy.org/en/latest/topics/items.html)
+  (`scrapy.item.Item`, `scrapy.item.BaseItem` and subclasses)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
 
+> **Warning**
+>
+> Be careful when inheriting from `scrapy.item.BaseItem`,
+> as it doesn't provide any functionality on its own:
+>
+> ```python
+>>> from scrapy.item import BaseItem, Field
+>>>
+>>> class CustomItem(BaseItem):
+...     name = Field()
+...
+>>> item = CustomItem(name="foo")
+>>> print(item["name"])
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: 'CustomItem' object is not subscriptable
+```
 
 ## Requirements
 
 * Python 3.5+
+* [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
 * `dataclasses` ([stdlib](https://docs.python.org/3/library/dataclasses.html) in Python 3.7+,
   or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed
   to interact with `dataclass`-based items
