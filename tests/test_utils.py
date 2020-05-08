@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 import attr
+import scrapy
 from scrapy.item import Item, Field
 
 from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
@@ -87,6 +88,44 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(ScrapyItem()))
         self.assertTrue(is_scrapy_item(Item()))
         self.assertTrue(is_scrapy_item(ScrapyItem(name="asdf", value=1234)))
+
+
+class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
+    @unittest.skipIf(not hasattr(scrapy.item, "_BaseItem"), "scrapy.item._BaseItem not available")
+    def test_deprecated_underscore_baseitem(self):
+
+        class SubClassed_BaseItem(scrapy.item._BaseItem):
+            pass
+
+        self.assertTrue(is_scrapy_item(scrapy.item._BaseItem()))
+        self.assertTrue(is_scrapy_item(SubClassed_BaseItem()))
+
+    @unittest.skipIf(not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available")
+    def test_deprecated_baseitem(self):
+
+        class SubClassedBaseItem(scrapy.item.BaseItem):
+            pass
+
+        self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
+        self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
+
+    @unittest.skipIf(not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available")
+    def test_unavailable_baseitem(self):
+        BaseItem = scrapy.item.BaseItem
+        delattr(scrapy.item, "BaseItem")
+        self.assertFalse(is_scrapy_item(int))
+        self.assertFalse(is_scrapy_item(sum))
+        self.assertFalse(is_scrapy_item(1234))
+        self.assertFalse(is_scrapy_item(object()))
+        self.assertFalse(is_scrapy_item(AttrsItem()))
+        self.assertFalse(is_scrapy_item("a string"))
+        self.assertFalse(is_scrapy_item(b"some bytes"))
+        self.assertFalse(is_scrapy_item({"a": "dict"}))
+        self.assertFalse(is_scrapy_item(["a", "list"]))
+        self.assertFalse(is_scrapy_item(("a", "tuple")))
+        self.assertFalse(is_scrapy_item({"a", "set"}))
+        self.assertFalse(is_scrapy_item(ScrapyItem))
+        scrapy.item.BaseItem = BaseItem
 
 
 class DataclassTestCase(unittest.TestCase):

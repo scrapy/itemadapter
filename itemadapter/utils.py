@@ -39,7 +39,9 @@ def is_scrapy_item(obj: Any) -> bool:
     if isinstance(obj, scrapy.item.Item):
         return True
     try:
-        return isinstance(obj, scrapy.item.BaseItem)
+        # handle deprecated BaseItem
+        BaseItem = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
+        return isinstance(obj, BaseItem)
     except AttributeError:
         return False
 
