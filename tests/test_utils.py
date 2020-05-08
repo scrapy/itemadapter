@@ -93,7 +93,6 @@ class ScrapyItemTestCase(unittest.TestCase):
 class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
     @unittest.skipIf(not hasattr(scrapy.item, "_BaseItem"), "scrapy.item._BaseItem not available")
     def test_deprecated_underscore_baseitem(self):
-
         class SubClassed_BaseItem(scrapy.item._BaseItem):
             pass
 
@@ -102,7 +101,6 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
 
     @unittest.skipIf(not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available")
     def test_deprecated_baseitem(self):
-
         class SubClassedBaseItem(scrapy.item.BaseItem):
             pass
 
