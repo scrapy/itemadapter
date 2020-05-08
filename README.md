@@ -2,7 +2,7 @@
 [![version](https://img.shields.io/pypi/v/itemadapter.svg)](https://pypi.python.org/pypi/itemadapter)
 [![pyversions](https://img.shields.io/pypi/pyversions/itemadapter.svg)](https://pypi.python.org/pypi/itemadapter)
 [![actions](https://github.com/scrapy/itemadapter/workflows/Build/badge.svg)](https://github.com/scrapy/itemadapter/actions)
-[![codecov](https://codecov.io/gh/elacuesta/itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/itemadapter)
+[![codecov](https://codecov.io/gh/scrapy/itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/scrapy/itemadapter)
 
 
 The `ItemAdapter` class is a wrapper for data container objects, providing a
