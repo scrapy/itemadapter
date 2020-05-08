@@ -1,7 +1,7 @@
 # itemadapter
 [![version](https://img.shields.io/pypi/v/itemadapter.svg)](https://pypi.python.org/pypi/itemadapter)
 [![pyversions](https://img.shields.io/pypi/pyversions/itemadapter.svg)](https://pypi.python.org/pypi/itemadapter)
-[![actions](https://github.com/elacuesta/itemadapter/workflows/Build/badge.svg)](https://github.com/elacuesta/itemadapter/actions)
+[![actions](https://github.com/scrapy/itemadapter/workflows/Build/badge.svg)](https://github.com/scrapy/itemadapter/actions)
 [![codecov](https://codecov.io/gh/elacuesta/itemadapter/branch/master/graph/badge.svg)](https://codecov.io/gh/elacuesta/itemadapter)
 
 
