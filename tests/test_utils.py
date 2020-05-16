@@ -107,24 +107,6 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
 
-    @unittest.skipIf(not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available")
-    def test_unavailable_baseitem(self):
-        BaseItem = scrapy.item.BaseItem
-        delattr(scrapy.item, "BaseItem")
-        self.assertFalse(is_scrapy_item(int))
-        self.assertFalse(is_scrapy_item(sum))
-        self.assertFalse(is_scrapy_item(1234))
-        self.assertFalse(is_scrapy_item(object()))
-        self.assertFalse(is_scrapy_item(AttrsItem()))
-        self.assertFalse(is_scrapy_item("a string"))
-        self.assertFalse(is_scrapy_item(b"some bytes"))
-        self.assertFalse(is_scrapy_item({"a": "dict"}))
-        self.assertFalse(is_scrapy_item(["a", "list"]))
-        self.assertFalse(is_scrapy_item(("a", "tuple")))
-        self.assertFalse(is_scrapy_item({"a", "set"}))
-        self.assertFalse(is_scrapy_item(ScrapyItem))
-        scrapy.item.BaseItem = BaseItem
-
 
 class DataclassTestCase(unittest.TestCase):
     def test_false_always(self):
