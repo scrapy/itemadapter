@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest import mock
 
 import attr
 import scrapy
@@ -80,7 +80,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(is_scrapy_item({"a", "set"}))
         self.assertFalse(is_scrapy_item(ScrapyItem))
 
-    @patch("builtins.__import__", mocked_import)
+    @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_scrapy_item(ScrapyItem(name="asdf", value=1234)))
 
@@ -107,6 +107,14 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
 
+    def test_removed_baseitem(self):
+        class MockItemModule:
+            Item = Item
+
+        with mock.patch("scrapy.item", MockItemModule):
+            self.assertFalse(is_scrapy_item(dict()))
+            self.assertFalse(is_scrapy_item(AttrsItem()))
+
 
 class DataclassTestCase(unittest.TestCase):
     def test_false_always(self):
@@ -126,7 +134,7 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance({"a", "set"}))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    @patch("builtins.__import__", mocked_import)
+    @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
@@ -155,7 +163,7 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance(("a", "tuple")))
         self.assertFalse(is_attrs_instance({"a", "set"}))
 
-    @patch("builtins.__import__", mocked_import)
+    @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
