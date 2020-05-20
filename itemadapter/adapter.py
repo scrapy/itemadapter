@@ -7,9 +7,8 @@ from .utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_
 
 class ItemAdapter(MutableMapping):
     """
-    Wrapper class to interact with items. It provides a common interface for components
-    such as middlewares and pipelines to extract and set data without having to take
-    the item's implementation (scrapy.Item, dict, dataclass) into account.
+    Wrapper class to interact with data container objects. It provides a common interface
+    to extract and set data without having to take the object's type into account.
     """
 
     def __init__(self, item: Any) -> None:
