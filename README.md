@@ -122,7 +122,7 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 >>> @attr.s
 ... class InventoryItem:
 ...     name = attr.ib(metadata={"serializer": str})
-...     value = attr.ib(metadata={"serializer": int})
+...     value = attr.ib(metadata={"serializer": int, "limit": 100})
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")

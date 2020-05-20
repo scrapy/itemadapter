@@ -24,8 +24,8 @@ else:
 
 @attr.s
 class AttrsItem:
-    name = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": str})
-    value = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": int})
+    name = attr.ib(default=None, metadata={"serializer": str})
+    value = attr.ib(default=None, metadata={"serializer": int})
 
 
 class ScrapyItem(Item):
