@@ -9,34 +9,13 @@ The `ItemAdapter` class is a wrapper for data container objects, providing a
 common interface to handle objects of different types in an uniform manner,
 regardless of their underlying implementation.
 
-This package started as an initiative to support `dataclass` objects as items
-<sup>[[1]](#dataclass-items)</sup>. It was extracted out to a standalone package
-in order to allow it to be used independently.
-
 Currently supported types are:
 
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
-* [Scrapy items](https://docs.scrapy.org/en/latest/topics/items.html)
-  (`scrapy.item.Item`, `scrapy.item.BaseItem` and subclasses)
+* [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html#scrapy.item.Item)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
 
-**Warning:**
-Be careful when inheriting from `scrapy.item.BaseItem`,
-as it doesn't provide any functionality on its own:
-
-```python
->>> from scrapy.item import BaseItem, Field
->>>
->>> class CustomItem(BaseItem):
-...     name = Field()
-...
->>> item = CustomItem(name="foo")
->>> print(item["name"])
-Traceback (most recent call last):
-  File "<stdin>", line 1, in <module>
-TypeError: 'CustomItem' object is not subscriptable
-```
 
 ## Requirements
 
@@ -46,6 +25,15 @@ TypeError: 'CustomItem' object is not subscriptable
   or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed
   to interact with `dataclass`-based items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
+
+
+## Installation
+
+`itemadapter` is available on [`PyPI`](https://pypi.python.org/pypi/itemadapter), it can be installed with `pip`:
+
+```
+pip install itemadapter
+```
 
 
 ## API
@@ -226,11 +214,3 @@ True
 >>> item
 InventoryItem(name='bar', price=5)
 ```
-
-
----
-
-
-<a name="dataclass-items">[1]</a>: `dataclass` objects as items:
-[issue](https://github.com/scrapy/scrapy/issues/3761) and
-[pull request](https://github.com/scrapy/scrapy/pull/3881)
