@@ -64,8 +64,15 @@ class ItemAdapter(MutableMapping):
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """
-        Return metadata for the given field name. If the wrapped item is a scrapy.item.Item
-        instance, return the corresponding scrapy.item.Field object.
+        Return available metadata for the given field name.
+
+        Field metadata is taken from different sources, depending on the item type:
+        * scrapy.item.Item: corresponding scrapy.item.Field object
+        * dataclass items: "metadata" attribute for the corresponding field
+        * attrs items: "metadata" attribute for the corresponding field
+
+        The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
+        of the original mapping, which gets automatically updated if the original mapping changes.
         """
         if is_dataclass_instance(self.item):
             from dataclasses import fields
