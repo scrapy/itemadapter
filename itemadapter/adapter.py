@@ -2,6 +2,7 @@ from collections.abc import MutableMapping
 from types import MappingProxyType
 from typing import Any, Iterator, List
 
+from .exceptions import NoMetadataSupport
 from .utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
 
@@ -72,6 +73,8 @@ class ItemAdapter(MutableMapping):
 
         The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
         of the original mapping, which gets automatically updated if the original mapping changes.
+
+        If the wrapped item does not support metadata, NoMetadataSupport is raised.
         """
         if is_dataclass_instance(self.item):
             from dataclasses import fields
@@ -94,7 +97,9 @@ class ItemAdapter(MutableMapping):
         elif is_scrapy_item(self.item):
             return MappingProxyType(self.item.fields[field_name])
         else:
-            raise TypeError("Item of type %r does not support field metadata" % type(self.item))
+            raise NoMetadataSupport(
+                "Item of type %r does not support field metadata" % type(self.item)
+            )
 
     def field_names(self) -> List[str]:
         """

@@ -111,8 +111,8 @@ Two additional methods are available:
 `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return a [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
-object with metadata about the given field, or raise `TypeError` if the item class does not
-support field metadata.
+object with metadata about the given field, or raise `itemadapter.exceptions.NoMetadataSupport`
+if the item class does not support field metadata.
 
 The returned value is taken from the following sources, depending on the item type:
 
@@ -126,6 +126,14 @@ for `scrapy.item.Item`s
 `field_names() -> List[str]`
 
 Return a list with the names of all the defined fields for the item.
+
+
+### `NoMetadataSupport` exception
+
+_`itemadapter.exceptions.NoMetadataSupport(TypeError)`_
+
+Raised when `ItemAdapter.get_field_meta` is called on an item that does not support metadata.
+
 
 ### `is_item` function
 

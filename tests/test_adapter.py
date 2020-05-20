@@ -6,6 +6,7 @@ import attr
 from scrapy.item import Item, Field
 
 from itemadapter.adapter import ItemAdapter
+from itemadapter.exceptions import NoMetadataSupport
 
 
 try:
@@ -171,11 +172,11 @@ class MetadataTestCase(unittest.TestCase):
 
     def test_meta_dict(self):
         adapter = ItemAdapter(dict(name="foo", value=5))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NoMetadataSupport):
             adapter.get_field_meta("name")
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NoMetadataSupport):
             adapter.get_field_meta("value")
-        with self.assertRaises(TypeError):
+        with self.assertRaises(NoMetadataSupport):
             adapter.get_field_meta("undefined_field")
 
     def test_get_field_meta_defined_fields(self):
