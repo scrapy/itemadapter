@@ -1,5 +1,6 @@
 import unittest
 from types import MappingProxyType
+from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
 
@@ -89,7 +90,7 @@ class BaseTestMixin:
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertIsInstance(adapter.field_names(), list)
+        self.assertIsInstance(adapter.field_names(), KeysView)
         self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
 
 
@@ -148,6 +149,13 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
         adapter = ItemAdapter(self.item_class(name="foo", value=5))
         for field_name in ("name", "value", "undefined_field"):
             self.assertEqual(adapter.get_field_meta(field_name), MappingProxyType({}))
+
+    def test_field_names_updated(self):
+        item = self.item_class(name="asdf")
+        field_names = ItemAdapter(item).field_names()
+        self.assertEqual(sorted(field_names), ["name"])
+        item["value"] = 1234
+        self.assertEqual(sorted(field_names), ["name", "value"])
 
 
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
