@@ -41,7 +41,61 @@ pip install itemadapter
 `itemadapter` is distributed under a [BSD-3](https://opensource.org/licenses/BSD-3-Clause) license.
 
 
-## API
+## Basic usage
+
+The following is a simple example using a `dataclass` object.
+Consider the following type definition:
+
+```python
+from dataclasses import dataclass
+from itemadapter import ItemAdapter, is_item
+
+@dataclass
+class InventoryItem:
+    name: str
+    price: float
+    stock: int
+```
+
+The `ItemAdapter` object can be treated much like a dictionary:
+
+```python
+>>> obj = InventoryItem(name='foo', price=20.5, stock=10)
+>>> is_item(obj)
+True
+>>> adapter = ItemAdapter(obj)
+>>> len(adapter)
+3
+>>> adapter["name"]
+'foo'
+>>> adapter.get("price")
+20.5
+```
+
+The wrapped object is modified in-place:
+```python
+>>> adapter["name"] = "bar"
+>>> adapter.update({"price": 12.7, "stock": 9})
+>>> adapter.item
+InventoryItem(name='bar', price=12.7, stock=9)
+>>> adapter.item is obj
+True
+```
+
+### Converting to dictionary
+
+Passing an `ItemAdapter` to the `dict` built-in will create a new dictionary:
+
+```python
+>>> dict(adapter)
+{'name': 'bar', 'price': 12.7, 'stock': 9}
+```
+
+
+For more examples using different types, refer to the [examples section](#more-examples) below.
+
+
+## Public API
 
 ### `ItemAdapter` class
 
@@ -137,7 +191,7 @@ mappingproxy({'serializer': <class 'int'>})
 ```
 
 
-## Examples
+## More examples
 
 ### `scrapy.item.Item` objects
 
