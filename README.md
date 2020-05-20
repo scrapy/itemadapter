@@ -36,6 +36,11 @@ pip install itemadapter
 ```
 
 
+## License
+
+`itemadapter` is distributed under a [BSD-3](https://opensource.org/licenses/BSD-3-Clause) license.
+
+
 ## API
 
 ### `ItemAdapter` class
