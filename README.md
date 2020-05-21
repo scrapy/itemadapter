@@ -91,7 +91,6 @@ Passing an `ItemAdapter` to the `dict` built-in will create a new dictionary:
 {'name': 'bar', 'price': 12.7, 'stock': 9}
 ```
 
-
 For more examples using different types, refer to the [examples section](#more-examples) below.
 
 
