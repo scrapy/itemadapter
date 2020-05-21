@@ -40,6 +40,62 @@ class ItemLikeTestCase(unittest.TestCase):
         self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
 
 
+class AttrsTestCase(unittest.TestCase):
+    def test_false(self):
+        self.assertFalse(is_attrs_instance(int))
+        self.assertFalse(is_attrs_instance(sum))
+        self.assertFalse(is_attrs_instance(1234))
+        self.assertFalse(is_attrs_instance(object()))
+        self.assertFalse(is_attrs_instance(ScrapyItem()))
+        self.assertFalse(is_attrs_instance(ScrapySubclassedItem()))
+        self.assertFalse(is_attrs_instance("a string"))
+        self.assertFalse(is_attrs_instance(b"some bytes"))
+        self.assertFalse(is_attrs_instance({"a": "dict"}))
+        self.assertFalse(is_attrs_instance(["a", "list"]))
+        self.assertFalse(is_attrs_instance(("a", "tuple")))
+        self.assertFalse(is_attrs_instance({"a", "set"}))
+
+    @mock.patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+
+    def test_true(self):
+        self.assertTrue(is_attrs_instance(AttrsItem()))
+        self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+
+
+class DataclassTestCase(unittest.TestCase):
+    def test_false_always(self):
+        """These objects should return False whether or not the dataclasses module is available"""
+        self.assertFalse(is_dataclass_instance(int))
+        self.assertFalse(is_dataclass_instance(sum))
+        self.assertFalse(is_dataclass_instance(1234))
+        self.assertFalse(is_dataclass_instance(object()))
+        self.assertFalse(is_dataclass_instance(ScrapyItem()))
+        self.assertFalse(is_dataclass_instance(AttrsItem()))
+        self.assertFalse(is_dataclass_instance(ScrapySubclassedItem()))
+        self.assertFalse(is_dataclass_instance("a string"))
+        self.assertFalse(is_dataclass_instance(b"some bytes"))
+        self.assertFalse(is_dataclass_instance({"a": "dict"}))
+        self.assertFalse(is_dataclass_instance(["a", "list"]))
+        self.assertFalse(is_dataclass_instance(("a", "tuple")))
+        self.assertFalse(is_dataclass_instance({"a", "set"}))
+
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @mock.patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    def test_false_only_if_installed(self):
+        self.assertFalse(is_dataclass_instance(DataClassItem))
+
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    def test_true_only_if_installed(self):
+        self.assertTrue(is_dataclass_instance(DataClassItem()))
+        self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+
+
 class ScrapyItemTestCase(unittest.TestCase):
     def test_false(self):
         self.assertFalse(is_scrapy_item(int))
@@ -89,59 +145,3 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         with mock.patch("scrapy.item", MockItemModule):
             self.assertFalse(is_scrapy_item(dict()))
             self.assertFalse(is_scrapy_item(AttrsItem()))
-
-
-class DataclassTestCase(unittest.TestCase):
-    def test_false_always(self):
-        """These objects should return False whether or not the dataclasses module is available"""
-        self.assertFalse(is_dataclass_instance(int))
-        self.assertFalse(is_dataclass_instance(sum))
-        self.assertFalse(is_dataclass_instance(1234))
-        self.assertFalse(is_dataclass_instance(object()))
-        self.assertFalse(is_dataclass_instance(ScrapyItem()))
-        self.assertFalse(is_dataclass_instance(AttrsItem()))
-        self.assertFalse(is_dataclass_instance(ScrapySubclassedItem()))
-        self.assertFalse(is_dataclass_instance("a string"))
-        self.assertFalse(is_dataclass_instance(b"some bytes"))
-        self.assertFalse(is_dataclass_instance({"a": "dict"}))
-        self.assertFalse(is_dataclass_instance(["a", "list"]))
-        self.assertFalse(is_dataclass_instance(("a", "tuple")))
-        self.assertFalse(is_dataclass_instance({"a", "set"}))
-
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
-
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    def test_false_only_if_installed(self):
-        self.assertFalse(is_dataclass_instance(DataClassItem))
-
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    def test_true_only_if_installed(self):
-        self.assertTrue(is_dataclass_instance(DataClassItem()))
-        self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
-
-
-class AttrsTestCase(unittest.TestCase):
-    def test_false(self):
-        self.assertFalse(is_attrs_instance(int))
-        self.assertFalse(is_attrs_instance(sum))
-        self.assertFalse(is_attrs_instance(1234))
-        self.assertFalse(is_attrs_instance(object()))
-        self.assertFalse(is_attrs_instance(ScrapyItem()))
-        self.assertFalse(is_attrs_instance(ScrapySubclassedItem()))
-        self.assertFalse(is_attrs_instance("a string"))
-        self.assertFalse(is_attrs_instance(b"some bytes"))
-        self.assertFalse(is_attrs_instance({"a": "dict"}))
-        self.assertFalse(is_attrs_instance(["a", "list"]))
-        self.assertFalse(is_attrs_instance(("a", "tuple")))
-        self.assertFalse(is_attrs_instance({"a", "set"}))
-
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
-
-    def test_true(self):
-        self.assertTrue(is_attrs_instance(AttrsItem()))
-        self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
