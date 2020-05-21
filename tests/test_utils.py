@@ -1,36 +1,11 @@
 import unittest
 from unittest import mock
 
-import attr
 import scrapy
-from scrapy.item import Item, Field
 
 from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
-
-try:
-    from dataclasses import make_dataclass, field
-except ImportError:
-    DataClassItem = None
-else:
-    DataClassItem = make_dataclass(
-        "DataClassItem",
-        [
-            ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
-            ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
-        ],
-    )
-
-
-@attr.s
-class AttrsItem:
-    name = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": str})
-    value = attr.ib(default=attr.Factory(lambda: None), metadata={"serializer": int})
-
-
-class ScrapyItem(Item):
-    name = Field(serializer=str)
-    value = Field(serializer=int)
+from tests import AttrsItem, DataClassItem, ScrapyItem, ScrapySubclassedItem
 
 
 def mocked_import(name, *args, **kwargs):
@@ -49,15 +24,15 @@ class ItemLikeTestCase(unittest.TestCase):
         self.assertFalse(is_item(("a", "tuple")))
         self.assertFalse(is_item({"a", "set"}))
         self.assertFalse(is_item(dict))
-        self.assertFalse(is_item(Item))
-        self.assertFalse(is_item(DataClassItem))
         self.assertFalse(is_item(ScrapyItem))
+        self.assertFalse(is_item(DataClassItem))
+        self.assertFalse(is_item(ScrapySubclassedItem))
         self.assertFalse(is_item(AttrsItem))
 
     def test_true(self):
         self.assertTrue(is_item({"a": "dict"}))
-        self.assertTrue(is_item(Item()))
-        self.assertTrue(is_item(ScrapyItem(name="asdf", value=1234)))
+        self.assertTrue(is_item(ScrapyItem()))
+        self.assertTrue(is_item(ScrapySubclassedItem(name="asdf", value=1234)))
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
@@ -78,16 +53,16 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(is_scrapy_item(["a", "list"]))
         self.assertFalse(is_scrapy_item(("a", "tuple")))
         self.assertFalse(is_scrapy_item({"a", "set"}))
-        self.assertFalse(is_scrapy_item(ScrapyItem))
+        self.assertFalse(is_scrapy_item(ScrapySubclassedItem))
 
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
-        self.assertFalse(is_scrapy_item(ScrapyItem(name="asdf", value=1234)))
+        self.assertFalse(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
     def test_true_only(self):
+        self.assertTrue(is_scrapy_item(ScrapySubclassedItem()))
         self.assertTrue(is_scrapy_item(ScrapyItem()))
-        self.assertTrue(is_scrapy_item(Item()))
-        self.assertTrue(is_scrapy_item(ScrapyItem(name="asdf", value=1234)))
+        self.assertTrue(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
 
 class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
@@ -109,7 +84,7 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
 
     def test_removed_baseitem(self):
         class MockItemModule:
-            Item = Item
+            Item = ScrapyItem
 
         with mock.patch("scrapy.item", MockItemModule):
             self.assertFalse(is_scrapy_item(dict()))
@@ -123,9 +98,9 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance(sum))
         self.assertFalse(is_dataclass_instance(1234))
         self.assertFalse(is_dataclass_instance(object()))
-        self.assertFalse(is_dataclass_instance(Item()))
-        self.assertFalse(is_dataclass_instance(AttrsItem()))
         self.assertFalse(is_dataclass_instance(ScrapyItem()))
+        self.assertFalse(is_dataclass_instance(AttrsItem()))
+        self.assertFalse(is_dataclass_instance(ScrapySubclassedItem()))
         self.assertFalse(is_dataclass_instance("a string"))
         self.assertFalse(is_dataclass_instance(b"some bytes"))
         self.assertFalse(is_dataclass_instance({"a": "dict"}))
@@ -154,8 +129,8 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance(sum))
         self.assertFalse(is_attrs_instance(1234))
         self.assertFalse(is_attrs_instance(object()))
-        self.assertFalse(is_attrs_instance(Item()))
         self.assertFalse(is_attrs_instance(ScrapyItem()))
+        self.assertFalse(is_attrs_instance(ScrapySubclassedItem()))
         self.assertFalse(is_attrs_instance("a string"))
         self.assertFalse(is_attrs_instance(b"some bytes"))
         self.assertFalse(is_attrs_instance({"a": "dict"}))
