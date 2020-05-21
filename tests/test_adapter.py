@@ -7,12 +7,12 @@ from tests import AttrsItem, DataClassItem, ScrapySubclassedItem
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
-    def test_repr_dict_dict(self):
+    def test_repr_dict(self):
         item = dict(name="asdf")
         adapter = ItemAdapter(item)
         self.assertEqual(repr(adapter), "ItemAdapter for type dict: {'name': 'asdf'}")
 
-    def test_repr_dict_item(self):
+    def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
