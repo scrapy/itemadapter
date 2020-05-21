@@ -158,3 +158,11 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
 
         self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
+
+    @unittest.skipIf(scrapy is None, "scrapy module is not available")
+    def test_removed_baseitem(self):
+        class MockItemModule:
+            Item = ScrapyItem
+
+        with mock.patch("scrapy.item", MockItemModule):
+            self.assertFalse(is_scrapy_item(dict()))
