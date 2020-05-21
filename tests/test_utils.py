@@ -6,10 +6,6 @@ from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance,
 from tests import AttrsItem, DataClassItem, ScrapyItem, ScrapySubclassedItem
 
 
-def mocked_import(name, *args, **kwargs):
-    raise ImportError(name)
-
-
 class ItemLikeTestCase(unittest.TestCase):
     def test_false(self):
         self.assertFalse(is_item(int))
@@ -50,8 +46,6 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance(sum))
         self.assertFalse(is_attrs_instance(1234))
         self.assertFalse(is_attrs_instance(object()))
-        self.assertFalse(is_attrs_instance(ScrapyItem()))
-        self.assertFalse(is_attrs_instance(ScrapySubclassedItem()))
         self.assertFalse(is_attrs_instance("a string"))
         self.assertFalse(is_attrs_instance(b"some bytes"))
         self.assertFalse(is_attrs_instance({"a": "dict"}))
@@ -59,11 +53,6 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance(("a", "tuple")))
         self.assertFalse(is_attrs_instance({"a", "set"}))
         self.assertFalse(is_attrs_instance(AttrsItem))
-
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_true(self):
@@ -77,9 +66,6 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance(sum))
         self.assertFalse(is_dataclass_instance(1234))
         self.assertFalse(is_dataclass_instance(object()))
-        self.assertFalse(is_dataclass_instance(ScrapyItem()))
-        self.assertFalse(is_dataclass_instance(AttrsItem()))
-        self.assertFalse(is_dataclass_instance(ScrapySubclassedItem()))
         self.assertFalse(is_dataclass_instance("a string"))
         self.assertFalse(is_dataclass_instance(b"some bytes"))
         self.assertFalse(is_dataclass_instance({"a": "dict"}))
@@ -87,11 +73,6 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance(("a", "tuple")))
         self.assertFalse(is_dataclass_instance({"a", "set"}))
         self.assertFalse(is_dataclass_instance(DataClassItem))
-
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true(self):
@@ -105,7 +86,6 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(is_scrapy_item(sum))
         self.assertFalse(is_scrapy_item(1234))
         self.assertFalse(is_scrapy_item(object()))
-        self.assertFalse(is_scrapy_item(AttrsItem()))
         self.assertFalse(is_scrapy_item("a string"))
         self.assertFalse(is_scrapy_item(b"some bytes"))
         self.assertFalse(is_scrapy_item({"a": "dict"}))
@@ -113,11 +93,6 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(is_scrapy_item(("a", "tuple")))
         self.assertFalse(is_scrapy_item({"a", "set"}))
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem))
-
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_true(self):
