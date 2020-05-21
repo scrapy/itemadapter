@@ -1,8 +1,6 @@
 import unittest
 from unittest import mock
 
-import scrapy
-
 from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
 from tests import AttrsItem, DataClassItem, ScrapyItem, ScrapySubclassedItem
@@ -128,11 +126,21 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
 
+try:
+    import scrapy
+except ImportError:
+    scrapy = None
+
+
 class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
     """
     Tests for deprecated classes. These will go away once the upstream classes are removed.
     """
-    @unittest.skipIf(not hasattr(scrapy.item, "_BaseItem"), "scrapy.item._BaseItem not available")
+
+    @unittest.skipIf(
+        scrapy is None or not hasattr(scrapy.item, "_BaseItem"),
+        "scrapy.item._BaseItem not available",
+    )
     def test_deprecated_underscore_baseitem(self):
         class SubClassed_BaseItem(scrapy.item._BaseItem):
             pass
@@ -140,17 +148,13 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(scrapy.item._BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassed_BaseItem()))
 
-    @unittest.skipIf(not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available")
+    @unittest.skipIf(
+        scrapy is None or not hasattr(scrapy.item, "BaseItem"),
+        "scrapy.item.BaseItem not available",
+    )
     def test_deprecated_baseitem(self):
         class SubClassedBaseItem(scrapy.item.BaseItem):
             pass
 
         self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
-
-    def test_removed_baseitem(self):
-        class MockItemModule:
-            Item = ScrapyItem
-
-        with mock.patch("scrapy.item", MockItemModule):
-            self.assertFalse(is_scrapy_item(dict()))
