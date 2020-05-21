@@ -63,7 +63,9 @@ class ItemAdapter(MutableMapping):
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """
-        Return available metadata for the given field name.
+        Return a read-only mapping with metadata for the given field name. If there is no metadata
+        for the field, or the wrapped item does not support field metadata, an empty object is
+        returned.
 
         Field metadata is taken from different sources, depending on the item type:
         * scrapy.item.Item: corresponding scrapy.item.Field object
@@ -73,7 +75,9 @@ class ItemAdapter(MutableMapping):
         The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
         of the original mapping, which gets automatically updated if the original mapping changes.
         """
-        if is_dataclass_instance(self.item):
+        if is_scrapy_item(self.item):
+            return MappingProxyType(self.item.fields[field_name])
+        elif is_dataclass_instance(self.item):
             from dataclasses import fields
 
             for field in fields(self.item):
@@ -91,16 +95,16 @@ class ItemAdapter(MutableMapping):
                 raise KeyError(
                     "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
                 )
-        elif is_scrapy_item(self.item):
-            return MappingProxyType(self.item.fields[field_name])
         else:
-            raise TypeError("Item of type %r does not support field metadata" % type(self.item))
+            return MappingProxyType({})
 
     def field_names(self) -> List[str]:
         """
         Return a list with the names of all the defined fields for the item
         """
-        if is_dataclass_instance(self.item):
+        if is_scrapy_item(self.item):
+            return list(self.item.fields.keys())
+        elif is_dataclass_instance(self.item):
             import dataclasses
 
             return [field.name for field in dataclasses.fields(self.item)]
@@ -108,7 +112,5 @@ class ItemAdapter(MutableMapping):
             import attr
 
             return [field.name for field in attr.fields(self.item.__class__)]
-        elif is_scrapy_item(self.item):
-            return list(self.item.fields.keys())
         else:
             return list(self.item.keys())

@@ -144,14 +144,10 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
         with self.assertRaises(KeyError):
             adapter["name"]
 
-    def test_no_metadata_support(self):
+    def test_empty_metadata(self):
         adapter = ItemAdapter(self.item_class(name="foo", value=5))
-        with self.assertRaises(TypeError):
-            adapter.get_field_meta("name")
-        with self.assertRaises(TypeError):
-            adapter.get_field_meta("value")
-        with self.assertRaises(TypeError):
-            adapter.get_field_meta("undefined_field")
+        for field_name in ("name", "value", "undefined_field"):
+            self.assertEqual(adapter.get_field_meta(field_name), MappingProxyType({}))
 
 
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):

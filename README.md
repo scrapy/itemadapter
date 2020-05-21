@@ -110,8 +110,8 @@ Two additional methods are available:
 `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return a [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
-object with metadata about the given field, or raise `TypeError` if the item class does not
-support field metadata.
+object, which is a read-only mapping with metadata about the given field. If the item class does not
+support field metadata, or there is no metadata for the given field, an empty object is returned.
 
 The returned value is taken from the following sources, depending on the item type:
 
