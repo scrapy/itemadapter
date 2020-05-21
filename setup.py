@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="itemadapter",
-    version="0.0.6",
+    version="0.0.7",
     license="BSD",
     description="Common interface for data container classes",
     long_description=long_description,
@@ -17,7 +17,7 @@ setuptools.setup(
     url="https://github.com/scrapy/itemadapter",
     packages=["itemadapter"],
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.5",
