@@ -18,8 +18,14 @@ jobs:
     - name: Install tox
       run: pip install tox
 
-    - name: Flake8, typing, python-black
-      run: tox -e checks
+    - name: Flake8
+      run: tox -e flake8
+
+    - name: Typing
+      run: tox -e typing
+
+    - name: Black
+      run: tox -e black
 
     - name: Generate coverage report
       run: tox -e py
