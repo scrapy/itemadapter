@@ -50,7 +50,7 @@ class ItemAdapterInitError(unittest.TestCase):
 
 class BaseTestMixin:
 
-    item_class = dict
+    item_class = None
 
     def setUp(self):
         if self.item_class is None:
