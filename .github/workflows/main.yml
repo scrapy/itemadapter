@@ -35,7 +35,7 @@ jobs:
 
 
   tests-ubuntu:
-    name: "Tests: Python ${{ matrix.python-version }}, Ubuntu"
+    name: "Test: py${{ matrix.python-version }}, Ubuntu"
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -56,7 +56,7 @@ jobs:
       run: tox -e py
 
   tests-other-os:
-    name: "Tests: Python 3.8, ${{ matrix.os }}"
+    name: "Test: py3.8, ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
