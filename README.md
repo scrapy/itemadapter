@@ -122,9 +122,10 @@ for `scrapy.item.Item`s
 * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
   for `attrs`-based items
 
-`field_names() -> List[str]`
+`field_names() -> KeysView`
 
-Return a list with the names of all the defined fields for the item.
+Return a [keys view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
+with the names of all the defined fields for the item.
 
 ### `is_item` function
 

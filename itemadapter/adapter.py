@@ -1,6 +1,6 @@
-from collections.abc import MutableMapping
+from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Iterator, List
+from typing import Any, Iterator, Optional
 
 from .utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
@@ -15,6 +15,7 @@ class ItemAdapter(MutableMapping):
         if not is_item(item):
             raise TypeError("Expected a valid item, got %r instead: %s" % (type(item), item))
         self.item = item
+        self._fields_dict = None  # type: Optional[dict]
 
     def __repr__(self) -> str:
         return "ItemAdapter for type %s: %r" % (self.item.__class__.__name__, self.item)
@@ -98,19 +99,25 @@ class ItemAdapter(MutableMapping):
         else:
             return MappingProxyType({})
 
-    def field_names(self) -> List[str]:
+    def field_names(self) -> KeysView:
         """
-        Return a list with the names of all the defined fields for the item
+        Return read-only key view with the names of all the defined fields for the item
         """
         if is_scrapy_item(self.item):
-            return list(self.item.fields.keys())
+            return KeysView(self.item.fields)
         elif is_dataclass_instance(self.item):
             import dataclasses
 
-            return [field.name for field in dataclasses.fields(self.item)]
+            if self._fields_dict is None:
+                self._fields_dict = {field.name: None for field in dataclasses.fields(self.item)}
+            return KeysView(self._fields_dict)
         elif is_attrs_instance(self.item):
             import attr
 
-            return [field.name for field in attr.fields(self.item.__class__)]
+            if self._fields_dict is None:
+                self._fields_dict = {
+                    field.name: None for field in attr.fields(self.item.__class__)
+                }
+            return KeysView(self._fields_dict)
         else:
-            return list(self.item.keys())
+            return KeysView(self.item)
