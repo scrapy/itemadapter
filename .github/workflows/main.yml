@@ -49,30 +49,43 @@ jobs:
     - name: Run tests
       run: tox -e py
 
-    - name: Upload coverage report
-      run: bash <(curl -s https://codecov.io/bash) -cF tests
+    - name: Upload partial coverage database
+      if: matrix.python-version == 3.8
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage
+        path: .coverage
 
 
   tests-no-deps:
-    name: "Tests: Python 3.8, Ubuntu, no deps"
+    name: "Test: py3.6, Ubuntu, no deps, upload coverage"
     runs-on: ubuntu-latest
+    needs: [tests-ubuntu]
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python 3.8
+    - name: Set up Python 3.6
       uses: actions/setup-python@v1
       with:
-        python-version: 3.8
+        python-version: 3.6
+
+    - name: Download partial coverage report
+      uses: actions/download-artifact@v2
+      with:
+        name: coverage
+
+    - name: Check existing coverage database
+      run: ls -la
 
     - name: Install tox
       run: pip install tox
 
     - name: Run tests
-      run: tox -e py38-no-deps
+      run: tox -e no-deps
 
     - name: Upload coverage report
-      run: bash <(curl -s https://codecov.io/bash) -cF tests
+      run: bash <(curl -s https://codecov.io/bash)
 
 
   tests-other-os:
