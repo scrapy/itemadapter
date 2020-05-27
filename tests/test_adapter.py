@@ -4,7 +4,14 @@ from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
 
-from tests import AttrsItem, DataClassItem, ScrapySubclassedItem
+from tests import (
+    AttrsItem,
+    AttrsItemNested,
+    DataClassItem,
+    DataClassItemNested,
+    ScrapySubclassedItem,
+    ScrapySubclassedItemNested,
+)
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
@@ -52,6 +59,7 @@ class ItemAdapterInitError(unittest.TestCase):
 class BaseTestMixin:
 
     item_class = None
+    item_class_nested = None
 
     def setUp(self):
         if self.item_class is None:
@@ -86,6 +94,28 @@ class BaseTestMixin:
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
+
+    def test_as_dict_nested(self):
+        item = self.item_class_nested(
+            nested=self.item_class(name="asdf", value=1234),
+            adapter=ItemAdapter(dict(foo="bar", nested_list=[1, 2, 3, 4, 5])),
+            list_=[1, 2, 3],
+            set_={1, 2, 3},
+            tuple_=(1, 2, 3),
+            int_=123,
+        )
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            adapter.asdict(),
+            dict(
+                nested=dict(name="asdf", value=1234),
+                adapter=dict(foo="bar", nested_list=[1, 2, 3, 4, 5]),
+                list_=[1, 2, 3],
+                set_={1, 2, 3},
+                tuple_=(1, 2, 3),
+                int_=123,
+            ),
+        )
 
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
@@ -138,6 +168,7 @@ class NonDictTestMixin(BaseTestMixin):
 class DictTestCase(unittest.TestCase, BaseTestMixin):
 
     item_class = dict
+    item_class_nested = dict
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values"""
@@ -161,6 +192,7 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = ScrapySubclassedItem
+    item_class_nested = ScrapySubclassedItemNested
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values"""
@@ -172,8 +204,10 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
 class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = DataClassItem
+    item_class_nested = DataClassItemNested
 
 
 class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = AttrsItem
+    item_class_nested = AttrsItemNested

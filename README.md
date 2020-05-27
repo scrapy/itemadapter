@@ -82,13 +82,41 @@ InventoryItem(name='bar', price=12.7, stock=9)
 True
 ```
 
-### Converting to dictionary
+### Converting to dict
 
-Passing an `ItemAdapter` to the `dict` built-in will create a new dictionary:
+The simple way: passing an `ItemAdapter` to the `dict` built-in will create a new dictionary:
 
 ```python
 >>> dict(adapter)
 {'name': 'bar', 'price': 12.7, 'stock': 9}
+```
+
+However, this doesn't work for nested items. In those cases, you could use the
+`ItemAdapter.asdict` method. Consider the following example:
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Price:
+    value: int
+    currency: str
+
+@dataclass
+class Product:
+    name: str
+    price: Price
+```
+
+```python
+>>> item = Product("Stuff", Price(50, "UYU"))
+>>> adapter = ItemAdapter(item)
+
+>>> dict(adapter)  # not recursive
+{'name': 'Stuff', 'price': Price(value=50, currency='UYU')}
+
+>>> adapter.asdict()  # recursive
+{'name': 'Stuff', 'price': {'currency': 'UYU', 'value': 50}}
 ```
 
 For more examples using different types, refer to the [examples section](#more-examples) below.
@@ -105,7 +133,7 @@ _class `itemadapter.adapter.ItemAdapter(item: Any)`_
 providing a `dict`-like API to manipulate data for the object it wraps
 (which is modified in-place).
 
-Two additional methods are available:
+Some additional methods are available:
 
 `get_field_meta(field_name: str) -> MappingProxyType`
 
@@ -126,6 +154,11 @@ for `scrapy.item.Item`s
 
 Return a [keys view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
 with the names of all the defined fields for the item.
+
+`asdict() -> dict`
+
+Return a dict object with the contents of the adapter. This works slightly different than
+calling `dict(adapter)`, because it's applied recursively to nested items (if there are any).
 
 ### `is_item` function
 
