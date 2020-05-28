@@ -1,6 +1,6 @@
 from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Iterator, Optional
+from typing import Any, Iterator
 
 from .utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
@@ -15,21 +15,30 @@ class ItemAdapter(MutableMapping):
         if not is_item(item):
             raise TypeError("Expected a valid item, got %r instead: %s" % (type(item), item))
         self.item = item
-        self._fields_dict = None  # type: Optional[dict]
+        # store a reference to the fields to avoid O(n) lookups and O(n^2) traversals
+        self._fields_dict = {}  # type: dict
+        if is_dataclass_instance(self.item):
+            import dataclasses
+
+            self._fields_dict = {field.name: field for field in dataclasses.fields(self.item)}
+        elif is_attrs_instance(self.item):
+            import attr
+
+            self._fields_dict = attr.fields_dict(self.item.__class__)
 
     def __repr__(self) -> str:
         return "ItemAdapter for type %s: %r" % (self.item.__class__.__name__, self.item)
 
     def __getitem__(self, field_name: str) -> Any:
         if is_dataclass_instance(self.item) or is_attrs_instance(self.item):
-            if field_name in iter(self):
+            if field_name in self._fields_dict:
                 return getattr(self.item, field_name)
             raise KeyError(field_name)
         return self.item[field_name]
 
     def __setitem__(self, field_name: str, value: Any) -> None:
         if is_dataclass_instance(self.item) or is_attrs_instance(self.item):
-            if field_name in iter(self):
+            if field_name in self._fields_dict:
                 setattr(self.item, field_name, value)
             else:
                 raise KeyError(
@@ -40,7 +49,7 @@ class ItemAdapter(MutableMapping):
 
     def __delitem__(self, field_name: str) -> None:
         if is_dataclass_instance(self.item) or is_attrs_instance(self.item):
-            if field_name in self.field_names():
+            if field_name in self._fields_dict:
                 try:
                     delattr(self.item, field_name)
                 except AttributeError:
@@ -54,7 +63,7 @@ class ItemAdapter(MutableMapping):
 
     def __iter__(self) -> Iterator:
         if is_dataclass_instance(self.item) or is_attrs_instance(self.item):
-            return iter(attr for attr in dir(self.item) if attr in self.field_names())
+            return iter(attr for attr in self._fields_dict if hasattr(self.item, attr))
         return iter(self.item)
 
     def __len__(self) -> int:
@@ -106,18 +115,8 @@ class ItemAdapter(MutableMapping):
         if is_scrapy_item(self.item):
             return KeysView(self.item.fields)
         elif is_dataclass_instance(self.item):
-            import dataclasses
-
-            if self._fields_dict is None:
-                self._fields_dict = {field.name: None for field in dataclasses.fields(self.item)}
             return KeysView(self._fields_dict)
         elif is_attrs_instance(self.item):
-            import attr
-
-            if self._fields_dict is None:
-                self._fields_dict = {
-                    field.name: None for field in attr.fields(self.item.__class__)
-                }
             return KeysView(self._fields_dict)
         else:
             return KeysView(self.item)
