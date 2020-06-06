@@ -99,6 +99,7 @@ class BaseTestMixin:
         item = self.item_class_nested(
             nested=self.item_class(name="asdf", value=1234),
             adapter=ItemAdapter(dict(foo="bar", nested_list=[1, 2, 3, 4, 5])),
+            dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
             list_=[1, 2, 3],
             set_={1, 2, 3},
             tuple_=(1, 2, 3),
@@ -110,6 +111,7 @@ class BaseTestMixin:
             dict(
                 nested=dict(name="asdf", value=1234),
                 adapter=dict(foo="bar", nested_list=[1, 2, 3, 4, 5]),
+                dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
                 list_=[1, 2, 3],
                 set_={1, 2, 3},
                 tuple_=(1, 2, 3),

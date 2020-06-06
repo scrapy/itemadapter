@@ -134,11 +134,13 @@ def _asdict(obj: Any) -> Any:
     """
     Helper for ItemAdapter.asdict
     """
-    if isinstance(obj, ItemAdapter):
+    if isinstance(obj, dict):
+        return {key: _asdict(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, set, tuple)):
+        return obj.__class__(_asdict(x) for x in obj)
+    elif isinstance(obj, ItemAdapter):
         return obj.asdict()
     elif is_item(obj):
         return ItemAdapter(obj).asdict()
-    elif isinstance(obj, (list, set, tuple)):
-        return obj.__class__(_asdict(x) for x in obj)
     else:
         return obj

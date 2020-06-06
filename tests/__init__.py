@@ -17,6 +17,7 @@ else:
     class AttrsItemNested:
         nested = attr.ib(type=AttrsItem)
         adapter = attr.ib(type=ItemAdapter)
+        dict_ = attr.ib(type=dict)
         list_ = attr.ib(type=list)
         set_ = attr.ib(type=set)
         tuple_ = attr.ib(type=tuple)
@@ -42,6 +43,7 @@ else:
         [
             ("nested", DataClassItem),
             ("adapter", ItemAdapter),
+            ("dict_", dict),
             ("list_", list),
             ("set_", set),
             ("tuple_", tuple),
@@ -65,6 +67,7 @@ else:
     class ScrapySubclassedItemNested(ScrapyItem):
         nested = Field()
         adapter = Field()
+        dict_ = Field()
         list_ = Field()
         set_ = Field()
         tuple_ = Field()
