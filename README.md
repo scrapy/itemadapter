@@ -84,18 +84,12 @@ True
 
 ### Converting to dict
 
-The simple way: passing an `ItemAdapter` to the `dict` built-in will create a new dictionary:
-
-```python
->>> dict(adapter)
-{'name': 'bar', 'price': 12.7, 'stock': 9}
-```
-
-However, this doesn't work for nested items. In those cases, you could use the
-`ItemAdapter.asdict` method. Consider the following example:
+The `ItemAdapter` class provides the `asdict` method, which also converts
+nested items recursively. Consider the following example:
 
 ```python
 from dataclasses import dataclass
+from itemadapter import ItemAdapter
 
 @dataclass
 class Price:
@@ -109,17 +103,19 @@ class Product:
 ```
 
 ```python
->>> item = Product("Stuff", Price(50, "UYU"))
+>>> item = Product("Stuff", Price(42, "UYU"))
 >>> adapter = ItemAdapter(item)
-
->>> dict(adapter)  # not recursive
-{'name': 'Stuff', 'price': Price(value=50, currency='UYU')}
-
->>> adapter.asdict()  # recursive
-{'name': 'Stuff', 'price': {'currency': 'UYU', 'value': 50}}
+>>> adapter.asdict()
+{'name': 'Stuff', 'price': {'currency': 'UYU', 'value': 42}}
 ```
 
-For more examples using different types, refer to the [examples section](#more-examples) below.
+Note that just passing an adapter object to the `dict` built-in also works,
+but it doesn't traverse the object recursively converting nested items:
+
+```python
+>>> dict(adapter)
+{'name': 'Stuff', 'price': Price(value=42, currency='UYU')}
+```
 
 
 ## Public API
