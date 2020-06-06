@@ -157,7 +157,7 @@ with the names of all the defined fields for the item.
 
 `asdict() -> dict`
 
-Return a dict object with the contents of the adapter. This works slightly different than
+Return a `dict` object with the contents of the adapter. This works slightly different than
 calling `dict(adapter)`, because it's applied recursively to nested items (if there are any).
 
 ### `is_item` function
