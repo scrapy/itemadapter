@@ -84,7 +84,7 @@ True
 
 ### Converting to dict
 
-The `ItemAdapter` class provides the `asdict` method, which also converts
+The `ItemAdapter` class provides the `asdict` method, which converts
 nested items recursively. Consider the following example:
 
 ```python
