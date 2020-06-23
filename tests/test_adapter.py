@@ -16,17 +16,22 @@ from tests import (
 
 class ItemAdapterReprTestCase(unittest.TestCase):
     def test_repr_dict(self):
-        item = dict(name="asdf")
+        item = dict(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(repr(adapter), "ItemAdapter for type dict: {'name': 'asdf'}")
+        # dicts are not guarantied to be sorted in py35
+        self.assertTrue(
+            repr(adapter) == "<ItemAdapter for dict(name='asdf', value=1234)>"
+            or repr(adapter) == "<ItemAdapter for dict(value=1234, name='asdf')>",
+        )
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            repr(adapter),
-            "ItemAdapter for type ScrapySubclassedItem: {'name': 'asdf', 'value': 1234}",
+        # Scrapy fields are stored in a dict, which is not guarantied to be sorted in py35
+        self.assertTrue(
+            repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
+            or repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(value=1234, name='asdf')>",
         )
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
@@ -34,15 +39,14 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter),
-            "ItemAdapter for type DataClassItem: DataClassItem(name='asdf', value=1234)",
+            repr(adapter), "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
         )
 
     def test_repr_attrs(self):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "ItemAdapter for type AttrsItem: AttrsItem(name='asdf', value=1234)",
+            repr(adapter), "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
         )
 
 
