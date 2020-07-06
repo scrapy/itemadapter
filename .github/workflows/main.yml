@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   checks:
-    name: Lint, typing, coverage
+    name: Flake8, typing, black
     runs-on: ubuntu-latest
 
     steps:
@@ -27,12 +27,6 @@ jobs:
     - name: Black
       run: tox -e black
 
-    - name: Generate coverage report
-      run: tox -e py
-
-    - name: Upload coverage report
-      run: bash <(curl -s https://codecov.io/bash)
-
 
   tests-ubuntu:
     name: "Test: py${{ matrix.python-version }}, Ubuntu"
@@ -53,7 +47,33 @@ jobs:
       run: pip install tox
 
     - name: Run tests
-      run: tox -e py
+      run: tox -e py${{ matrix.python-version }}
+
+    - name: Upload coverage report
+      run: bash <(curl -s https://codecov.io/bash) -cF tests
+
+
+  tests-no-deps:
+    name: "Test: python3.6, Ubuntu, no deps"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+
+    - name: Install tox
+      run: pip install tox
+
+    - name: Run tests
+      run: tox -e no-deps
+
+    - name: Upload coverage report
+      run: bash <(curl -s https://codecov.io/bash) -cF tests
+
 
   tests-other-os:
     name: "Test: py3.8, ${{ matrix.os }}"
