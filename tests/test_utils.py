@@ -1,8 +1,6 @@
 import unittest
 from unittest import mock
 
-from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
-
 from tests import (
     AttrsItem,
     DataClassItem,
@@ -17,6 +15,8 @@ from tests import (
 
 class ItemLikeTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_item
+
         self.assertFalse(is_item(int))
         self.assertFalse(is_item(sum))
         self.assertFalse(is_item(1234))
@@ -33,24 +33,34 @@ class ItemLikeTestCase(TestCase):
         self.assertFalse(is_item(AttrsItem))
 
     def test_true_dict(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item({"a": "dict"}))
 
     @requires_scrapy
     def test_true_scrapy(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item(ScrapyItem()))
         self.assertTrue(is_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
     @requires_dataclasses
     def test_true_dataclass(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
 
     @requires_attr
     def test_true_attrs(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
 
 
 class AttrsTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_attrs_instance
+
         self.assertFalse(is_attrs_instance(int))
         self.assertFalse(is_attrs_instance(sum))
         self.assertFalse(is_attrs_instance(1234))
@@ -65,12 +75,16 @@ class AttrsTestCase(TestCase):
 
     @requires_attr
     def test_true(self):
+        from itemadapter.utils import is_attrs_instance
+
         self.assertTrue(is_attrs_instance(AttrsItem()))
         self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
 
 class DataclassTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_dataclass_instance
+
         self.assertFalse(is_dataclass_instance(int))
         self.assertFalse(is_dataclass_instance(sum))
         self.assertFalse(is_dataclass_instance(1234))
@@ -85,12 +99,16 @@ class DataclassTestCase(TestCase):
 
     @requires_dataclasses
     def test_true(self):
+        from itemadapter.utils import is_dataclass_instance
+
         self.assertTrue(is_dataclass_instance(DataClassItem()))
         self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
 
 class ScrapyItemTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_scrapy_item
+
         self.assertFalse(is_scrapy_item(int))
         self.assertFalse(is_scrapy_item(sum))
         self.assertFalse(is_scrapy_item(1234))
@@ -105,6 +123,8 @@ class ScrapyItemTestCase(TestCase):
 
     @requires_scrapy
     def test_true(self):
+        from itemadapter.utils import is_scrapy_item
+
         self.assertTrue(is_scrapy_item(ScrapyItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
@@ -128,6 +148,8 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
         not hasattr(scrapy.item, "_BaseItem"), "scrapy.item._BaseItem not available",
     )
     def test_deprecated_underscore_baseitem(self):
+        from itemadapter.utils import is_scrapy_item
+
         class SubClassed_BaseItem(scrapy.item._BaseItem):
             pass
 
@@ -138,6 +160,8 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
         not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available",
     )
     def test_deprecated_baseitem(self):
+        from itemadapter.utils import is_scrapy_item
+
         class SubClassedBaseItem(scrapy.item.BaseItem):
             pass
 
@@ -145,6 +169,8 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
 
     def test_removed_baseitem(self):
+        from itemadapter.utils import is_scrapy_item
+
         class MockItemModule:
             Item = ScrapyItem
 

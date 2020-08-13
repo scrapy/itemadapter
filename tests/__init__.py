@@ -2,18 +2,14 @@ import os
 import sys
 from unittest import skipIf, TestCase as _TestCase
 
-from itemadapter.adapter import ItemAdapter
-
 
 try:
     import attr
 except ImportError:
     AttrsItem = None
-    AttrsItemNested = None
 else:
     if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS"):
         AttrsItem = None
-        AttrsItemNested = None
     else:
 
         @attr.s
@@ -21,45 +17,20 @@ else:
             name = attr.ib(default=None, metadata={"serializer": str})
             value = attr.ib(default=None, metadata={"serializer": int})
 
-        @attr.s
-        class AttrsItemNested:
-            nested = attr.ib(type=AttrsItem)
-            adapter = attr.ib(type=ItemAdapter)
-            dict_ = attr.ib(type=dict)
-            list_ = attr.ib(type=list)
-            set_ = attr.ib(type=set)
-            tuple_ = attr.ib(type=tuple)
-            int_ = attr.ib(type=int)
-
 
 try:
-    from dataclasses import make_dataclass, field
+    from dataclasses import field, make_dataclass
 except ImportError:
     DataClassItem = None
-    DataClassItemNested = None
 else:
     if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS") and (3, 6) <= sys.version_info < (3, 7):
         DataClassItem = None
-        DataClassItemNested = None
     else:
         DataClassItem = make_dataclass(
             "DataClassItem",
             [
                 ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
                 ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
-            ],
-        )
-
-        DataClassItemNested = make_dataclass(
-            "DataClassItem",
-            [
-                ("nested", DataClassItem),
-                ("adapter", ItemAdapter),
-                ("dict_", dict),
-                ("list_", list),
-                ("set_", set),
-                ("tuple_", tuple),
-                ("int_", int),
             ],
         )
 
