@@ -56,7 +56,7 @@ jobs:
 
 
   tests-no-extra-deps:
-    name: "Test: python3.6, Ubuntu, no deps"
+    name: "Test: py${{ matrix.python-version }}, Ubuntu, no extra deps"
     runs-on: ubuntu-latest
     strategy:
       matrix:
