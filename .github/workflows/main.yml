@@ -1,8 +1,6 @@
 name: Build
 
-on:
-- pull_request
-- push
+on: [push]
 
 jobs:
   checks:
@@ -58,6 +56,9 @@ jobs:
   tests-no-extra-deps:
     name: "Test: python3.6, Ubuntu, no deps"
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.5, 3.6, 3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -65,7 +66,7 @@ jobs:
     - name: Set up Python 3.6
       uses: actions/setup-python@v1
       with:
-        python-version: [3.5, 3.6, 3.8]
+        python-version: ${{ matrix.python-version }}
 
     - name: Install tox
       run: pip install tox
