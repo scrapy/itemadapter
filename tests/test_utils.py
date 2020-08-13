@@ -1,4 +1,3 @@
-import os
 import unittest
 from unittest import mock
 
@@ -122,11 +121,11 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
     Tests for deprecated classes. These will go away once the upstream classes
     are removed.
     """
-    required_extra_modules = ('scrapy',)
+
+    required_extra_modules = ("scrapy",)
 
     @unittest.skipIf(
-        not hasattr(scrapy.item, "_BaseItem"),
-        "scrapy.item._BaseItem not available",
+        not hasattr(scrapy.item, "_BaseItem"), "scrapy.item._BaseItem not available",
     )
     def test_deprecated_underscore_baseitem(self):
         class SubClassed_BaseItem(scrapy.item._BaseItem):
@@ -136,8 +135,7 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
         self.assertTrue(is_scrapy_item(SubClassed_BaseItem()))
 
     @unittest.skipIf(
-        not hasattr(scrapy.item, "BaseItem"),
-        "scrapy.item.BaseItem not available",
+        not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available",
     )
     def test_deprecated_baseitem(self):
         class SubClassedBaseItem(scrapy.item.BaseItem):

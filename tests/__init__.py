@@ -2,31 +2,45 @@ import os
 import sys
 from unittest import skipIf, TestCase as _TestCase
 
+from itemadapter.adapter import ItemAdapter
+
 
 try:
     import attr
 except ImportError:
     AttrsItem = None
+    AttrsItemNested = None
 else:
-    if os.environ.get('ITEMADAPTER_NO_EXTRA_DEPS'):
+    if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS"):
         AttrsItem = None
+        AttrsItemNested = None
     else:
+
         @attr.s
         class AttrsItem:
             name = attr.ib(default=None, metadata={"serializer": str})
             value = attr.ib(default=None, metadata={"serializer": int})
+
+        @attr.s
+        class AttrsItemNested:
+            nested = attr.ib(type=AttrsItem)
+            adapter = attr.ib(type=ItemAdapter)
+            dict_ = attr.ib(type=dict)
+            list_ = attr.ib(type=list)
+            set_ = attr.ib(type=set)
+            tuple_ = attr.ib(type=tuple)
+            int_ = attr.ib(type=int)
 
 
 try:
     from dataclasses import make_dataclass, field
 except ImportError:
     DataClassItem = None
+    DataClassItemNested = None
 else:
-    if (
-        os.environ.get('ITEMADAPTER_NO_EXTRA_DEPS')
-        and (3, 6) <= sys.version_info < (3, 7)
-    ):
+    if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS") and (3, 6) <= sys.version_info < (3, 7):
         DataClassItem = None
+        DataClassItemNested = None
     else:
         DataClassItem = make_dataclass(
             "DataClassItem",
@@ -36,24 +50,48 @@ else:
             ],
         )
 
+        DataClassItemNested = make_dataclass(
+            "DataClassItem",
+            [
+                ("nested", DataClassItem),
+                ("adapter", ItemAdapter),
+                ("dict_", dict),
+                ("list_", list),
+                ("set_", set),
+                ("tuple_", tuple),
+                ("int_", int),
+            ],
+        )
+
 
 try:
     from scrapy.item import Item as ScrapyItem, Field
 except ImportError:
     ScrapyItem = None
     ScrapySubclassedItem = None
+    ScrapySubclassedItemNested = None
 else:
-    if os.environ.get('ITEMADAPTER_NO_EXTRA_DEPS'):
+    if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS"):
         ScrapyItem = None
         ScrapySubclassedItem = None
+        ScrapySubclassedItemNested = None
     else:
+
         class ScrapySubclassedItem(ScrapyItem):
             name = Field(serializer=str)
             value = Field(serializer=int)
 
+        class ScrapySubclassedItemNested(ScrapyItem):
+            nested = Field()
+            adapter = Field()
+            dict_ = Field()
+            list_ = Field()
+            set_ = Field()
+            tuple_ = Field()
+            int_ = Field()
+
 
 class ImportRaiser:
-
     def __init__(self, *packages):
         self.packages = set(packages)
 
@@ -72,40 +110,35 @@ class TestCase(_TestCase):
     pytest depends on them.
     """
 
-    _extra_modules = ('attr', 'scrapy')
+    _extra_modules = ("attr", "scrapy")
 
     def setUp(self):
         super().setUp()
 
-        required_extra_modules = getattr(self, 'required_extra_modules', None)
+        required_extra_modules = getattr(self, "required_extra_modules", None)
         if required_extra_modules:
             requirement_map = {
-                'attr': AttrsItem,
-                'dataclasses': DataClassItem,
-                'scrapy': ScrapyItem,
+                "attr": AttrsItem,
+                "dataclasses": DataClassItem,
+                "scrapy": ScrapyItem,
             }
-            unknown_extra_modules = [module
-                                     for module in required_extra_modules
-                                     if module not in requirement_map]
+            unknown_extra_modules = [
+                module for module in required_extra_modules if module not in requirement_map
+            ]
             if unknown_extra_modules:
                 raise NotImplementedError(
-                    'Unknown extra modules: {}'.format(unknown_extra_modules)
+                    "Unknown extra modules: {}".format(unknown_extra_modules)
                 )
-            unavaliable_extra_modules = [module
-                                         for module in required_extra_modules
-                                         if not requirement_map[module]]
+            unavaliable_extra_modules = [
+                module for module in required_extra_modules if not requirement_map[module]
+            ]
             if unavaliable_extra_modules:
-                self.skipTest(
-                    'cannot import; {}'.format(
-                        ', '.join(unavaliable_extra_modules)
-                    )
-                )
-
+                self.skipTest("cannot import; {}".format(", ".join(unavaliable_extra_modules)))
 
         self._removed_modules = {}
-        if os.environ.get('ITEMADAPTER_NO_EXTRA_DEPS'):
+        if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS"):
             if (3, 6) <= sys.version_info < (3, 7):
-                self._extra_modules = self._extra_modules + ('dataclasses',)
+                self._extra_modules = self._extra_modules + ("dataclasses",)
             sys.meta_path.insert(0, ImportRaiser(*self._extra_modules))
             for package in self._extra_modules:
                 if package in sys.modules:
@@ -115,7 +148,7 @@ class TestCase(_TestCase):
     def tearDown(self):
         super().tearDown()
 
-        if os.environ.get('ITEMADAPTER_NO_EXTRA_DEPS'):
+        if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS"):
             del sys.meta_path[0]
             for package in self._extra_modules:
                 if package in self._removed_modules:

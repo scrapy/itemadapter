@@ -27,7 +27,8 @@ class ItemAdapter(MutableMapping):
             self._fields_dict = attr.fields_dict(self.item.__class__)
 
     def __repr__(self) -> str:
-        return "ItemAdapter for type %s: %r" % (self.item.__class__.__name__, self.item)
+        values = ", ".join(["%s=%r" % (key, value) for key, value in self.items()])
+        return "<ItemAdapter for %s(%s)>" % (self.item.__class__.__name__, values)
 
     def __getitem__(self, field_name: str) -> Any:
         if is_dataclass_instance(self.item) or is_attrs_instance(self.item):
@@ -120,3 +121,26 @@ class ItemAdapter(MutableMapping):
             return KeysView(self._fields_dict)
         else:
             return KeysView(self.item)
+
+    def asdict(self) -> dict:
+        """
+        Return a dict object with the contents of the adapter. This works slightly different than
+        calling `dict(adapter)`: it's applied recursively to nested items (if there are any).
+        """
+        return {key: _asdict(value) for key, value in self.items()}
+
+
+def _asdict(obj: Any) -> Any:
+    """
+    Helper for ItemAdapter.asdict
+    """
+    if isinstance(obj, dict):
+        return {key: _asdict(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, set, tuple)):
+        return obj.__class__(_asdict(x) for x in obj)
+    elif isinstance(obj, ItemAdapter):
+        return obj.asdict()
+    elif is_item(obj):
+        return ItemAdapter(obj).asdict()
+    else:
+        return obj

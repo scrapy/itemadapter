@@ -2,34 +2,40 @@ import unittest
 from types import MappingProxyType
 from typing import KeysView
 
-import pytest
-
 from itemadapter.adapter import ItemAdapter
 
 from tests import (
     AttrsItem,
+    AttrsItemNested,
     DataClassItem,
+    DataClassItemNested,
     requires_attr,
     requires_dataclasses,
     requires_scrapy,
     ScrapySubclassedItem,
+    ScrapySubclassedItemNested,
     TestCase,
 )
 
 
 class ItemAdapterReprTestCase(TestCase):
     def test_repr_dict(self):
-        item = dict(name="asdf")
+        item = dict(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(repr(adapter), "ItemAdapter for type dict: {'name': 'asdf'}")
+        # dicts are not guarantied to be sorted in py35
+        self.assertTrue(
+            repr(adapter) == "<ItemAdapter for dict(name='asdf', value=1234)>"
+            or repr(adapter) == "<ItemAdapter for dict(value=1234, name='asdf')>",
+        )
 
     @requires_scrapy
     def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            repr(adapter),
-            "ItemAdapter for type ScrapySubclassedItem: {'name': 'asdf', 'value': 1234}",
+        # Scrapy fields are stored in a dict, which is not guarantied to be sorted in py35
+        self.assertTrue(
+            repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
+            or repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(value=1234, name='asdf')>",
         )
 
     @requires_dataclasses
@@ -37,8 +43,7 @@ class ItemAdapterReprTestCase(TestCase):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter),
-            "ItemAdapter for type DataClassItem: DataClassItem(name='asdf', value=1234)",
+            repr(adapter), "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
         )
 
     @requires_attr
@@ -46,7 +51,7 @@ class ItemAdapterReprTestCase(TestCase):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "ItemAdapter for type AttrsItem: AttrsItem(name='asdf', value=1234)",
+            repr(adapter), "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
         )
 
 
@@ -63,6 +68,7 @@ class ItemAdapterInitError(TestCase):
 class BaseTestMixin:
 
     item_class = None
+    item_class_nested = None
 
     def setUp(self):
         super().setUp()
@@ -98,6 +104,30 @@ class BaseTestMixin:
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
+
+    def test_as_dict_nested(self):
+        item = self.item_class_nested(
+            nested=self.item_class(name="asdf", value=1234),
+            adapter=ItemAdapter(dict(foo="bar", nested_list=[1, 2, 3, 4, 5])),
+            dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
+            list_=[1, 2, 3],
+            set_={1, 2, 3},
+            tuple_=(1, 2, 3),
+            int_=123,
+        )
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            adapter.asdict(),
+            dict(
+                nested=dict(name="asdf", value=1234),
+                adapter=dict(foo="bar", nested_list=[1, 2, 3, 4, 5]),
+                dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
+                list_=[1, 2, 3],
+                set_={1, 2, 3},
+                tuple_=(1, 2, 3),
+                int_=123,
+            ),
+        )
 
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
@@ -150,6 +180,7 @@ class NonDictTestMixin(BaseTestMixin):
 class DictTestCase(TestCase, BaseTestMixin):
 
     item_class = dict
+    item_class_nested = dict
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values"""
@@ -173,6 +204,7 @@ class DictTestCase(TestCase, BaseTestMixin):
 class ScrapySubclassedItemTestCase(NonDictTestMixin, TestCase):
 
     item_class = ScrapySubclassedItem
+    item_class_nested = ScrapySubclassedItemNested
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values"""
@@ -184,8 +216,10 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, TestCase):
 class DataClassItemTestCase(NonDictTestMixin, TestCase):
 
     item_class = DataClassItem
+    item_class_nested = DataClassItemNested
 
 
 class AttrsItemTestCase(NonDictTestMixin, TestCase):
 
     item_class = AttrsItem
+    item_class_nested = AttrsItemNested
