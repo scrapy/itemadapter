@@ -1,12 +1,22 @@
+import os
 import unittest
 from unittest import mock
 
 from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
 
-from tests import AttrsItem, DataClassItem, ScrapyItem, ScrapySubclassedItem
+from tests import (
+    AttrsItem,
+    DataClassItem,
+    requires_attr,
+    requires_dataclasses,
+    requires_scrapy,
+    ScrapyItem,
+    ScrapySubclassedItem,
+    TestCase,
+)
 
 
-class ItemLikeTestCase(unittest.TestCase):
+class ItemLikeTestCase(TestCase):
     def test_false(self):
         self.assertFalse(is_item(int))
         self.assertFalse(is_item(sum))
@@ -26,21 +36,21 @@ class ItemLikeTestCase(unittest.TestCase):
     def test_true_dict(self):
         self.assertTrue(is_item({"a": "dict"}))
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true_scrapy(self):
         self.assertTrue(is_item(ScrapyItem()))
         self.assertTrue(is_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @requires_dataclasses
     def test_true_dataclass(self):
         self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attr
     def test_true_attrs(self):
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
 
 
-class AttrsTestCase(unittest.TestCase):
+class AttrsTestCase(TestCase):
     def test_false(self):
         self.assertFalse(is_attrs_instance(int))
         self.assertFalse(is_attrs_instance(sum))
@@ -54,13 +64,13 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance({"a", "set"}))
         self.assertFalse(is_attrs_instance(AttrsItem))
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attr
     def test_true(self):
         self.assertTrue(is_attrs_instance(AttrsItem()))
         self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
 
 
-class DataclassTestCase(unittest.TestCase):
+class DataclassTestCase(TestCase):
     def test_false(self):
         self.assertFalse(is_dataclass_instance(int))
         self.assertFalse(is_dataclass_instance(sum))
@@ -74,13 +84,13 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance({"a", "set"}))
         self.assertFalse(is_dataclass_instance(DataClassItem))
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @requires_dataclasses
     def test_true(self):
         self.assertTrue(is_dataclass_instance(DataClassItem()))
         self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
 
 
-class ScrapyItemTestCase(unittest.TestCase):
+class ScrapyItemTestCase(TestCase):
     def test_false(self):
         self.assertFalse(is_scrapy_item(int))
         self.assertFalse(is_scrapy_item(sum))
@@ -94,7 +104,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(is_scrapy_item({"a", "set"}))
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem))
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true(self):
         self.assertTrue(is_scrapy_item(ScrapyItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem()))
@@ -107,13 +117,15 @@ except ImportError:
     scrapy = None
 
 
-class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
+class ScrapyDeprecatedBaseItemTestCase(TestCase):
     """
-    Tests for deprecated classes. These will go away once the upstream classes are removed.
+    Tests for deprecated classes. These will go away once the upstream classes
+    are removed.
     """
+    required_extra_modules = ('scrapy',)
 
     @unittest.skipIf(
-        scrapy is None or not hasattr(scrapy.item, "_BaseItem"),
+        not hasattr(scrapy.item, "_BaseItem"),
         "scrapy.item._BaseItem not available",
     )
     def test_deprecated_underscore_baseitem(self):
@@ -124,7 +136,7 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(SubClassed_BaseItem()))
 
     @unittest.skipIf(
-        scrapy is None or not hasattr(scrapy.item, "BaseItem"),
+        not hasattr(scrapy.item, "BaseItem"),
         "scrapy.item.BaseItem not available",
     )
     def test_deprecated_baseitem(self):
@@ -134,7 +146,6 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
 
-    @unittest.skipIf(scrapy is None, "scrapy module is not available")
     def test_removed_baseitem(self):
         class MockItemModule:
             Item = ScrapyItem

@@ -2,18 +2,28 @@ import unittest
 from types import MappingProxyType
 from typing import KeysView
 
+import pytest
+
 from itemadapter.adapter import ItemAdapter
 
-from tests import AttrsItem, DataClassItem, ScrapySubclassedItem
+from tests import (
+    AttrsItem,
+    DataClassItem,
+    requires_attr,
+    requires_dataclasses,
+    requires_scrapy,
+    ScrapySubclassedItem,
+    TestCase,
+)
 
 
-class ItemAdapterReprTestCase(unittest.TestCase):
+class ItemAdapterReprTestCase(TestCase):
     def test_repr_dict(self):
         item = dict(name="asdf")
         adapter = ItemAdapter(item)
         self.assertEqual(repr(adapter), "ItemAdapter for type dict: {'name': 'asdf'}")
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
@@ -22,7 +32,7 @@ class ItemAdapterReprTestCase(unittest.TestCase):
             "ItemAdapter for type ScrapySubclassedItem: {'name': 'asdf', 'value': 1234}",
         )
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @requires_dataclasses
     def test_repr_dataclass(self):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
@@ -31,6 +41,7 @@ class ItemAdapterReprTestCase(unittest.TestCase):
             "ItemAdapter for type DataClassItem: DataClassItem(name='asdf', value=1234)",
         )
 
+    @requires_attr
     def test_repr_attrs(self):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
@@ -39,7 +50,7 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         )
 
 
-class ItemAdapterInitError(unittest.TestCase):
+class ItemAdapterInitError(TestCase):
     def test_non_item(self):
         with self.assertRaises(TypeError):
             ItemAdapter(ScrapySubclassedItem)
@@ -54,6 +65,7 @@ class BaseTestMixin:
     item_class = None
 
     def setUp(self):
+        super().setUp()
         if self.item_class is None:
             raise unittest.SkipTest()
 
@@ -135,7 +147,7 @@ class NonDictTestMixin(BaseTestMixin):
             del adapter["undefined_field"]
 
 
-class DictTestCase(unittest.TestCase, BaseTestMixin):
+class DictTestCase(TestCase, BaseTestMixin):
 
     item_class = dict
 
@@ -158,7 +170,7 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
         self.assertEqual(sorted(field_names), ["name", "value"])
 
 
-class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
+class ScrapySubclassedItemTestCase(NonDictTestMixin, TestCase):
 
     item_class = ScrapySubclassedItem
 
@@ -169,11 +181,11 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
             adapter["name"]
 
 
-class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
+class DataClassItemTestCase(NonDictTestMixin, TestCase):
 
     item_class = DataClassItem
 
 
-class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
+class AttrsItemTestCase(NonDictTestMixin, TestCase):
 
     item_class = AttrsItem

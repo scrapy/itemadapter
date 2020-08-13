@@ -47,13 +47,13 @@ jobs:
       run: pip install tox
 
     - name: Run tests
-      run: tox -e py${{ matrix.python-version }}
+      run: tox -e py
 
     - name: Upload coverage report
       run: bash <(curl -s https://codecov.io/bash) -cF tests
 
 
-  tests-no-deps:
+  tests-no-extra-deps:
     name: "Test: python3.6, Ubuntu, no deps"
     runs-on: ubuntu-latest
 
@@ -63,13 +63,13 @@ jobs:
     - name: Set up Python 3.6
       uses: actions/setup-python@v1
       with:
-        python-version: 3.6
+        python-version: [3.5, 3.6, 3.8]
 
     - name: Install tox
       run: pip install tox
 
     - name: Run tests
-      run: tox -e no-deps
+      run: tox -e no-extra-deps
 
     - name: Upload coverage report
       run: bash <(curl -s https://codecov.io/bash) -cF tests
