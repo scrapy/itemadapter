@@ -2,7 +2,13 @@ from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
 from typing import Any, Iterator
 
-from .utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
+from .utils import (
+    get_class_field_meta,
+    is_attrs_instance,
+    is_dataclass_instance,
+    is_item,
+    is_scrapy_item,
+)
 
 
 class ItemAdapter(MutableMapping):
@@ -86,28 +92,7 @@ class ItemAdapter(MutableMapping):
         The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
         of the original mapping, which gets automatically updated if the original mapping changes.
         """
-        if is_scrapy_item(self.item):
-            return MappingProxyType(self.item.fields[field_name])
-        elif is_dataclass_instance(self.item):
-            from dataclasses import fields
-
-            for field in fields(self.item):
-                if field.name == field_name:
-                    return field.metadata  # type: ignore
-            raise KeyError(
-                "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-            )
-        elif is_attrs_instance(self.item):
-            from attr import fields_dict
-
-            try:
-                return fields_dict(self.item.__class__)[field_name].metadata  # type: ignore
-            except KeyError:
-                raise KeyError(
-                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-                )
-        else:
-            return MappingProxyType({})
+        return get_class_field_meta(self.item.__class__, field_name)
 
     def field_names(self) -> KeysView:
         """
