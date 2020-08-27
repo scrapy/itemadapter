@@ -2,6 +2,15 @@ from types import MappingProxyType
 from typing import Any
 
 
+__all__ = [
+    "get_class_field_meta",
+    "is_attrs_instance",
+    "is_dataclass_instance",
+    "is_item",
+    "is_scrapy_item",
+]
+
+
 _scrapy_item_classes: tuple
 try:
     import scrapy
