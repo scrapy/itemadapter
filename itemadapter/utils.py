@@ -11,11 +11,10 @@ __all__ = [
 ]
 
 
-_scrapy_item_classes: tuple
 try:
     import scrapy
 except ImportError:
-    _scrapy_item_classes = ()
+    _scrapy_item_classes = ()  # type: tuple
 else:
     try:
         BaseItem = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)  # deprecated
