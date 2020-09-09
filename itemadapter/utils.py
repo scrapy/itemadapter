@@ -23,7 +23,7 @@ else:
         _scrapy_item_classes = (scrapy.item.Item,)
 
 
-def _is_dataclass_subclass(obj: Any) -> bool:
+def _is_dataclass(obj: Any) -> bool:
     try:
         import dataclasses
     except ImportError:
@@ -31,7 +31,7 @@ def _is_dataclass_subclass(obj: Any) -> bool:
     return dataclasses.is_dataclass(obj)
 
 
-def _is_attrs_subclass(obj: Any) -> bool:
+def _is_attrs_class(obj: Any) -> bool:
     try:
         import attr
     except ImportError:
@@ -48,14 +48,14 @@ def is_dataclass_instance(obj: Any) -> bool:
 
     Taken from https://docs.python.org/3/library/dataclasses.html#dataclasses.is_dataclass.
     """
-    return _is_dataclass_subclass(obj) and not isinstance(obj, type)
+    return _is_dataclass(obj) and not isinstance(obj, type)
 
 
 def is_attrs_instance(obj: Any) -> bool:
     """
     Return True if the given object is a attrs-based object, False otherwise.
     """
-    return _is_attrs_subclass(obj) and not isinstance(obj, type)
+    return _is_attrs_class(obj) and not isinstance(obj, type)
 
 
 def is_scrapy_item(obj: Any) -> bool:
@@ -104,14 +104,14 @@ def get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType:
     """
     if issubclass(item_class, _scrapy_item_classes):
         return MappingProxyType(item_class.fields[field_name])  # type: ignore
-    elif _is_dataclass_subclass(item_class):
+    elif _is_dataclass(item_class):
         from dataclasses import fields
 
         for field in fields(item_class):
             if field.name == field_name:
                 return field.metadata  # type: ignore
         raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    elif _is_attrs_subclass(item_class):
+    elif _is_attrs_class(item_class):
         from attr import fields_dict
 
         try:
