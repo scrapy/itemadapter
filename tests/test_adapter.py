@@ -39,14 +39,16 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
+            repr(adapter),
+            "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
         )
 
     def test_repr_attrs(self):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
+            repr(adapter),
+            "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
         )
 
 
