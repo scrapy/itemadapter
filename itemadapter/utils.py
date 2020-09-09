@@ -11,16 +11,17 @@ __all__ = [
 ]
 
 
-try:
-    import scrapy
-except ImportError:
-    _scrapy_item_classes = ()  # type: tuple
-else:
+def _get_scrapy_classes() -> tuple:
     try:
-        BaseItem = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)  # deprecated
-        _scrapy_item_classes = (scrapy.item.Item, BaseItem)
-    except AttributeError:
-        _scrapy_item_classes = (scrapy.item.Item,)
+        import scrapy
+    except ImportError:
+        return ()
+    else:
+        try:
+            BaseItem = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)  # deprecated
+            return (scrapy.item.Item, BaseItem)
+        except AttributeError:
+            return (scrapy.item.Item,)
 
 
 def _is_dataclass(obj: Any) -> bool:
@@ -102,7 +103,7 @@ def get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType:
     The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
     of the original mapping, which gets automatically updated if the original mapping changes.
     """
-    if issubclass(item_class, _scrapy_item_classes):
+    if issubclass(item_class, _get_scrapy_classes()):
         return MappingProxyType(item_class.fields[field_name])  # type: ignore
     elif _is_dataclass(item_class):
         from dataclasses import fields

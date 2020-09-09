@@ -1,7 +1,14 @@
 import unittest
 from unittest import mock
+from types import MappingProxyType
 
-from itemadapter.utils import is_item, is_attrs_instance, is_dataclass_instance, is_scrapy_item
+from itemadapter.utils import (
+    get_class_field_meta,
+    is_attrs_instance,
+    is_dataclass_instance,
+    is_item,
+    is_scrapy_item,
+)
 
 from tests import AttrsItem, DataClassItem, ScrapyItem, ScrapySubclassedItem
 
@@ -69,6 +76,13 @@ class AttrsTestCase(unittest.TestCase):
     def test_true(self):
         self.assertTrue(is_attrs_instance(AttrsItem()))
         self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(
+            get_class_field_meta(AttrsItem, "name"), MappingProxyType({"serializer": str})
+        )
+        self.assertEqual(
+            get_class_field_meta(AttrsItem, "value"), MappingProxyType({"serializer": int})
+        )
 
 
 class DataclassTestCase(unittest.TestCase):
@@ -97,6 +111,13 @@ class DataclassTestCase(unittest.TestCase):
     def test_true(self):
         self.assertTrue(is_dataclass_instance(DataClassItem()))
         self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(
+            get_class_field_meta(DataClassItem, "name"), MappingProxyType({"serializer": str})
+        )
+        self.assertEqual(
+            get_class_field_meta(DataClassItem, "value"), MappingProxyType({"serializer": int})
+        )
 
 
 class ScrapyItemTestCase(unittest.TestCase):
@@ -118,12 +139,24 @@ class ScrapyItemTestCase(unittest.TestCase):
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(get_class_field_meta(ScrapySubclassedItem, "name"), MappingProxyType({}))
+        self.assertEqual(get_class_field_meta(ScrapySubclassedItem, "value"), MappingProxyType({}))
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_true(self):
         self.assertTrue(is_scrapy_item(ScrapyItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(
+            get_class_field_meta(ScrapySubclassedItem, "name"),
+            MappingProxyType({"serializer": str}),
+        )
+        self.assertEqual(
+            get_class_field_meta(ScrapySubclassedItem, "value"),
+            MappingProxyType({"serializer": int}),
+        )
 
 
 try:
@@ -166,3 +199,11 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
 
         with mock.patch("scrapy.item", MockItemModule):
             self.assertFalse(is_scrapy_item(dict()))
+            self.assertEqual(
+                get_class_field_meta(ScrapySubclassedItem, "name"),
+                MappingProxyType({"serializer": str}),
+            )
+            self.assertEqual(
+                get_class_field_meta(ScrapySubclassedItem, "value"),
+                MappingProxyType({"serializer": int}),
+            )
