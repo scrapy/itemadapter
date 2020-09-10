@@ -194,6 +194,10 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
 
     @unittest.skipIf(scrapy is None, "scrapy module is not available")
     def test_removed_baseitem(self):
+        """
+        Mock the scrapy.item module so it does not contain the deprecated _BaseItem class
+        """
+
         class MockItemModule:
             Item = ScrapyItem
 

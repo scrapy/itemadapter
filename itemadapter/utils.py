@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-def _get_scrapy_classes() -> tuple:
+def _get_scrapy_item_classes() -> tuple:
     try:
         import scrapy
     except ImportError:
@@ -103,7 +103,7 @@ def get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType:
     The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
     of the original mapping, which gets automatically updated if the original mapping changes.
     """
-    if issubclass(item_class, _get_scrapy_classes()):
+    if issubclass(item_class, _get_scrapy_item_classes()):
         return MappingProxyType(item_class.fields[field_name])  # type: ignore
     elif _is_dataclass(item_class):
         from dataclasses import fields
