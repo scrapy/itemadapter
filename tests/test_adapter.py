@@ -18,20 +18,14 @@ class ItemAdapterReprTestCase(unittest.TestCase):
     def test_repr_dict(self):
         item = dict(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        # dicts are not guarantied to be sorted in py35
-        self.assertTrue(
-            repr(adapter) == "<ItemAdapter for dict(name='asdf', value=1234)>"
-            or repr(adapter) == "<ItemAdapter for dict(value=1234, name='asdf')>",
-        )
+        self.assertEqual(repr(adapter), "<ItemAdapter for dict(name='asdf', value=1234)>")
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        # Scrapy fields are stored in a dict, which is not guarantied to be sorted in py35
-        self.assertTrue(
-            repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
-            or repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(value=1234, name='asdf')>",
+        self.assertEqual(
+            repr(adapter), "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
         )
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
