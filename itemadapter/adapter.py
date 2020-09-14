@@ -3,7 +3,7 @@ from types import MappingProxyType
 from typing import Any, Iterator
 
 from .utils import (
-    get_class_field_meta,
+    get_field_meta_from_class,
     is_attrs_instance,
     is_dataclass_instance,
     is_item,
@@ -92,7 +92,7 @@ class ItemAdapter(MutableMapping):
         The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
         of the original mapping, which gets automatically updated if the original mapping changes.
         """
-        return get_class_field_meta(self.item.__class__, field_name)
+        return get_field_meta_from_class(self.item.__class__, field_name)
 
     def field_names(self) -> KeysView:
         """

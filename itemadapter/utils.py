@@ -3,7 +3,7 @@ from typing import Any
 
 
 __all__ = [
-    "get_class_field_meta",
+    "get_field_meta_from_class",
     "is_attrs_instance",
     "is_dataclass_instance",
     "is_item",
@@ -89,7 +89,7 @@ def is_item(obj: Any) -> bool:
     )
 
 
-def get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType:
+def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
     """
     Return a read-only mapping with metadata for the given field name, within the given item class.
     If there is no metadata for the field, or the item class does not support field metadata,

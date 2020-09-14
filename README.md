@@ -163,9 +163,9 @@ _`itemadapter.utils.is_item(obj: Any) -> bool`_
 Return `True` if the given object belongs to one of the supported types,
 `False` otherwise.
 
-### `get_class_field_meta` function
+### `get_field_meta_from_class` function
 
-_`itemadapter.utils.get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType`_
+_`itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType`_
 
 Given an item class and a field name, return a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
@@ -178,7 +178,7 @@ support field metadata, or there is no metadata for the given field, an empty ob
 `scrapy.item.Item`, `dataclass` and `attrs` objects allow the inclusion of
 arbitrary field metadata. This can be retrieved from an item instance with the
 `itemadapter.adapter.ItemAdapter.get_field_meta` method, or from an item class
-with the `itemadapter.utils.get_class_field_meta` function.
+with the `itemadapter.utils.get_field_meta_from_class` function.
 The definition procedure depends on the underlying type.
 
 #### `scrapy.item.Item` objects
