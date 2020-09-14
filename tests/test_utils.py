@@ -17,6 +17,14 @@ def mocked_import(name, *args, **kwargs):
     raise ImportError(name)
 
 
+class InvalidItemClassTestCase(unittest.TestCase):
+    def test_invalid_item_class(self):
+        with self.assertRaises(TypeError, msg="1 is not a valid item class"):
+            get_class_field_meta(1, "field")
+        with self.assertRaises(TypeError, msg="list is not a valid item class"):
+            get_class_field_meta(list, "field")
+
+
 class ItemLikeTestCase(unittest.TestCase):
     def test_false(self):
         self.assertFalse(is_item(int))
@@ -71,6 +79,8 @@ class AttrsTestCase(unittest.TestCase):
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+        with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
+            get_class_field_meta(AttrsItem, "name")
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_true(self):
@@ -106,6 +116,8 @@ class DataclassTestCase(unittest.TestCase):
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+        with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
+            get_class_field_meta(DataClassItem, "name")
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true(self):
@@ -139,9 +151,8 @@ class ScrapyItemTestCase(unittest.TestCase):
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
-        # field metadata
-        self.assertEqual(get_class_field_meta(ScrapySubclassedItem, "name"), MappingProxyType({}))
-        self.assertEqual(get_class_field_meta(ScrapySubclassedItem, "value"), MappingProxyType({}))
+        with self.assertRaises(TypeError, msg="ScrapySubclassedItem is not a valid item class"):
+            get_class_field_meta(ScrapySubclassedItem, "name")
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_true(self):

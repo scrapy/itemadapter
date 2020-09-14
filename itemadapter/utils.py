@@ -92,7 +92,7 @@ def is_item(obj: Any) -> bool:
 def get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType:
     """
     Return a read-only mapping with metadata for the given field name, within the given item class.
-    If there is no metadata for the field, or the wrapped item does not support field metadata,
+    If there is no metadata for the field, or the item class does not support field metadata,
     an empty object is returned.
 
     Field metadata is taken from different sources, depending on the item type:
@@ -119,5 +119,7 @@ def get_class_field_meta(item_class: type, field_name: str) -> MappingProxyType:
             return fields_dict(item_class)[field_name].metadata  # type: ignore
         except KeyError:
             raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    else:
+    elif issubclass(item_class, dict):
         return MappingProxyType({})
+    else:
+        raise TypeError("%s is not a valid item class" % (item_class,))
