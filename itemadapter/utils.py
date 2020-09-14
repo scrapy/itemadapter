@@ -2,15 +2,6 @@ from types import MappingProxyType
 from typing import Any
 
 
-__all__ = [
-    "get_field_meta_from_class",
-    "is_attrs_instance",
-    "is_dataclass_instance",
-    "is_item",
-    "is_scrapy_item",
-]
-
-
 def _get_scrapy_item_classes() -> tuple:
     try:
         import scrapy
@@ -18,8 +9,8 @@ def _get_scrapy_item_classes() -> tuple:
         return ()
     else:
         try:
-            BaseItem = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)  # deprecated
-            return (scrapy.item.Item, BaseItem)
+            _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)  # deprecated
+            return (scrapy.item.Item, _base_item_cls)
         except AttributeError:
             return (scrapy.item.Item,)
 
