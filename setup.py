@@ -16,11 +16,11 @@ setuptools.setup(
     author_email="eugenio.lacuesta@gmail.com",
     url="https://github.com/scrapy/itemadapter",
     packages=["itemadapter"],
+    python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",

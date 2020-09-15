@@ -19,7 +19,7 @@ Currently supported types are:
 
 ## Requirements
 
-* Python 3.5+
+* Python 3.6+
 * [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
 * `dataclasses` ([stdlib](https://docs.python.org/3/library/dataclasses.html) in Python 3.7+,
   or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed

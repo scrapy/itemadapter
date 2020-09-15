@@ -5,8 +5,7 @@ def is_dataclass_instance(obj: Any) -> bool:
     """
     Return True if the given object is a dataclass object, False otherwise.
 
-    This function always returns False in py35. In py36, it returns False
-    if the "dataclasses" backport is not available.
+    In py36, this function returns False if the "dataclasses" backport is not available.
 
     Taken from https://docs.python.org/3/library/dataclasses.html#dataclasses.is_dataclass.
     """
