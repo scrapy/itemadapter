@@ -327,7 +327,7 @@ object (#34, #35).
 `ItemAdapter.__repr__` no longer raises exceptions caused by the underlying
 item (#31).
 
-Minor improvement to the release process (#37).
+Minor improvement to the release process (#37), and cleanup of test warnings (#40).
 
 
 ### 0.1.0 (2020-06-10)
