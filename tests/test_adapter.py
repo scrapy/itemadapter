@@ -7,8 +7,10 @@ from itemadapter.adapter import ItemAdapter
 from tests import (
     AttrsItem,
     AttrsItemNested,
+    AttrsItemWithoutInit,
     DataClassItem,
     DataClassItemNested,
+    DataClassWithoutInit,
     ScrapySubclassedItem,
     ScrapySubclassedItemNested,
 )
@@ -37,12 +39,33 @@ class ItemAdapterReprTestCase(unittest.TestCase):
             "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
         )
 
+    @unittest.skipIf(not DataClassWithoutInit, "dataclasses module is not available")
+    def test_repr_dataclass_init_false(self):
+        item = DataClassWithoutInit()
+        adapter = ItemAdapter(item)
+        self.assertEqual(repr(adapter), "<ItemAdapter for DataClassWithoutInit()>")
+        adapter["name"] = "set after init"
+        self.assertEqual(
+            repr(adapter), "<ItemAdapter for DataClassWithoutInit(name='set after init')>"
+        )
+
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_repr_attrs(self):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
             repr(adapter),
             "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
+        )
+
+    @unittest.skipIf(not AttrsItemWithoutInit, "attrs module is not available")
+    def test_repr_attrs_init_false(self):
+        item = AttrsItemWithoutInit()
+        adapter = ItemAdapter(item)
+        self.assertEqual(repr(adapter), "<ItemAdapter for AttrsItemWithoutInit()>")
+        adapter["name"] = "set after init"
+        self.assertEqual(
+            repr(adapter), "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
         )
 
 
