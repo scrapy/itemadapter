@@ -47,14 +47,14 @@ The following is a simple example using a `dataclass` object.
 Consider the following type definition:
 
 ```python
-from dataclasses import dataclass
-from itemadapter import ItemAdapter, is_item
-
-@dataclass
-class InventoryItem:
-    name: str
-    price: float
-    stock: int
+>>> from dataclasses import dataclass
+>>> from itemadapter import ItemAdapter, is_item
+>>> @dataclass
+... class InventoryItem:
+...     name: str
+...     price: float
+...     stock: int
+>>>
 ```
 
 The `ItemAdapter` object can be treated much like a dictionary:
@@ -70,6 +70,7 @@ True
 'foo'
 >>> adapter.get("price")
 20.5
+>>>
 ```
 
 The wrapped object is modified in-place:
@@ -80,6 +81,7 @@ The wrapped object is modified in-place:
 InventoryItem(name='bar', price=12.7, stock=9)
 >>> adapter.item is obj
 True
+>>>
 ```
 
 ### Converting to dict
@@ -88,25 +90,25 @@ The `ItemAdapter` class provides the `asdict` method, which converts
 nested items recursively. Consider the following example:
 
 ```python
-from dataclasses import dataclass
-from itemadapter import ItemAdapter
-
-@dataclass
-class Price:
-    value: int
-    currency: str
-
-@dataclass
-class Product:
-    name: str
-    price: Price
+>>> from dataclasses import dataclass
+>>> from itemadapter import ItemAdapter
+>>> @dataclass
+... class Price:
+...     value: int
+...     currency: str
+>>> @dataclass
+... class Product:
+...     name: str
+...     price: Price
+>>>
 ```
 
 ```python
 >>> item = Product("Stuff", Price(42, "UYU"))
 >>> adapter = ItemAdapter(item)
 >>> adapter.asdict()
-{'name': 'Stuff', 'price': {'currency': 'UYU', 'value': 42}}
+{'name': 'Stuff', 'price': {'value': 42, 'currency': 'UYU'}}
+>>>
 ```
 
 Note that just passing an adapter object to the `dict` built-in also works,
@@ -115,6 +117,7 @@ but it doesn't traverse the object recursively converting nested items:
 ```python
 >>> dict(adapter)
 {'name': 'Stuff', 'price': Price(value=42, currency='UYU')}
+>>>
 ```
 
 
@@ -195,6 +198,7 @@ The definition procedure depends on the underlying type.
 mappingproxy({'serializer': <class 'str'>})
 >>> adapter.get_field_meta("value")
 mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+>>>
 ```
 
 #### `dataclass` objects
@@ -211,6 +215,7 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 mappingproxy({'serializer': <class 'str'>})
 >>> adapter.get_field_meta("value")
 mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+>>>
 ```
 
 #### `attrs` objects
@@ -226,7 +231,8 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 >>> adapter.get_field_meta("name")
 mappingproxy({'serializer': <class 'str'>})
 >>> adapter.get_field_meta("value")
-mappingproxy({'serializer': <class 'int'>})
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+>>>
 ```
 
 
@@ -251,6 +257,7 @@ True
 >>> adapter["price"] = 5
 >>> item
 {'name': 'bar', 'price': 5}
+>>>
 ```
 
 ### `dict`
@@ -267,6 +274,7 @@ True
 >>> adapter["price"] = 5
 >>> item
 {'name': 'bar', 'price': 5}
+>>>
 ```
 
 ### `dataclass` objects
@@ -289,6 +297,7 @@ True
 >>> adapter["price"] = 5
 >>> item
 InventoryItem(name='bar', price=5)
+>>>
 ```
 
 ### `attrs` objects
@@ -311,4 +320,5 @@ True
 >>> adapter["price"] = 5
 >>> item
 InventoryItem(name='bar', price=5)
+>>>
 ```
