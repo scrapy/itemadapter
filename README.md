@@ -316,4 +316,4 @@ InventoryItem(name='bar', price=5)
 
 ## Changelog
 
-See https://github.com/scrapy/itemadapter/blob/master/Changelog.md
+See the [full changelog](Changelog.md)
