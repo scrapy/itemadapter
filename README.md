@@ -322,3 +322,8 @@ True
 InventoryItem(name='bar', price=5)
 >>>
 ```
+
+
+## Changelog
+
+See the [full changelog](Changelog.md)
