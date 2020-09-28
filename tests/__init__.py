@@ -6,6 +6,7 @@ try:
 except ImportError:
     AttrsItem = None
     AttrsItemNested = None
+    AttrsItemWithoutInit = None
 else:
 
     @attr.s
@@ -23,24 +24,30 @@ else:
         tuple_ = attr.ib(type=tuple)
         int_ = attr.ib(type=int)
 
+    @attr.s(init=False)
+    class AttrsItemWithoutInit:
+        name = attr.ib(default=None, metadata={"serializer": str})
+        value = attr.ib(default=None, metadata={"serializer": int})
+
 
 try:
     from dataclasses import make_dataclass, field
 except ImportError:
     DataClassItem = None
     DataClassItemNested = None
+    DataClassWithoutInit = None
 else:
     DataClassItem = make_dataclass(
-        "DataClassItem",
-        [
+        cls_name="DataClassItem",
+        fields=[
             ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
             ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
         ],
     )
 
     DataClassItemNested = make_dataclass(
-        "DataClassItem",
-        [
+        cls_name="DataClassItem",
+        fields=[
             ("nested", DataClassItem),
             ("adapter", ItemAdapter),
             ("dict_", dict),
@@ -49,6 +56,15 @@ else:
             ("tuple_", tuple),
             ("int_", int),
         ],
+    )
+
+    DataClassWithoutInit = make_dataclass(
+        cls_name="DataClassWithoutInit",
+        fields=[
+            ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
+            ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
+        ],
+        init=False,
     )
 
 
