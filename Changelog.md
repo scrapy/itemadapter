@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.1.1 (2020-NN-NN)
+### 0.1.1 (2020-09-28)
 
 Dropped support for Python 3.5 (#38).
 
@@ -9,7 +9,7 @@ The new `get_field_meta_from_class` function offers the same functionality as
 object (#34, #35).
 
 `ItemAdapter.__repr__` no longer raises exceptions caused by the underlying
-item (#31).
+item (#31, #41).
 
 Minor improvement to the release process (#37), and cleanup of test warnings (#40).
 
