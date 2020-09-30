@@ -12,6 +12,10 @@ from itemadapter.utils import (
 
 
 class BaseAdapter(MutableMapping):
+    """
+    Basic interface to handle a specific type of item
+    """
+
     def __init__(self, item: Any) -> None:
         self.item = item
 
@@ -33,13 +37,54 @@ class BaseAdapter(MutableMapping):
         pass
 
 
+class _MixinAttrsDataclassAdapter:
+
+    _fields_dict: dict
+    item: Any
+
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
+        return self._fields_dict[field_name].metadata  # type: ignore
+
+    def field_names(self) -> KeysView:
+        return KeysView(self._fields_dict)
+
+    def asdict(self) -> dict:
+        return {key: _asdict(value) for key, value in self.items()}  # type: ignore
+
+    def __getitem__(self, field_name: str) -> Any:
+        if field_name in self._fields_dict:
+            return getattr(self.item, field_name)
+        raise KeyError(field_name)
+
+    def __setitem__(self, field_name: str, value: Any) -> None:
+        if field_name in self._fields_dict:
+            setattr(self.item, field_name, value)
+        else:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+
+    def __delitem__(self, field_name: str) -> None:
+        if field_name in self._fields_dict:
+            try:
+                delattr(self.item, field_name)
+            except AttributeError:
+                raise KeyError(field_name)
+        else:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+
+    def __iter__(self) -> Iterator:
+        return iter(attr for attr in self._fields_dict if hasattr(self.item, attr))
+
+    def __len__(self) -> int:
+        return len(list(iter(self)))
+
+
 try:
     import attr
 except ImportError:
     AttrsAdapter = None
 else:
 
-    class AttrsAdapter(BaseAdapter):  # type: ignore
+    class AttrsAdapter(_MixinAttrsDataclassAdapter, BaseAdapter):  # type: ignore
         def __init__(self, item: Any) -> None:
             super().__init__(item)
             # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
@@ -49,45 +94,6 @@ else:
         def is_item(cls, item: Any) -> bool:
             return is_attrs_instance(item)
 
-        def get_field_meta(self, field_name: str) -> MappingProxyType:
-            return self._fields_dict[field_name].metadata  # type: ignore
-
-        def field_names(self) -> KeysView:
-            return KeysView(self._fields_dict)
-
-        def asdict(self) -> dict:
-            return {key: _asdict(value) for key, value in self.items()}
-
-        def __getitem__(self, field_name: str) -> Any:
-            if field_name in self._fields_dict:
-                return getattr(self.item, field_name)
-            raise KeyError(field_name)
-
-        def __setitem__(self, field_name: str, value: Any) -> None:
-            if field_name in self._fields_dict:
-                setattr(self.item, field_name, value)
-            else:
-                raise KeyError(
-                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-                )
-
-        def __delitem__(self, field_name: str) -> None:
-            if field_name in self._fields_dict:
-                try:
-                    delattr(self.item, field_name)
-                except AttributeError:
-                    raise KeyError(field_name)
-            else:
-                raise KeyError(
-                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-                )
-
-        def __iter__(self) -> Iterator:
-            return iter(attr for attr in self._fields_dict if hasattr(self.item, attr))
-
-        def __len__(self) -> int:
-            return len(list(iter(self)))
-
 
 try:
     import dataclasses
@@ -95,7 +101,7 @@ except ImportError:
     DataclassAdapter = None
 else:
 
-    class DataclassAdapter(BaseAdapter):  # type: ignore
+    class DataclassAdapter(_MixinAttrsDataclassAdapter, BaseAdapter):  # type: ignore
         def __init__(self, item: Any) -> None:
             super().__init__(item)
             # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
@@ -105,59 +111,14 @@ else:
         def is_item(cls, item: Any) -> bool:
             return is_dataclass_instance(item)
 
-        def get_field_meta(self, field_name: str) -> MappingProxyType:
-            return self._fields_dict[field_name].metadata  # type: ignore
 
-        def field_names(self) -> KeysView:
-            return KeysView(self._fields_dict)
+class _MixinDictScrapyAdapter:
 
-        def asdict(self) -> dict:
-            return {key: _asdict(value) for key, value in self.items()}
-
-        def __getitem__(self, field_name: str) -> Any:
-            if field_name in self._fields_dict:
-                return getattr(self.item, field_name)
-            raise KeyError(field_name)
-
-        def __setitem__(self, field_name: str, value: Any) -> None:
-            if field_name in self._fields_dict:
-                setattr(self.item, field_name, value)
-            else:
-                raise KeyError(
-                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-                )
-
-        def __delitem__(self, field_name: str) -> None:
-            if field_name in self._fields_dict:
-                try:
-                    delattr(self.item, field_name)
-                except AttributeError:
-                    raise KeyError(field_name)
-            else:
-                raise KeyError(
-                    "%s does not support field: %s" % (self.item.__class__.__name__, field_name)
-                )
-
-        def __iter__(self) -> Iterator:
-            return iter(attr for attr in self._fields_dict if hasattr(self.item, attr))
-
-        def __len__(self) -> int:
-            return len(list(iter(self)))
-
-
-class DictAdapter(BaseAdapter):
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
-        return isinstance(item, dict)
-
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return MappingProxyType({})  # type: ignore
-
-    def field_names(self) -> KeysView:
-        return KeysView(self.item)
+    _fields_dict: dict
+    item: Any
 
     def asdict(self) -> dict:
-        return {key: _asdict(value) for key, value in self.items()}
+        return {key: _asdict(value) for key, value in self.items()}  # type: ignore
 
     def __getitem__(self, field_name: str) -> Any:
         return self.item[field_name]
@@ -175,13 +136,25 @@ class DictAdapter(BaseAdapter):
         return len(self.item)
 
 
+class DictAdapter(_MixinDictScrapyAdapter, BaseAdapter):
+    @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return isinstance(item, dict)
+
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
+        return MappingProxyType({})
+
+    def field_names(self) -> KeysView:
+        return KeysView(self.item)
+
+
 try:
     import scrapy  # noqa: F401
 except ImportError:
     ScrapyAdapter = None
 else:
 
-    class ScrapyAdapter(BaseAdapter):  # type: ignore
+    class ScrapyAdapter(_MixinDictScrapyAdapter, BaseAdapter):  # type: ignore
         @classmethod
         def is_item(cls, item: Any) -> bool:
             return is_scrapy_item(item)
@@ -191,24 +164,6 @@ else:
 
         def field_names(self) -> KeysView:
             return KeysView(self.item.fields)
-
-        def asdict(self) -> dict:
-            return {key: _asdict(value) for key, value in self.items()}
-
-        def __getitem__(self, field_name: str) -> Any:
-            return self.item[field_name]
-
-        def __setitem__(self, field_name: str, value: Any) -> None:
-            self.item[field_name] = value
-
-        def __delitem__(self, field_name: str) -> None:
-            del self.item[field_name]
-
-        def __iter__(self) -> Iterator:
-            return iter(self.item)
-
-        def __len__(self) -> int:
-            return len(self.item)
 
 
 class ItemAdapter(MutableMapping):
@@ -230,9 +185,7 @@ class ItemAdapter(MutableMapping):
                 self.adapter = cls(item)
                 break
         else:
-            raise TypeError(
-                "No registered adapter class for objects of type: %r (%s)" % (type(item), item)
-            )
+            raise TypeError(f"No adapter found for objects of type: {type(item)} ({item})")
 
     @property
     def item(self) -> Any:
@@ -240,7 +193,7 @@ class ItemAdapter(MutableMapping):
 
     def __repr__(self) -> str:
         values = ", ".join(["%s=%r" % (key, value) for key, value in self.items()])
-        return "<ItemAdapter for %s(%s)>" % (self.item.__class__.__name__, values)
+        return f"<ItemAdapter for {self.item.__class__.__name__}({values})>"
 
     def __getitem__(self, field_name: str) -> Any:
         return self.adapter.__getitem__(field_name)
