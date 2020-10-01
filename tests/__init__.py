@@ -31,41 +31,32 @@ else:
 
 
 try:
-    from dataclasses import make_dataclass, field
+    from dataclasses import dataclass, field
 except ImportError:
     DataClassItem = None
     DataClassItemNested = None
     DataClassWithoutInit = None
 else:
-    DataClassItem = make_dataclass(
-        cls_name="DataClassItem",
-        fields=[
-            ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
-            ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
-        ],
-    )
 
-    DataClassItemNested = make_dataclass(
-        cls_name="DataClassItem",
-        fields=[
-            ("nested", DataClassItem),
-            ("adapter", ItemAdapter),
-            ("dict_", dict),
-            ("list_", list),
-            ("set_", set),
-            ("tuple_", tuple),
-            ("int_", int),
-        ],
-    )
+    @dataclass
+    class DataClassItem:
+        name: str = field(default_factory=lambda: None, metadata={"serializer": str})
+        value: int = field(default_factory=lambda: None, metadata={"serializer": int})
 
-    DataClassWithoutInit = make_dataclass(
-        cls_name="DataClassWithoutInit",
-        fields=[
-            ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
-            ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
-        ],
-        init=False,
-    )
+    @dataclass
+    class DataClassItemNested:
+        nested: DataClassItem
+        adapter: ItemAdapter
+        dict_: dict
+        list_: list
+        set_: set
+        tuple_: tuple
+        int_: int
+
+    @dataclass(init=False)
+    class DataClassWithoutInit:
+        name: str = field(metadata={"serializer": str})
+        value: int = field(metadata={"serializer": int})
 
 
 try:
