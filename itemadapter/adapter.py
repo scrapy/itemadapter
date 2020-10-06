@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 from collections import deque
 from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
@@ -12,9 +12,24 @@ from itemadapter.utils import (
 )
 
 
-class AdapterInterface(MutableMapping):
+__all__ = [
+    "AdapterInterface",
+    "AttrsAdapter",
+    "DataclassAdapter",
+    "DictAdapter",
+    "DictAdapter",
+    "ScrapyItemAdapter",
+    "ItemAdapter",
+]
+
+
+class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     """
-    Common interface to handle a specific type of item
+    Abstract Base Class for adapters.
+
+    An adapter that handles a specific type of item should inherit from this
+    class and implement the abstract methods defined here, plus the
+    abtract methods inherited from the MutableMapping base class.
     """
 
     def __init__(self, item: Any) -> None:
@@ -23,18 +38,31 @@ class AdapterInterface(MutableMapping):
     @classmethod
     @abstractmethod
     def is_item(cls, item: Any) -> bool:
+        """
+        Return True if the adapter can handle the given item, False otherwise
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def get_field_meta(self, field_name: str) -> MappingProxyType:
+        """
+        Return metadata for the given field name, if available
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def field_names(self) -> KeysView:
+        """
+        Return a dynamic view of the item's field names
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def asdict(self) -> dict:
+        """
+        Return a dictionary containing all values from the adapted item,
+        converting nested structures as well
+        """
         raise NotImplementedError()
 
 
@@ -113,7 +141,7 @@ else:
             return is_dataclass_instance(item)
 
 
-class _MixinDictScrapyAdapter:
+class _MixinDictScrapyItemAdapter:
 
     _fields_dict: dict
     item: Any
@@ -137,7 +165,7 @@ class _MixinDictScrapyAdapter:
         return len(self.item)
 
 
-class DictAdapter(_MixinDictScrapyAdapter, AdapterInterface):
+class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return isinstance(item, dict)
@@ -152,10 +180,10 @@ class DictAdapter(_MixinDictScrapyAdapter, AdapterInterface):
 try:
     import scrapy  # noqa: F401
 except ImportError:
-    ScrapyAdapter = None
+    ScrapyItemAdapter = None
 else:
 
-    class ScrapyAdapter(_MixinDictScrapyAdapter, AdapterInterface):  # type: ignore
+    class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):  # type: ignore
         @classmethod
         def is_item(cls, item: Any) -> bool:
             return is_scrapy_item(item)
@@ -176,7 +204,7 @@ class ItemAdapter(MutableMapping):
     ADAPTER_CLASSES = deque(
         [
             cls
-            for cls in (AttrsAdapter, DataclassAdapter, DictAdapter, ScrapyAdapter)
+            for cls in (AttrsAdapter, DataclassAdapter, DictAdapter, ScrapyItemAdapter)
             if isinstance(cls, type) and issubclass(cls, AdapterInterface)
         ]
     )
