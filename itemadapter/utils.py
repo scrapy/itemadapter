@@ -70,13 +70,12 @@ def is_scrapy_item(obj: Any) -> bool:
 def is_item(obj: Any) -> bool:
     """
     Return True if the given object belongs to one of the supported types, False otherwise.
+
+    Alias for ItemAdapter.is_item
     """
-    return (
-        isinstance(obj, dict)
-        or is_scrapy_item(obj)
-        or is_dataclass_instance(obj)
-        or is_attrs_instance(obj)
-    )
+    from itemadapter.adapter import ItemAdapter
+
+    return ItemAdapter.is_item(obj)
 
 
 def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
