@@ -121,15 +121,75 @@ but it doesn't traverse the object recursively converting nested items:
 ```
 
 
-## Public API
+## API
+
+### Extending `itemadapter`
+
+This package allows to handle arbitrary item classes, by implementing an adapter interface:
+
+_class `itemadapter.adapter.AdapterInterface(item: Any)`_
+
+Abstract Base Class for adapters. An adapter that handles a specific type of item should
+inherit from this class and implement the abstract methods defined on it. `AdapterInterface`
+inherits from [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
+so all methods from the `MutableMapping` class should be implemented as well.
+
+* _class method `is_item(item: Any) -> bool`_
+
+    Return `True` if the adapter can handle the given item, `False` otherwise
+
+* _method `get_field_meta(self, field_name: str) -> MappingProxyType`_
+
+    Return metadata for the given field name, if available
+
+* _method `field_names(self) -> KeysView`_:
+
+    Return a dynamic view of the item's field names
+
+* _method `asdict(self) -> dict`_:
+
+    Return a dictionary containing the contents of the adapted item, converting nested structures as well
+
+### Registering an adapter
+
+The `itemadapter.adapter.ItemAdapter` class keeps the registered adapters in its `ADAPTER_CLASSES`
+class attribute. This is a
+[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
+object, allowing to efficiently add new adapters elements to both ends.
+
+The order in which the adapters are registered is important. When an `ItemAdapter` object is
+created for a specific item, the above adapters are traversed in order and the first class
+to return `True` for the `is_item` class method is used for all subsequent operations.
+
+**Example**
+```python
+>>> from itemadapter import ItemAdapter
+>>> from my_project import CustomAdapter, CustomItem
+>>>
+>>> ItemAdapter.ADAPTER_CLASSES.appendleft(CustomAdapter)
+>>> item = CustomItem()
+>>> adapter = ItemAdapter(item)
+>>> adapter
+<ItemAdapter for CustomItem()>
+>>>
+```
+
+### Built-in adapters
+
+Four default adapters are included with the package, in the following order :
+
+* `itemadapter.adapter.ScrapyItemAdapter`
+* `itemadapter.adapter.DictAdapter`
+* `itemadapter.adapter.DataclassAdapter`
+* `itemadapter.adapter.AttrsAdapter`
 
 ### `ItemAdapter` class
 
 _class `itemadapter.adapter.ItemAdapter(item: Any)`_
 
 `ItemAdapter` implements the
-[`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
-providing a `dict`-like API to manipulate data for the object it wraps
+[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+interface, providing a `dict`-like API to manipulate data for the object it wraps
 (which is modified in-place).
 
 Some additional methods are available:
