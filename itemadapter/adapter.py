@@ -17,9 +17,8 @@ __all__ = [
     "AttrsAdapter",
     "DataclassAdapter",
     "DictAdapter",
-    "DictAdapter",
-    "ScrapyItemAdapter",
     "ItemAdapter",
+    "ScrapyItemAdapter",
 ]
 
 
@@ -60,7 +59,7 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     @abstractmethod
     def asdict(self) -> dict:
         """
-        Return a dictionary containing all values from the adapted item,
+        Return a dictionary containing the contents of the adapted item,
         converting nested structures as well
         """
         raise NotImplementedError()
@@ -204,7 +203,7 @@ class ItemAdapter(MutableMapping):
     ADAPTER_CLASSES = deque(
         [
             cls
-            for cls in (AttrsAdapter, DataclassAdapter, DictAdapter, ScrapyItemAdapter)
+            for cls in (ScrapyItemAdapter, DictAdapter, DataclassAdapter, AttrsAdapter)
             if isinstance(cls, type) and issubclass(cls, AdapterInterface)
         ]
     )
