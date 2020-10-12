@@ -106,38 +106,30 @@ class _MixinAttrsDataclassAdapter:
         return len(list(iter(self)))
 
 
-try:
-    import attr
-except ImportError:
-    AttrsAdapter = None
-else:
+class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
+    def __init__(self, item: Any) -> None:
+        super().__init__(item)
+        import attr
 
-    class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):  # type: ignore
-        def __init__(self, item: Any) -> None:
-            super().__init__(item)
-            # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
-            self._fields_dict = attr.fields_dict(self.item.__class__)
+        # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
+        self._fields_dict = attr.fields_dict(self.item.__class__)
 
-        @classmethod
-        def is_item(cls, item: Any) -> bool:
-            return is_attrs_instance(item)
+    @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return is_attrs_instance(item)
 
 
-try:
-    import dataclasses
-except ImportError:
-    DataclassAdapter = None
-else:
+class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
+    def __init__(self, item: Any) -> None:
+        super().__init__(item)
+        import dataclasses
 
-    class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):  # type: ignore
-        def __init__(self, item: Any) -> None:
-            super().__init__(item)
-            # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
-            self._fields_dict = {field.name: field for field in dataclasses.fields(self.item)}
+        # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
+        self._fields_dict = {field.name: field for field in dataclasses.fields(self.item)}
 
-        @classmethod
-        def is_item(cls, item: Any) -> bool:
-            return is_dataclass_instance(item)
+    @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return is_dataclass_instance(item)
 
 
 class _MixinDictScrapyItemAdapter:
@@ -176,22 +168,16 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         return KeysView(self.item)
 
 
-try:
-    import scrapy  # noqa: F401
-except ImportError:
-    ScrapyItemAdapter = None
-else:
+class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
+    @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return is_scrapy_item(item)
 
-    class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):  # type: ignore
-        @classmethod
-        def is_item(cls, item: Any) -> bool:
-            return is_scrapy_item(item)
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
+        return MappingProxyType(self.item.fields[field_name])
 
-        def get_field_meta(self, field_name: str) -> MappingProxyType:
-            return MappingProxyType(self.item.fields[field_name])
-
-        def field_names(self) -> KeysView:
-            return KeysView(self.item.fields)
+    def field_names(self) -> KeysView:
+        return KeysView(self.item.fields)
 
 
 class ItemAdapter(MutableMapping):
@@ -202,9 +188,10 @@ class ItemAdapter(MutableMapping):
 
     ADAPTER_CLASSES = deque(
         [
-            cls
-            for cls in (ScrapyItemAdapter, DictAdapter, DataclassAdapter, AttrsAdapter)
-            if isinstance(cls, type) and issubclass(cls, AdapterInterface)
+            ScrapyItemAdapter,
+            DictAdapter,
+            DataclassAdapter,
+            AttrsAdapter,
         ]
     )
 
@@ -212,7 +199,7 @@ class ItemAdapter(MutableMapping):
         self.adapter_class = None
         for cls in self.ADAPTER_CLASSES:
             if cls.is_item(item):
-                self.adapter = cls(item)
+                self.adapter = cls(item)  # type: ignore
                 break
         else:
             raise TypeError(f"No adapter found for objects of type: {type(item)} ({item})")
