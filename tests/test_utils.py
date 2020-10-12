@@ -17,12 +17,19 @@ def mocked_import(name, *args, **kwargs):
     raise ImportError(name)
 
 
-class InvalidItemClassTestCase(unittest.TestCase):
+class FieldMetaFromClassTestCase(unittest.TestCase):
     def test_invalid_item_class(self):
         with self.assertRaises(TypeError, msg="1 is not a valid item class"):
             get_field_meta_from_class(1, "field")
         with self.assertRaises(TypeError, msg="list is not a valid item class"):
             get_field_meta_from_class(list, "field")
+
+    def test_empty_meta_for_dict(self):
+        class DictSubclass(dict):
+            pass
+
+        self.assertEqual(get_field_meta_from_class(DictSubclass, "name"), MappingProxyType({}))
+        self.assertEqual(get_field_meta_from_class(dict, "name"), MappingProxyType({}))
 
 
 class ItemLikeTestCase(unittest.TestCase):
@@ -93,6 +100,8 @@ class AttrsTestCase(unittest.TestCase):
         self.assertEqual(
             get_field_meta_from_class(AttrsItem, "value"), MappingProxyType({"serializer": int})
         )
+        with self.assertRaises(KeyError, msg="AttrsItem does not support field: non_existent"):
+            get_field_meta_from_class(AttrsItem, "non_existent")
 
 
 class DataclassTestCase(unittest.TestCase):
@@ -131,6 +140,8 @@ class DataclassTestCase(unittest.TestCase):
             get_field_meta_from_class(DataClassItem, "value"),
             MappingProxyType({"serializer": int}),
         )
+        with self.assertRaises(KeyError, msg="DataClassItem does not support field: non_existent"):
+            get_field_meta_from_class(DataClassItem, "non_existent")
 
 
 class ScrapyItemTestCase(unittest.TestCase):
