@@ -163,14 +163,14 @@ to return `True` for the `is_item` class method is used for all subsequent opera
 
 **Example**
 ```python
->>> from itemadapter import ItemAdapter
->>> from my_project import CustomAdapter, CustomItem
+>>> from itemadapter.adapter import AdapterInterface, ItemAdapter
+>>> from tests.test_interface import FakeItemClass, FakeItemAdapter
 >>>
->>> ItemAdapter.ADAPTER_CLASSES.appendleft(CustomAdapter)
->>> item = CustomItem()
+>>> ItemAdapter.ADAPTER_CLASSES.appendleft(FakeItemAdapter)
+>>> item = FakeItemClass()
 >>> adapter = ItemAdapter(item)
 >>> adapter
-<ItemAdapter for CustomItem()>
+<ItemAdapter for FakeItemClass()>
 >>>
 ```
 
