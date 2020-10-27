@@ -176,7 +176,7 @@ to return `True` for the `is_item` class method is used for all subsequent opera
 
 ### Built-in adapters
 
-Four default adapters are included with the package, in the following order :
+The following default adapters are included with the package, in the following order :
 
 * `itemadapter.adapter.ScrapyItemAdapter`
 * `itemadapter.adapter.DictAdapter`
