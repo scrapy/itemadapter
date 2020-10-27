@@ -134,7 +134,7 @@ inherit from this class and implement the abstract methods defined on it. `Adapt
 inherits from [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
 so all methods from the `MutableMapping` class should be implemented as well.
 
-* _class method `is_item(item: Any) -> bool`_
+* _class method `is_item(cls, item: Any) -> bool`_
 
     Return `True` if the adapter can handle the given item, `False` otherwise
 
