@@ -19,8 +19,6 @@ class AdapterInterfaceTest(unittest.TestCase):
             obj.get_field_meta("")
         with self.assertRaises(NotImplementedError):
             obj.field_names()
-        with self.assertRaises(NotImplementedError):
-            obj.asdict()
 
 
 class FakeItemClass:
@@ -46,9 +44,6 @@ class FakeItemAdapter(AdapterInterface):
 
     def field_names(self) -> KeysView:
         return self.item._fields.keys()
-
-    def asdict(self) -> dict:
-        return self.item._values.copy()
 
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self.item._fields:

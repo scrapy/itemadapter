@@ -56,14 +56,6 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    @abstractmethod
-    def asdict(self) -> dict:
-        """
-        Return a dictionary containing the contents of the adapted item,
-        converting nested structures as well
-        """
-        raise NotImplementedError()
-
 
 class _MixinAttrsDataclassAdapter:
 
@@ -75,9 +67,6 @@ class _MixinAttrsDataclassAdapter:
 
     def field_names(self) -> KeysView:
         return KeysView(self._fields_dict)
-
-    def asdict(self) -> dict:
-        return {key: _asdict(value) for key, value in self.items()}  # type: ignore
 
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self._fields_dict:
@@ -136,9 +125,6 @@ class _MixinDictScrapyItemAdapter:
 
     _fields_dict: dict
     item: Any
-
-    def asdict(self) -> dict:
-        return {key: _asdict(value) for key, value in self.items()}  # type: ignore
 
     def __getitem__(self, field_name: str) -> Any:
         return self.item[field_name]
@@ -261,7 +247,7 @@ class ItemAdapter(MutableMapping):
         Return a dict object with the contents of the adapter. This works slightly different than
         calling `dict(adapter)`: it's applied recursively to nested items (if there are any).
         """
-        return self.adapter.asdict()
+        return {key: _asdict(value) for key, value in self.items()}  # type: ignore
 
 
 def _asdict(obj: Any) -> Any:

@@ -274,10 +274,6 @@ so all methods from the `MutableMapping` class should be implemented as well.
     Return a [dynamic view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
     of the item's field names
 
-* _method `asdict(self) -> dict`_:
-
-    Return a dictionary containing the contents of the adapted item, converting nested structures as well
-
 ### Registering an adapter
 
 The `itemadapter.adapter.ItemAdapter` class keeps the registered adapters in its `ADAPTER_CLASSES`
