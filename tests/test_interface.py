@@ -16,8 +16,6 @@ class AdapterInterfaceTest(unittest.TestCase):
     def test_interface_instance_methods(self):
         obj = AdapterInterface(object())
         with self.assertRaises(NotImplementedError):
-            obj.get_field_meta("")
-        with self.assertRaises(NotImplementedError):
             obj.field_names()
 
 
@@ -40,7 +38,7 @@ class FakeItemAdapter(AdapterInterface):
         if field_name in self.item._fields:
             return MappingProxyType(self.item._fields[field_name])
         else:
-            return MappingProxyType({})
+            return super().get_field_meta(field_name)
 
     def field_names(self) -> KeysView:
         return self.item._fields.keys()
@@ -112,7 +110,7 @@ class FakeItemAdapterTest(unittest.TestCase):
         item = self.item_class()
         adapter = ItemAdapter(item)
         with self.assertRaises(KeyError):
-            adapter["undefined_field"]
+            adapter["_undefined_"]
 
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
@@ -129,10 +127,11 @@ class FakeItemAdapterTest(unittest.TestCase):
         item = self.item_class()
         adapter = ItemAdapter(item)
         with self.assertRaises(KeyError):
-            adapter["undefined_field"] = "some value"
+            adapter["_undefined_"] = "some value"
 
     def test_get_field_meta_defined_fields(self):
         adapter = ItemAdapter(self.item_class())
+        self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
         self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
         self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
 
@@ -155,7 +154,7 @@ class FakeItemAdapterTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             del adapter["value"]
         with self.assertRaises(KeyError):
-            del adapter["undefined_field"]
+            del adapter["_undefined_"]
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values"""

@@ -42,12 +42,11 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """
         Return metadata for the given field name, if available
         """
-        raise NotImplementedError()
+        return MappingProxyType({})
 
     @abstractmethod
     def field_names(self) -> KeysView:

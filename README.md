@@ -255,18 +255,20 @@ This package allows to handle arbitrary item classes, by implementing an adapter
 
 _class `itemadapter.adapter.AdapterInterface(item: Any)`_
 
-Abstract Base Class for adapters. An adapter that handles a specific type of item should
+Abstract Base Class for adapters. An adapter that handles a specific type of item must
 inherit from this class and implement the abstract methods defined on it. `AdapterInterface`
 inherits from [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
-so all methods from the `MutableMapping` class should be implemented as well.
+so all methods from the `MutableMapping` class must be implemented as well.
 
 * _class method `is_item(cls, item: Any) -> bool`_
 
-    Return `True` if the adapter can handle the given item, `False` otherwise
+    Return `True` if the adapter can handle the given item, `False` otherwise. Abstract (mandatory).
 
 * _method `get_field_meta(self, field_name: str) -> types.MappingProxyType`_
 
     Return metadata for the given field name, if available.
+    By default, this method returns an empty `MappingProxyType` object. Please supply your
+    own method definition if you want to handle field metadata based on custom logic.
     See the [section on metadata support](#metadata-support) for additional information.
 
 * _method `field_names(self) -> collections.abc.KeysView`_:
