@@ -274,7 +274,12 @@ so all methods from the `MutableMapping` class must be implemented as well.
 * _method `field_names(self) -> collections.abc.KeysView`_:
 
     Return a [dynamic view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
-    of the item's field names
+    of the item's field names. By default, this method returns the result of calling `keys()` on
+    the current adapter, i.e., its return value depends on the implementation of the methods from the
+    `MutableMapping` interface (more specifically, it depends on the return value of `__iter__`).
+
+    You might want to override this method if you want a way to get all fields for an item, whether or not
+    they are populated. For instance, Scrapy uses this method to define column names when exporting items to CSV.
 
 ### Registering an adapter
 
@@ -290,9 +295,9 @@ to return `True` for the `is_item` class method is used for all subsequent opera
 **Example**
 ```python
 >>> from itemadapter.adapter import AdapterInterface, ItemAdapter
->>> from tests.test_interface import FakeItemClass, FakeItemAdapter
+>>> from tests.test_interface import FakeItemClass, BaseFakeItemAdapter
 >>>
->>> ItemAdapter.ADAPTER_CLASSES.appendleft(FakeItemAdapter)
+>>> ItemAdapter.ADAPTER_CLASSES.appendleft(BaseFakeItemAdapter)
 >>> item = FakeItemClass()
 >>> adapter = ItemAdapter(item)
 >>> adapter

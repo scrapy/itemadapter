@@ -12,12 +12,6 @@ class AdapterInterfaceTest(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             AdapterInterface.is_item(object())
 
-    @mock.patch.multiple(AdapterInterface, __abstractmethods__=set())
-    def test_interface_instance_methods(self):
-        obj = AdapterInterface(object())
-        with self.assertRaises(NotImplementedError):
-            obj.field_names()
-
 
 class FakeItemClass:
     _fields = {
@@ -29,19 +23,14 @@ class FakeItemClass:
         self._values = {**kwargs}
 
 
-class FakeItemAdapter(AdapterInterface):
+class BaseFakeItemAdapter(AdapterInterface):
+    """
+    An adapter that only implements the required methods
+    """
+
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return isinstance(item, FakeItemClass)
-
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        if field_name in self.item._fields:
-            return MappingProxyType(self.item._fields[field_name])
-        else:
-            return super().get_field_meta(field_name)
-
-    def field_names(self) -> KeysView:
-        return self.item._fields.keys()
 
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self.item._fields:
@@ -68,12 +57,34 @@ class FakeItemAdapter(AdapterInterface):
         return len(self.item._values)
 
 
-class FakeItemAdapterTest(unittest.TestCase):
+class FieldNamesFakeItemAdapter(BaseFakeItemAdapter):
+    """
+    An adapter that also implements the field_names method
+    """
+
+    def field_names(self) -> KeysView:
+        return KeysView({key.upper(): value for key, value in self.item._fields.items()})
+
+
+class MetadataFakeItemAdapter(BaseFakeItemAdapter):
+    """
+    An adapter that also implements the get_field_meta method
+    """
+
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
+        if field_name in self.item._fields:
+            return MappingProxyType(self.item._fields[field_name])
+        else:
+            return super().get_field_meta(field_name)
+
+
+class BaseFakeItemAdapterTest(unittest.TestCase):
 
     item_class = FakeItemClass
+    adapter_class = BaseFakeItemAdapter
 
     def setUp(self):
-        ItemAdapter.ADAPTER_CLASSES.appendleft(FakeItemAdapter)
+        ItemAdapter.ADAPTER_CLASSES.appendleft(self.adapter_class)
 
     def tearDown(self):
         ItemAdapter.ADAPTER_CLASSES.popleft()
@@ -117,23 +128,11 @@ class FakeItemAdapterTest(unittest.TestCase):
         adapter = ItemAdapter(item)
         self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
 
-    def test_field_names(self):
-        item = self.item_class(name="asdf", value=1234)
-        adapter = ItemAdapter(item)
-        self.assertIsInstance(adapter.field_names(), KeysView)
-        self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
-
     def test_set_value_keyerror(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
         with self.assertRaises(KeyError):
             adapter["_undefined_"] = "some value"
-
-    def test_get_field_meta_defined_fields(self):
-        adapter = ItemAdapter(self.item_class())
-        self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
-        self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
-        self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
 
     def test_delitem_len_iter(self):
         item = self.item_class(name="asdf", value=1234)
@@ -161,3 +160,40 @@ class FakeItemAdapterTest(unittest.TestCase):
         adapter = ItemAdapter(self.item_class())
         with self.assertRaises(KeyError):
             adapter["name"]
+
+    def test_get_field_meta_defined_fields(self):
+        """Metadata is always empty for the default implementation"""
+        adapter = ItemAdapter(self.item_class())
+        self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
+        self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({}))
+        self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({}))
+
+    def test_field_names(self):
+        item = self.item_class(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertIsInstance(adapter.field_names(), KeysView)
+        self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
+
+
+class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
+
+    item_class = FakeItemClass
+    adapter_class = MetadataFakeItemAdapter
+
+    def test_get_field_meta_defined_fields(self):
+        adapter = ItemAdapter(self.item_class())
+        self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
+        self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
+        self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
+
+
+class FieldNamesFakeItemAdapterTest(BaseFakeItemAdapterTest):
+
+    item_class = FakeItemClass
+    adapter_class = FieldNamesFakeItemAdapter
+
+    def test_field_names(self):
+        item = self.item_class(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertIsInstance(adapter.field_names(), KeysView)
+        self.assertEqual(sorted(adapter.field_names()), ["NAME", "VALUE"])

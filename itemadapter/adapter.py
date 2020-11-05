@@ -48,12 +48,11 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         """
         return MappingProxyType({})
 
-    @abstractmethod
     def field_names(self) -> KeysView:
         """
         Return a dynamic view of the item's field names
         """
-        raise NotImplementedError()
+        return self.keys()  # type: ignore
 
 
 class _MixinAttrsDataclassAdapter:
