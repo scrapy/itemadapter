@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.2.0 (2020-11-06)
+
+Adapter interface: added the ability to support arbitrary types,
+by implementing a MutableMapping-based interface.
+By way of this change, now any type can be used as a Scrapy item.
+
+
 ### 0.1.1 (2020-09-28)
 
 Dropped support for Python 3.5 (#38).
