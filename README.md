@@ -295,7 +295,7 @@ to return `True` for the `is_item` class method is used for all subsequent opera
 **Example**
 ```python
 >>> from itemadapter.adapter import AdapterInterface, ItemAdapter
->>> from tests.test_interface import FakeItemClass, BaseFakeItemAdapter
+>>> from tests.test_interface import BaseFakeItemAdapter, FakeItemClass
 >>>
 >>> ItemAdapter.ADAPTER_CLASSES.appendleft(BaseFakeItemAdapter)
 >>> item = FakeItemClass()
