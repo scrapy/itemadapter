@@ -11,10 +11,13 @@ regardless of their underlying implementation.
 
 Currently supported types are:
 
-* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html#scrapy.item.Item)
+* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
+
+Additionally, interaction with arbitrary types is supported, by implementing
+a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
 
 ## Requirements
