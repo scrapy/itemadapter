@@ -121,22 +121,33 @@ but it doesn't traverse the object recursively converting nested items:
 ```
 
 
-## Public API
+## API
+
+### Built-in adapters
+
+The following adapters are included by default:
+
+* `itemadapter.adapter.ScrapyItemAdapter`: handles `Scrapy` items
+* `itemadapter.adapter.DictAdapter`: handles `Python` dictionaries
+* `itemadapter.adapter.DataclassAdapter`: handles `dataclass` objects
+* `itemadapter.adapter.AttrsAdapter`: handles `attrs` objects
 
 ### `ItemAdapter` class
 
 _class `itemadapter.adapter.ItemAdapter(item: Any)`_
 
+This is the main entrypoint for the package. Tipically, user code
+wraps an item using this class, and proceeds to handle it with the provided interface.
 `ItemAdapter` implements the
-[`MutableMapping` interface](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
-providing a `dict`-like API to manipulate data for the object it wraps
+[`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+interface, providing a `dict`-like API to manipulate data for the object it wraps
 (which is modified in-place).
 
 Some additional methods are available:
 
 `get_field_meta(field_name: str) -> MappingProxyType`
 
-Return a [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
+Return a [`types.MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which is a read-only mapping with metadata about the given field. If the item class does not
 support field metadata, or there is no metadata for the given field, an empty object is returned.
 
@@ -149,7 +160,7 @@ for `scrapy.item.Item`s
 * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
   for `attrs`-based items
 
-`field_names() -> KeysView`
+`field_names() -> collections.abc.KeysView`
 
 Return a [keys view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
 with the names of all the defined fields for the item.
@@ -163,12 +174,12 @@ calling `dict(adapter)`, because it's applied recursively to nested items (if th
 
 _`itemadapter.utils.is_item(obj: Any) -> bool`_
 
-Return `True` if the given object belongs to one of the supported types,
+Return `True` if the given object belongs to (at least) one of the supported types,
 `False` otherwise.
 
 ### `get_field_meta_from_class` function
 
-_`itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType`_
+_`itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> types.MappingProxyType`_
 
 Given an item class and a field name, return a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
@@ -178,8 +189,10 @@ support field metadata, or there is no metadata for the given field, an empty ob
 
 ## Metadata support
 
-`scrapy.item.Item`, `dataclass` and `attrs` objects allow the inclusion of
-arbitrary field metadata. This can be retrieved from an item instance with the
+`scrapy.item.Item`, `dataclass` and `attrs` objects allow the definition of
+arbitrary field metadata. This can be accessed through a
+[`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
+object, which can be retrieved from an item instance with the
 `itemadapter.adapter.ItemAdapter.get_field_meta` method, or from an item class
 with the `itemadapter.utils.get_field_meta_from_class` function.
 The definition procedure depends on the underlying type.
@@ -232,6 +245,63 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 mappingproxy({'serializer': <class 'str'>})
 >>> adapter.get_field_meta("value")
 mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+>>>
+```
+
+
+## Extending `itemadapter`
+
+This package allows to handle arbitrary item classes, by implementing an adapter interface:
+
+_class `itemadapter.adapter.AdapterInterface(item: Any)`_
+
+Abstract Base Class for adapters. An adapter that handles a specific type of item must
+inherit from this class and implement the abstract methods defined on it. `AdapterInterface`
+inherits from [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
+so all methods from the `MutableMapping` class must be implemented as well.
+
+* _class method `is_item(cls, item: Any) -> bool`_
+
+    Return `True` if the adapter can handle the given item, `False` otherwise. Abstract (mandatory).
+
+* _method `get_field_meta(self, field_name: str) -> types.MappingProxyType`_
+
+    Return metadata for the given field name, if available.
+    By default, this method returns an empty `MappingProxyType` object. Please supply your
+    own method definition if you want to handle field metadata based on custom logic.
+    See the [section on metadata support](#metadata-support) for additional information.
+
+* _method `field_names(self) -> collections.abc.KeysView`_:
+
+    Return a [dynamic view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
+    of the item's field names. By default, this method returns the result of calling `keys()` on
+    the current adapter, i.e., its return value depends on the implementation of the methods from the
+    `MutableMapping` interface (more specifically, it depends on the return value of `__iter__`).
+
+    You might want to override this method if you want a way to get all fields for an item, whether or not
+    they are populated. For instance, Scrapy uses this method to define column names when exporting items to CSV.
+
+### Registering an adapter
+
+The `itemadapter.adapter.ItemAdapter` class keeps the registered adapters in its `ADAPTER_CLASSES`
+class attribute. This is a
+[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
+object, allowing to efficiently add new adapters elements to both ends.
+
+The order in which the adapters are registered is important. When an `ItemAdapter` object is
+created for a specific item, the registered adapters are traversed in order and the first class
+to return `True` for the `is_item` class method is used for all subsequent operations.
+
+**Example**
+```python
+>>> from itemadapter.adapter import AdapterInterface, ItemAdapter
+>>> from tests.test_interface import BaseFakeItemAdapter, FakeItemClass
+>>>
+>>> ItemAdapter.ADAPTER_CLASSES.appendleft(BaseFakeItemAdapter)
+>>> item = FakeItemClass()
+>>> adapter = ItemAdapter(item)
+>>> adapter
+<ItemAdapter for FakeItemClass()>
 >>>
 ```
 
