@@ -7,9 +7,11 @@ try:
     import attr
 except ImportError:
     AttrsItem = None
+    AttrsItemWithoutInit = None
 else:
     if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS"):
         AttrsItem = None
+        AttrsItemWithoutInit = None
     else:
 
         @attr.s
@@ -17,22 +19,32 @@ else:
             name = attr.ib(default=None, metadata={"serializer": str})
             value = attr.ib(default=None, metadata={"serializer": int})
 
+        @attr.s(init=False)
+        class AttrsItemWithoutInit:
+            name = attr.ib(default=None, metadata={"serializer": str})
+            value = attr.ib(default=None, metadata={"serializer": int})
+
 
 try:
-    from dataclasses import field, make_dataclass
+    from dataclasses import dataclass, field
 except ImportError:
     DataClassItem = None
+    DataClassWithoutInit = None
 else:
     if os.environ.get("ITEMADAPTER_NO_EXTRA_DEPS") and (3, 6) <= sys.version_info < (3, 7):
         DataClassItem = None
+        DataClassWithoutInit = None
     else:
-        DataClassItem = make_dataclass(
-            "DataClassItem",
-            [
-                ("name", str, field(default_factory=lambda: None, metadata={"serializer": str})),
-                ("value", int, field(default_factory=lambda: None, metadata={"serializer": int})),
-            ],
-        )
+
+        @dataclass
+        class DataClassItem:
+            name: str = field(default_factory=lambda: None, metadata={"serializer": str})
+            value: int = field(default_factory=lambda: None, metadata={"serializer": int})
+
+        @dataclass(init=False)
+        class DataClassWithoutInit:
+            name: str = field(metadata={"serializer": str})
+            value: int = field(metadata={"serializer": int})
 
 
 try:

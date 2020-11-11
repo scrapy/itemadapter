@@ -5,7 +5,9 @@ from typing import KeysView
 
 from tests import (
     AttrsItem,
+    AttrsItemWithoutInit,
     DataClassItem,
+    DataClassWithoutInit,
     requires_attr,
     requires_dataclasses,
     requires_scrapy,
@@ -21,11 +23,7 @@ class ItemAdapterReprTestCase(TestCase):
 
         item = dict(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        # dicts are not guarantied to be sorted in py35
-        self.assertTrue(
-            repr(adapter) == "<ItemAdapter for dict(name='asdf', value=1234)>"
-            or repr(adapter) == "<ItemAdapter for dict(value=1234, name='asdf')>",
-        )
+        self.assertEqual(repr(adapter), "<ItemAdapter for dict(name='asdf', value=1234)>")
 
     @requires_scrapy
     def test_repr_scrapy_item(self):
@@ -33,10 +31,8 @@ class ItemAdapterReprTestCase(TestCase):
 
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        # Scrapy fields are stored in a dict, which is not guarantied to be sorted in py35
-        self.assertTrue(
-            repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
-            or repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(value=1234, name='asdf')>",
+        self.assertEqual(
+            repr(adapter), "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
         )
 
     @requires_dataclasses
@@ -46,7 +42,20 @@ class ItemAdapterReprTestCase(TestCase):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
+            repr(adapter),
+            "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
+        )
+
+    @requires_dataclasses
+    def test_repr_dataclass_init_false(self):
+        from itemadapter.adapter import ItemAdapter
+
+        item = DataClassWithoutInit()
+        adapter = ItemAdapter(item)
+        self.assertEqual(repr(adapter), "<ItemAdapter for DataClassWithoutInit()>")
+        adapter["name"] = "set after init"
+        self.assertEqual(
+            repr(adapter), "<ItemAdapter for DataClassWithoutInit(name='set after init')>"
         )
 
     @requires_attr
@@ -56,7 +65,20 @@ class ItemAdapterReprTestCase(TestCase):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
+            repr(adapter),
+            "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
+        )
+
+    @requires_attr
+    def test_repr_attrs_init_false(self):
+        from itemadapter.adapter import ItemAdapter
+
+        item = AttrsItemWithoutInit()
+        adapter = ItemAdapter(item)
+        self.assertEqual(repr(adapter), "<ItemAdapter for AttrsItemWithoutInit()>")
+        adapter["name"] = "set after init"
+        self.assertEqual(
+            repr(adapter), "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
         )
 
 

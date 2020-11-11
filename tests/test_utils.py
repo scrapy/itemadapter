@@ -1,5 +1,13 @@
 import unittest
+from types import MappingProxyType
 from unittest import mock
+
+from itemadapter.utils import (
+    get_field_meta_from_class,
+    is_attrs_instance,
+    is_dataclass_instance,
+    is_scrapy_item,
+)
 
 from tests import (
     AttrsItem,
@@ -13,7 +21,26 @@ from tests import (
 )
 
 
-class ItemLikeTestCase(TestCase):
+def mocked_import(name, *args, **kwargs):
+    raise ImportError(name)
+
+
+class FieldMetaFromClassTestCase(unittest.TestCase):
+    def test_invalid_item_class(self):
+        with self.assertRaises(TypeError, msg="1 is not a valid item class"):
+            get_field_meta_from_class(1, "field")
+        with self.assertRaises(TypeError, msg="list is not a valid item class"):
+            get_field_meta_from_class(list, "field")
+
+    def test_empty_meta_for_dict(self):
+        class DictSubclass(dict):
+            pass
+
+        self.assertEqual(get_field_meta_from_class(DictSubclass, "name"), MappingProxyType({}))
+        self.assertEqual(get_field_meta_from_class(dict, "name"), MappingProxyType({}))
+
+
+class ItemLikeTestCase(unittest.TestCase):
     def test_false(self):
         from itemadapter.utils import is_item
 
@@ -74,11 +101,27 @@ class AttrsTestCase(TestCase):
         self.assertFalse(is_attrs_instance(AttrsItem))
 
     @requires_attr
+    @mock.patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+        with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
+            get_field_meta_from_class(AttrsItem, "name")
+
+    @requires_attr
     def test_true(self):
         from itemadapter.utils import is_attrs_instance
 
         self.assertTrue(is_attrs_instance(AttrsItem()))
         self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(
+            get_field_meta_from_class(AttrsItem, "name"), MappingProxyType({"serializer": str})
+        )
+        self.assertEqual(
+            get_field_meta_from_class(AttrsItem, "value"), MappingProxyType({"serializer": int})
+        )
+        with self.assertRaises(KeyError, msg="AttrsItem does not support field: non_existent"):
+            get_field_meta_from_class(AttrsItem, "non_existent")
 
 
 class DataclassTestCase(TestCase):
@@ -98,11 +141,28 @@ class DataclassTestCase(TestCase):
         self.assertFalse(is_dataclass_instance(DataClassItem))
 
     @requires_dataclasses
+    @mock.patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+        with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
+            get_field_meta_from_class(DataClassItem, "name")
+
+    @requires_dataclasses
     def test_true(self):
         from itemadapter.utils import is_dataclass_instance
 
         self.assertTrue(is_dataclass_instance(DataClassItem()))
         self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(
+            get_field_meta_from_class(DataClassItem, "name"), MappingProxyType({"serializer": str})
+        )
+        self.assertEqual(
+            get_field_meta_from_class(DataClassItem, "value"),
+            MappingProxyType({"serializer": int}),
+        )
+        with self.assertRaises(KeyError, msg="DataClassItem does not support field: non_existent"):
+            get_field_meta_from_class(DataClassItem, "non_existent")
 
 
 class ScrapyItemTestCase(TestCase):
@@ -122,12 +182,28 @@ class ScrapyItemTestCase(TestCase):
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem))
 
     @requires_scrapy
+    @mock.patch("builtins.__import__", mocked_import)
+    def test_module_not_available(self):
+        self.assertFalse(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
+        with self.assertRaises(TypeError, msg="ScrapySubclassedItem is not a valid item class"):
+            get_field_meta_from_class(ScrapySubclassedItem, "name")
+
+    @requires_scrapy
     def test_true(self):
         from itemadapter.utils import is_scrapy_item
 
         self.assertTrue(is_scrapy_item(ScrapyItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
+        # field metadata
+        self.assertEqual(
+            get_field_meta_from_class(ScrapySubclassedItem, "name"),
+            MappingProxyType({"serializer": str}),
+        )
+        self.assertEqual(
+            get_field_meta_from_class(ScrapySubclassedItem, "value"),
+            MappingProxyType({"serializer": int}),
+        )
 
 
 try:
@@ -145,7 +221,8 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
     required_extra_modules = ("scrapy",)
 
     @unittest.skipIf(
-        not hasattr(scrapy.item, "_BaseItem"), "scrapy.item._BaseItem not available",
+        not hasattr(scrapy.item, "_BaseItem"),
+        "scrapy.item._BaseItem not available",
     )
     def test_deprecated_underscore_baseitem(self):
         from itemadapter.utils import is_scrapy_item
@@ -157,7 +234,8 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
         self.assertTrue(is_scrapy_item(SubClassed_BaseItem()))
 
     @unittest.skipIf(
-        not hasattr(scrapy.item, "BaseItem"), "scrapy.item.BaseItem not available",
+        not hasattr(scrapy.item, "BaseItem"),
+        "scrapy.item.BaseItem not available",
     )
     def test_deprecated_baseitem(self):
         from itemadapter.utils import is_scrapy_item
@@ -169,6 +247,9 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
 
     def test_removed_baseitem(self):
+        """
+        Mock the scrapy.item module so it does not contain the deprecated _BaseItem class
+        """
         from itemadapter.utils import is_scrapy_item
 
         class MockItemModule:
@@ -176,3 +257,11 @@ class ScrapyDeprecatedBaseItemTestCase(TestCase):
 
         with mock.patch("scrapy.item", MockItemModule):
             self.assertFalse(is_scrapy_item(dict()))
+            self.assertEqual(
+                get_field_meta_from_class(ScrapySubclassedItem, "name"),
+                MappingProxyType({"serializer": str}),
+            )
+            self.assertEqual(
+                get_field_meta_from_class(ScrapySubclassedItem, "value"),
+                MappingProxyType({"serializer": int}),
+            )
