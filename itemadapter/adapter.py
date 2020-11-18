@@ -170,7 +170,14 @@ class ItemAdapter(MutableMapping):
     to extract and set data without having to take the object's type into account.
     """
 
-    ADAPTER_CLASSES = deque([ScrapyItemAdapter, DictAdapter, DataclassAdapter, AttrsAdapter])
+    ADAPTER_CLASSES = deque(
+        [
+            ScrapyItemAdapter,
+            DictAdapter,
+            DataclassAdapter,
+            AttrsAdapter,
+        ]
+    )
 
     def __init__(self, item: Any) -> None:
         self.adapter_class = None
