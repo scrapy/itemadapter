@@ -1,6 +1,10 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   checks:
@@ -30,7 +34,6 @@ jobs:
     - name: Bandit
       run: tox -e bandit
 
-
   tests-ubuntu:
     name: "Test: py${{ matrix.python-version }}, Ubuntu"
     runs-on: ubuntu-18.04
@@ -55,7 +58,6 @@ jobs:
     - name: Upload coverage report
       run: bash <(curl -s https://codecov.io/bash)
 
-
   tests-other-os:
     name: "Test: py3.8, ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
@@ -76,7 +78,6 @@ jobs:
 
     - name: Run tests
       run: tox -e py
-
 
   publish:
     name: "Publish package to PyPI"
