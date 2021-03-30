@@ -1,16 +1,24 @@
 import unittest
-from unittest import mock
 from types import MappingProxyType
+from unittest import mock
 
 from itemadapter.utils import (
     get_field_meta_from_class,
     is_attrs_instance,
     is_dataclass_instance,
-    is_item,
     is_scrapy_item,
 )
 
-from tests import AttrsItem, DataClassItem, ScrapyItem, ScrapySubclassedItem
+from tests import (
+    AttrsItem,
+    DataClassItem,
+    requires_attr,
+    requires_dataclasses,
+    requires_scrapy,
+    ScrapyItem,
+    ScrapySubclassedItem,
+    TestCase,
+)
 
 
 def mocked_import(name, *args, **kwargs):
@@ -34,6 +42,8 @@ class FieldMetaFromClassTestCase(unittest.TestCase):
 
 class ItemLikeTestCase(unittest.TestCase):
     def test_false(self):
+        from itemadapter.utils import is_item
+
         self.assertFalse(is_item(int))
         self.assertFalse(is_item(sum))
         self.assertFalse(is_item(1234))
@@ -50,30 +60,38 @@ class ItemLikeTestCase(unittest.TestCase):
         self.assertFalse(is_item(AttrsItem))
 
     def test_true_dict(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item({"a": "dict"}))
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true_scrapy(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item(ScrapyItem()))
         self.assertTrue(is_item(ScrapySubclassedItem(name="asdf", value=1234)))
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @requires_dataclasses
     def test_true_dataclass(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attr
     def test_true_attrs(self):
+        from itemadapter.utils import is_item
+
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
 
 
-class AttrsTestCase(unittest.TestCase):
+class AttrsTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_attrs_instance
+
         self.assertFalse(is_attrs_instance(int))
         self.assertFalse(is_attrs_instance(sum))
         self.assertFalse(is_attrs_instance(1234))
         self.assertFalse(is_attrs_instance(object()))
-        self.assertFalse(is_attrs_instance(ScrapyItem()))
-        self.assertFalse(is_attrs_instance(ScrapySubclassedItem()))
         self.assertFalse(is_attrs_instance("a string"))
         self.assertFalse(is_attrs_instance(b"some bytes"))
         self.assertFalse(is_attrs_instance({"a": "dict"}))
@@ -82,15 +100,17 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(is_attrs_instance({"a", "set"}))
         self.assertFalse(is_attrs_instance(AttrsItem))
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attr
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
             get_field_meta_from_class(AttrsItem, "name")
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attr
     def test_true(self):
+        from itemadapter.utils import is_attrs_instance
+
         self.assertTrue(is_attrs_instance(AttrsItem()))
         self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
         # field metadata
@@ -104,15 +124,14 @@ class AttrsTestCase(unittest.TestCase):
             get_field_meta_from_class(AttrsItem, "non_existent")
 
 
-class DataclassTestCase(unittest.TestCase):
+class DataclassTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_dataclass_instance
+
         self.assertFalse(is_dataclass_instance(int))
         self.assertFalse(is_dataclass_instance(sum))
         self.assertFalse(is_dataclass_instance(1234))
         self.assertFalse(is_dataclass_instance(object()))
-        self.assertFalse(is_dataclass_instance(ScrapyItem()))
-        self.assertFalse(is_dataclass_instance(AttrsItem()))
-        self.assertFalse(is_dataclass_instance(ScrapySubclassedItem()))
         self.assertFalse(is_dataclass_instance("a string"))
         self.assertFalse(is_dataclass_instance(b"some bytes"))
         self.assertFalse(is_dataclass_instance({"a": "dict"}))
@@ -121,15 +140,17 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(is_dataclass_instance({"a", "set"}))
         self.assertFalse(is_dataclass_instance(DataClassItem))
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @requires_dataclasses
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
             get_field_meta_from_class(DataClassItem, "name")
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @requires_dataclasses
     def test_true(self):
+        from itemadapter.utils import is_dataclass_instance
+
         self.assertTrue(is_dataclass_instance(DataClassItem()))
         self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
         # field metadata
@@ -144,13 +165,14 @@ class DataclassTestCase(unittest.TestCase):
             get_field_meta_from_class(DataClassItem, "non_existent")
 
 
-class ScrapyItemTestCase(unittest.TestCase):
+class ScrapyItemTestCase(TestCase):
     def test_false(self):
+        from itemadapter.utils import is_scrapy_item
+
         self.assertFalse(is_scrapy_item(int))
         self.assertFalse(is_scrapy_item(sum))
         self.assertFalse(is_scrapy_item(1234))
         self.assertFalse(is_scrapy_item(object()))
-        self.assertFalse(is_scrapy_item(AttrsItem()))
         self.assertFalse(is_scrapy_item("a string"))
         self.assertFalse(is_scrapy_item(b"some bytes"))
         self.assertFalse(is_scrapy_item({"a": "dict"}))
@@ -159,15 +181,17 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(is_scrapy_item({"a", "set"}))
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem))
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="ScrapySubclassedItem is not a valid item class"):
             get_field_meta_from_class(ScrapySubclassedItem, "name")
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true(self):
+        from itemadapter.utils import is_scrapy_item
+
         self.assertTrue(is_scrapy_item(ScrapyItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem()))
         self.assertTrue(is_scrapy_item(ScrapySubclassedItem(name="asdf", value=1234)))
@@ -188,16 +212,21 @@ except ImportError:
     scrapy = None
 
 
-class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
+class ScrapyDeprecatedBaseItemTestCase(TestCase):
     """
-    Tests for deprecated classes. These will go away once the upstream classes are removed.
+    Tests for deprecated classes. These will go away once the upstream classes
+    are removed.
     """
 
+    required_extra_modules = ("scrapy",)
+
     @unittest.skipIf(
-        scrapy is None or not hasattr(scrapy.item, "_BaseItem"),
+        not hasattr(scrapy.item, "_BaseItem"),
         "scrapy.item._BaseItem not available",
     )
     def test_deprecated_underscore_baseitem(self):
+        from itemadapter.utils import is_scrapy_item
+
         class SubClassed_BaseItem(scrapy.item._BaseItem):
             pass
 
@@ -205,21 +234,23 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
         self.assertTrue(is_scrapy_item(SubClassed_BaseItem()))
 
     @unittest.skipIf(
-        scrapy is None or not hasattr(scrapy.item, "BaseItem"),
+        not hasattr(scrapy.item, "BaseItem"),
         "scrapy.item.BaseItem not available",
     )
     def test_deprecated_baseitem(self):
+        from itemadapter.utils import is_scrapy_item
+
         class SubClassedBaseItem(scrapy.item.BaseItem):
             pass
 
         self.assertTrue(is_scrapy_item(scrapy.item.BaseItem()))
         self.assertTrue(is_scrapy_item(SubClassedBaseItem()))
 
-    @unittest.skipIf(scrapy is None, "scrapy module is not available")
     def test_removed_baseitem(self):
         """
         Mock the scrapy.item module so it does not contain the deprecated _BaseItem class
         """
+        from itemadapter.utils import is_scrapy_item
 
         class MockItemModule:
             Item = ScrapyItem
