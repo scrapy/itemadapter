@@ -21,7 +21,7 @@ jobs:
         - python-version: 3
           env:
             TOXENV: flake8
-        - python-version: 3
+        - python-version: 3.8
           env:
             TOXENV: typing
 
