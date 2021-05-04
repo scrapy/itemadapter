@@ -2,7 +2,7 @@ from abc import abstractmethod, ABCMeta
 from collections import deque
 from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Iterator
+from typing import Any, Deque, Iterator, Type
 
 from itemadapter.utils import (
     is_attrs_instance,
@@ -52,7 +52,7 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         """
         Return a dynamic view of the item's field names
         """
-        return self.keys()  # type: ignore
+        return self.keys()  # type: ignore[return-value]
 
 
 class _MixinAttrsDataclassAdapter:
@@ -61,7 +61,7 @@ class _MixinAttrsDataclassAdapter:
     item: Any
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return self._fields_dict[field_name].metadata  # type: ignore
+        return self._fields_dict[field_name].metadata
 
     def field_names(self) -> KeysView:
         return KeysView(self._fields_dict)
@@ -170,7 +170,7 @@ class ItemAdapter(MutableMapping):
     to extract and set data without having to take the object's type into account.
     """
 
-    ADAPTER_CLASSES = deque(
+    ADAPTER_CLASSES: Deque[Type[AdapterInterface]] = deque(
         [
             ScrapyItemAdapter,
             DictAdapter,
@@ -180,10 +180,9 @@ class ItemAdapter(MutableMapping):
     )
 
     def __init__(self, item: Any) -> None:
-        self.adapter_class = None
         for cls in self.ADAPTER_CLASSES:
             if cls.is_item(item):
-                self.adapter = cls(item)  # type: ignore
+                self.adapter = cls(item)
                 break
         else:
             raise TypeError(f"No adapter found for objects of type: {type(item)} ({item})")
@@ -242,7 +241,7 @@ class ItemAdapter(MutableMapping):
         Return a dict object with the contents of the adapter. This works slightly different than
         calling `dict(adapter)`: it's applied recursively to nested items (if there are any).
         """
-        return {key: _asdict(value) for key, value in self.items()}  # type: ignore
+        return {key: _asdict(value) for key, value in self.items()}
 
 
 def _asdict(obj: Any) -> Any:
