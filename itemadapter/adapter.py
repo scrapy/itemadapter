@@ -189,11 +189,8 @@ class ItemAdapter(MutableMapping):
             raise TypeError(f"No adapter found for objects of type: {type(item)} ({item})")
 
     @classmethod
-    def is_item(self, item: Any) -> bool:
-        for cls in self.ADAPTER_CLASSES:
-            if cls.is_item(item):
-                return True
-        return False
+    def is_item(cls, item: Any) -> bool:
+        return any(adapter_class.is_item(item) for adapter_class in cls.ADAPTER_CLASSES)
 
     @property
     def item(self) -> Any:
