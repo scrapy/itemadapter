@@ -19,6 +19,7 @@ Currently supported types are:
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
+---
 
 ## Requirements
 
@@ -29,6 +30,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   to interact with `dataclass`-based items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
 
+---
 
 ## Installation
 
@@ -38,11 +40,13 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 pip install itemadapter
 ```
 
+---
 
 ## License
 
 `itemadapter` is distributed under a [BSD-3](https://opensource.org/licenses/BSD-3-Clause) license.
 
+---
 
 ## Basic usage
 
@@ -123,8 +127,9 @@ but it doesn't traverse the object recursively converting nested items:
 >>>
 ```
 
+---
 
-## API
+## API reference
 
 ### Built-in adapters
 
@@ -135,9 +140,7 @@ The following adapters are included by default:
 * `itemadapter.adapter.DataclassAdapter`: handles `dataclass` objects
 * `itemadapter.adapter.AttrsAdapter`: handles `attrs` objects
 
-### `ItemAdapter` class
-
-_class `itemadapter.adapter.ItemAdapter(item: Any)`_
+### class `itemadapter.adapter.ItemAdapter(item: Any)`
 
 This is the main entrypoint for the package. Tipically, user code
 wraps an item using this class, and proceeds to handle it with the provided interface.
@@ -148,7 +151,7 @@ interface, providing a `dict`-like API to manipulate data for the object it wrap
 
 **Attributes**
 
-* _class attribute_ `ADAPTER_CLASSES: collections.deque`
+#### class attribute `ADAPTER_CLASSES: collections.deque`
 
 Stores the currently registered adapter classes. Being a
 [`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque),
@@ -164,13 +167,13 @@ See the section on [extending itemadapter](#extending-itemadapter) for additiona
 
 **Methods**
 
-* _classmethod_ `is_item(item: Any) -> bool`
+#### class method `is_item(item: Any) -> bool`
 
 Return `True` if any of the registed adapters can handle the item
 (i.e. if any of them returns `True` for its `is_item` method with
 `item` as argument), `False` otherwise.
 
-* `get_field_meta(field_name: str) -> MappingProxyType`
+#### `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return a [`types.MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which is a read-only mapping with metadata about the given field. If the item class does not
@@ -178,39 +181,38 @@ support field metadata, or there is no metadata for the given field, an empty ob
 
 The returned value is taken from the following sources, depending on the item type:
 
-* [`scrapy.item.Field`](https://docs.scrapy.org/en/latest/topics/items.html#item-fields)
-for `scrapy.item.Item`s
-* [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
-  for `dataclass`-based items
-* [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
-  for `attrs`-based items
+  * [`scrapy.item.Field`](https://docs.scrapy.org/en/latest/topics/items.html#item-fields)
+  for `scrapy.item.Item`s
+  * [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
+    for `dataclass`-based items
+  * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
+    for `attrs`-based items
 
-* `field_names() -> collections.abc.KeysView`
+#### `field_names() -> collections.abc.KeysView`
 
 Return a [keys view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
 with the names of all the defined fields for the item.
 
-* `asdict() -> dict`
+#### `asdict() -> dict`
 
 Return a `dict` object with the contents of the adapter. This works slightly different than
 calling `dict(adapter)`, because it's applied recursively to nested items (if there are any).
 
-### `is_item` function
 
-_`itemadapter.utils.is_item(obj: Any) -> bool`_
+### function `itemadapter.utils.is_item(obj: Any) -> bool`
 
 Return `True` if the given object belongs to (at least) one of the supported types,
 `False` otherwise. This is an alias for `itemadapter.adapter.ItemAdapter.is_item`.
 
-### `get_field_meta_from_class` function
 
-_`itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> types.MappingProxyType`_
+### function `itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> types.MappingProxyType`
 
 Given an item class and a field name, return a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which is a read-only mapping with metadata about the given field. If the item class does not
 support field metadata, or there is no metadata for the given field, an empty object is returned.
 
+---
 
 ## Metadata support
 
@@ -273,6 +275,7 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 >>>
 ```
 
+---
 
 ## Extending `itemadapter`
 
@@ -324,6 +327,7 @@ class attribute in order to handle custom item classes:
 >>>
 ```
 
+---
 
 ## More examples
 
