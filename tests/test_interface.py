@@ -24,9 +24,7 @@ class FakeItemClass:
 
 
 class BaseFakeItemAdapter(AdapterInterface):
-    """
-    An adapter that only implements the required methods
-    """
+    """An adapter that only implements the required methods."""
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
@@ -58,18 +56,14 @@ class BaseFakeItemAdapter(AdapterInterface):
 
 
 class FieldNamesFakeItemAdapter(BaseFakeItemAdapter):
-    """
-    An adapter that also implements the field_names method
-    """
+    """An adapter that also implements the field_names method."""
 
     def field_names(self) -> KeysView:
         return KeysView({key.upper(): value for key, value in self.item._fields.items()})
 
 
 class MetadataFakeItemAdapter(BaseFakeItemAdapter):
-    """
-    An adapter that also implements the get_field_meta method
-    """
+    """An adapter that also implements the get_field_meta method."""
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         if field_name in self.item._fields:
@@ -156,13 +150,13 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
             del adapter["_undefined_"]
 
     def test_get_value_keyerror_item_dict(self):
-        """Instantiate without default values"""
+        """Instantiate without default values."""
         adapter = ItemAdapter(self.item_class())
         with self.assertRaises(KeyError):
             adapter["name"]
 
     def test_get_field_meta_defined_fields(self):
-        """Metadata is always empty for the default implementation"""
+        """Metadata is always empty for the default implementation."""
         adapter = ItemAdapter(self.item_class())
         self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
         self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({}))
