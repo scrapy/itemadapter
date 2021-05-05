@@ -148,7 +148,7 @@ interface, providing a `dict`-like API to manipulate data for the object it wrap
 
 **Attributes**
 
-* _class attribute_ `itemadapter.adapter.ItemAdapter.ADAPTER_CLASSES`
+* _class attribute_ `ADAPTER_CLASSES`
 
 A [`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
 object (which allows for efficient addition/deletion of adapters classes to both ends).
