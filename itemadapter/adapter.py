@@ -23,8 +23,7 @@ __all__ = [
 
 
 class AdapterInterface(MutableMapping, metaclass=ABCMeta):
-    """
-    Abstract Base Class for adapters.
+    """Abstract Base Class for adapters.
 
     An adapter that handles a specific type of item should inherit from this
     class and implement the abstract methods defined here, plus the
@@ -37,21 +36,15 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def is_item(cls, item: Any) -> bool:
-        """
-        Return True if the adapter can handle the given item, False otherwise
-        """
+        """Return True if the adapter can handle the given item, False otherwise"""
         raise NotImplementedError()
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
-        """
-        Return metadata for the given field name, if available
-        """
+        """Return metadata for the given field name, if available."""
         return MappingProxyType({})
 
     def field_names(self) -> KeysView:
-        """
-        Return a dynamic view of the item's field names
-        """
+        """Return a dynamic view of the item's field names."""
         return self.keys()  # type: ignore[return-value]
 
 
@@ -165,8 +158,7 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
 
 class ItemAdapter(MutableMapping):
-    """
-    Wrapper class to interact with data container objects. It provides a common interface
+    """Wrapper class to interact with data container objects. It provides a common interface
     to extract and set data without having to take the object's type into account.
     """
 
@@ -215,8 +207,7 @@ class ItemAdapter(MutableMapping):
         return self.adapter.__len__()
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
-        """
-        Return a read-only mapping with metadata for the given field name. If there is no metadata
+        """Return a read-only mapping with metadata for the given field name. If there is no metadata
         for the field, or the wrapped item does not support field metadata, an empty object is
         returned.
 
@@ -231,23 +222,18 @@ class ItemAdapter(MutableMapping):
         return self.adapter.get_field_meta(field_name)
 
     def field_names(self) -> KeysView:
-        """
-        Return read-only key view with the names of all the defined fields for the item
-        """
+        """Return read-only key view with the names of all the defined fields for the item."""
         return self.adapter.field_names()
 
     def asdict(self) -> dict:
-        """
-        Return a dict object with the contents of the adapter. This works slightly different than
+        """Return a dict object with the contents of the adapter. This works slightly different than
         calling `dict(adapter)`: it's applied recursively to nested items (if there are any).
         """
         return {key: _asdict(value) for key, value in self.items()}
 
 
 def _asdict(obj: Any) -> Any:
-    """
-    Helper for ItemAdapter.asdict
-    """
+    """Helper for ItemAdapter.asdict()."""
     if isinstance(obj, dict):
         return {key: _asdict(value) for key, value in obj.items()}
     elif isinstance(obj, (list, set, tuple)):
