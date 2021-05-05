@@ -146,9 +146,31 @@ wraps an item using this class, and proceeds to handle it with the provided inte
 interface, providing a `dict`-like API to manipulate data for the object it wraps
 (which is modified in-place).
 
-Some additional methods are available:
+**Attributes**
 
-`get_field_meta(field_name: str) -> MappingProxyType`
+* _class attribute_ `ADAPTER_CLASSES: collections.deque`
+
+Stores the currently registered adapter classes. Being a
+[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque),
+it supports efficient addition/deletion of adapters classes to both ends.
+
+The order in which the adapters are registered is important. When an `ItemAdapter` object is
+created for a specific item, the registered adapters are traversed in order and the first
+adapter class to return `True` for the `is_item` class method is used for all subsequent
+operations. The default order is the one defined in the
+[built-in adapters](#built-in-adapters) section.
+
+See the section on [extending itemadapter](#extending-itemadapter) for additional information.
+
+**Methods**
+
+* _classmethod_ `is_item(item: Any) -> bool`
+
+Return `True` if any of the registed adapters can handle the item
+(i.e. if any of them returns `True` for its `is_item` method with
+`item` as argument), `False` otherwise.
+
+* `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return a [`types.MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which is a read-only mapping with metadata about the given field. If the item class does not
@@ -163,12 +185,12 @@ for `scrapy.item.Item`s
 * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
   for `attrs`-based items
 
-`field_names() -> collections.abc.KeysView`
+* `field_names() -> collections.abc.KeysView`
 
 Return a [keys view](https://docs.python.org/3/library/collections.abc.html#collections.abc.KeysView)
 with the names of all the defined fields for the item.
 
-`asdict() -> dict`
+* `asdict() -> dict`
 
 Return a `dict` object with the contents of the adapter. This works slightly different than
 calling `dict(adapter)`, because it's applied recursively to nested items (if there are any).
@@ -178,7 +200,7 @@ calling `dict(adapter)`, because it's applied recursively to nested items (if th
 _`itemadapter.utils.is_item(obj: Any) -> bool`_
 
 Return `True` if the given object belongs to (at least) one of the supported types,
-`False` otherwise.
+`False` otherwise. This is an alias for `itemadapter.adapter.ItemAdapter.is_item`.
 
 ### `get_field_meta_from_class` function
 
@@ -286,18 +308,12 @@ so all methods from the `MutableMapping` class must be implemented as well.
 
 ### Registering an adapter
 
-The `itemadapter.adapter.ItemAdapter` class keeps the registered adapters in its `ADAPTER_CLASSES`
-class attribute. This is a
-[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
-object, allowing to efficiently add new adapters elements to both ends.
-
-The order in which the adapters are registered is important. When an `ItemAdapter` object is
-created for a specific item, the registered adapters are traversed in order and the first class
-to return `True` for the `is_item` class method is used for all subsequent operations.
+Add your custom adapter class to the `itemadapter.adapter.ItemAdapter.ADAPTER_CLASSES`
+class attribute in order to handle custom item classes:
 
 **Example**
 ```python
->>> from itemadapter.adapter import AdapterInterface, ItemAdapter
+>>> from itemadapter.adapter import ItemAdapter
 >>> from tests.test_interface import BaseFakeItemAdapter, FakeItemClass
 >>>
 >>> ItemAdapter.ADAPTER_CLASSES.appendleft(BaseFakeItemAdapter)
