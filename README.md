@@ -148,11 +148,11 @@ interface, providing a `dict`-like API to manipulate data for the object it wrap
 
 **Attributes**
 
-* _class attribute_ `ADAPTER_CLASSES`
+* _class attribute_ `ADAPTER_CLASSES: collections.deque`
 
-A [`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
-object (which allows for efficient addition/deletion of adapters classes to both ends).
-This attribute stores the currently registered adapter classes.
+Stores the currently registered adapter classes. Being a
+[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque),
+it supports efficient addition/deletion of adapters classes to both ends.
 
 The order in which the adapters are registered is important. When an `ItemAdapter` object is
 created for a specific item, the registered adapters are traversed in order and the first
