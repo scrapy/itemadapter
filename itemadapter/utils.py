@@ -32,8 +32,7 @@ def _is_attrs_class(obj: Any) -> bool:
 
 
 def is_dataclass_instance(obj: Any) -> bool:
-    """
-    Return True if the given object is a dataclass object, False otherwise.
+    """Return True if the given object is a dataclass object, False otherwise.
 
     In py36, this function returns False if the "dataclasses" backport is not available.
 
@@ -43,16 +42,12 @@ def is_dataclass_instance(obj: Any) -> bool:
 
 
 def is_attrs_instance(obj: Any) -> bool:
-    """
-    Return True if the given object is a attrs-based object, False otherwise.
-    """
+    """Return True if the given object is a attrs-based object, False otherwise."""
     return _is_attrs_class(obj) and not isinstance(obj, type)
 
 
 def is_scrapy_item(obj: Any) -> bool:
-    """
-    Return True if the given object is a Scrapy item, False otherwise.
-    """
+    """Return True if the given object is a Scrapy item, False otherwise."""
     try:
         import scrapy
     except ImportError:
@@ -68,8 +63,7 @@ def is_scrapy_item(obj: Any) -> bool:
 
 
 def is_item(obj: Any) -> bool:
-    """
-    Return True if the given object belongs to one of the supported types, False otherwise.
+    """Return True if the given object belongs to one of the supported types, False otherwise.
 
     Alias for ItemAdapter.is_item
     """
@@ -79,8 +73,7 @@ def is_item(obj: Any) -> bool:
 
 
 def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
-    """
-    Return a read-only mapping with metadata for the given field name, within the given item class.
+    """Return a read-only mapping with metadata for the given field name, within the given item class.
     If there is no metadata for the field, or the item class does not support field metadata,
     an empty object is returned.
 

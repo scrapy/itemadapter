@@ -189,9 +189,7 @@ except ImportError:
 
 
 class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
-    """
-    Tests for deprecated classes. These will go away once the upstream classes are removed.
-    """
+    """Tests for deprecated classes. These will go away once the upstream classes are removed."""
 
     @unittest.skipIf(
         scrapy is None or not hasattr(scrapy.item, "_BaseItem"),
@@ -217,9 +215,7 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
 
     @unittest.skipIf(scrapy is None, "scrapy module is not available")
     def test_removed_baseitem(self):
-        """
-        Mock the scrapy.item module so it does not contain the deprecated _BaseItem class
-        """
+        """Mock the scrapy.item module so it does not contain the deprecated _BaseItem class."""
 
         class MockItemModule:
             Item = ScrapyItem

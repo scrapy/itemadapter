@@ -196,7 +196,7 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
     item_class_nested = dict
 
     def test_get_value_keyerror_item_dict(self):
-        """Instantiate without default values"""
+        """Instantiate without default values."""
         adapter = ItemAdapter(self.item_class())
         with self.assertRaises(KeyError):
             adapter["name"]
@@ -220,7 +220,7 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_nested = ScrapySubclassedItemNested
 
     def test_get_value_keyerror_item_dict(self):
-        """Instantiate without default values"""
+        """Instantiate without default values."""
         adapter = ItemAdapter(self.item_class())
         with self.assertRaises(KeyError):
             adapter["name"]
