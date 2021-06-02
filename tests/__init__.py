@@ -62,15 +62,15 @@ else:
 
 
 try:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field as PydanticField
 except ImportError:
     PydanticModel = None
     PydanticModelNested = None
 else:
 
     class PydanticModel(BaseModel):
-        name: Optional[str] = Field(default_factory=lambda: None)
-        value: Optional[int] = Field(default_factory=lambda: None)
+        name: Optional[str] = PydanticField(default_factory=lambda: None)
+        value: Optional[int] = PydanticField(default_factory=lambda: None)
 
     class PydanticModelNested(BaseModel):
         nested: PydanticModel
