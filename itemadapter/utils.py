@@ -41,6 +41,11 @@ def is_dataclass_instance(obj: Any) -> bool:
     return _is_dataclass(obj) and not isinstance(obj, type)
 
 
+def is_pydantic_instance(obj: Any) -> bool:
+    """Return True if the given object is a Pydantic model, False otherwise."""
+    return
+
+
 def is_attrs_instance(obj: Any) -> bool:
     """Return True if the given object is a attrs-based object, False otherwise."""
     return _is_attrs_class(obj) and not isinstance(obj, type)

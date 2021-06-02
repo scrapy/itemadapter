@@ -11,6 +11,8 @@ from tests import (
     DataClassItem,
     DataClassItemNested,
     DataClassWithoutInit,
+    PydanticModel,
+    PydanticModelNested,
     ScrapySubclassedItem,
     ScrapySubclassedItemNested,
 )
@@ -66,6 +68,15 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         adapter["name"] = "set after init"
         self.assertEqual(
             repr(adapter), "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
+        )
+    
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_repr_pydantic(self):
+        item = PydanticModel(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        self.assertEqual(
+            repr(adapter),
+            "<ItemAdapter for PydanticModel(name='asdf', value=1234)>",
         )
 
 
@@ -224,6 +235,12 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
         adapter = ItemAdapter(self.item_class())
         with self.assertRaises(KeyError):
             adapter["name"]
+
+
+class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
+
+    item_class = PydanticModel
+    item_class_nested = PydanticModelNested
 
 
 class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
