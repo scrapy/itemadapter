@@ -66,7 +66,7 @@ class ItemLikeTestCase(unittest.TestCase):
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_true_attrs(self):
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
-    
+
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true_pydantic(self):
         self.assertTrue(is_item(PydanticModel(name="asdf", value=1234)))
@@ -170,14 +170,14 @@ class PydanticTestCase(unittest.TestCase):
         self.assertFalse(is_pydantic_instance(("a", "tuple")))
         self.assertFalse(is_pydantic_instance({"a", "set"}))
         self.assertFalse(is_pydantic_instance(PydanticModel))
-    
+
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @mock.patch("builtins.__import__", mocked_import)
     def test_module_not_available(self):
         self.assertFalse(is_pydantic_instance(PydanticModel(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
             get_field_meta_from_class(PydanticModel, "name")
-    
+
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true(self):
         self.assertTrue(is_pydantic_instance(PydanticModel()))

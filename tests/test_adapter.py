@@ -69,7 +69,7 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         self.assertEqual(
             repr(adapter), "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
         )
-    
+
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_repr_pydantic(self):
         item = PydanticModel(name="asdf", value=1234)
@@ -241,10 +241,10 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = PydanticModel
     item_class_nested = PydanticModelNested
-    
+
     def test_metadata_common(self):
         pass
-    
+
     def test_get_field_meta_defined_fields(self):
         pass
 

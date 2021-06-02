@@ -121,10 +121,10 @@ class PydanticAdapter(AdapterInterface):
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return is_pydantic_instance(item)
-    
+
     def field_names(self) -> KeysView:
         return KeysView(self.item.__fields__)
-    
+
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self.item.__fields__:
             return getattr(self.item, field_name)
