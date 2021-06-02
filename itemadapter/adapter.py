@@ -8,6 +8,7 @@ from itemadapter.utils import (
     is_attrs_instance,
     is_dataclass_instance,
     is_item,
+    is_pydantic_instance,
     is_scrapy_item,
 )
 
@@ -18,6 +19,7 @@ __all__ = [
     "DataclassAdapter",
     "DictAdapter",
     "ItemAdapter",
+    "PydanticAdapter",
     "ScrapyItemAdapter",
 ]
 
@@ -112,6 +114,44 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         return is_dataclass_instance(item)
 
 
+class PydanticAdapter(AdapterInterface):
+
+    item: Any
+
+    @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return is_pydantic_instance(item)
+    
+    def field_names(self) -> KeysView:
+        return KeysView(self.item.__fields__)
+    
+    def __getitem__(self, field_name: str) -> Any:
+        if field_name in self.item.__fields__:
+            return getattr(self.item, field_name)
+        raise KeyError(field_name)
+
+    def __setitem__(self, field_name: str, value: Any) -> None:
+        if field_name in self.item.__fields__:
+            setattr(self.item, field_name, value)
+        else:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+
+    def __delitem__(self, field_name: str) -> None:
+        if field_name in self.item.__fields__:
+            try:
+                delattr(self.item, field_name)
+            except AttributeError:
+                raise KeyError(field_name)
+        else:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+
+    def __iter__(self) -> Iterator:
+        return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
+
+    def __len__(self) -> int:
+        return len(list(iter(self)))
+
+
 class _MixinDictScrapyItemAdapter:
 
     _fields_dict: dict
@@ -168,6 +208,7 @@ class ItemAdapter(MutableMapping):
             DictAdapter,
             DataclassAdapter,
             AttrsAdapter,
+            PydanticAdapter,
         ]
     )
 

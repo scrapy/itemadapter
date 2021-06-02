@@ -183,8 +183,10 @@ class PydanticTestCase(unittest.TestCase):
         self.assertTrue(is_pydantic_instance(PydanticModel()))
         self.assertTrue(is_pydantic_instance(PydanticModel(name="asdf", value=1234)))
         # field metadata
-        with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
-            get_field_meta_from_class(PydanticModel, "non_existent")
+        self.assertEqual(
+            get_field_meta_from_class(PydanticModel, "non_existent"),
+            MappingProxyType({}),
+        )
 
 
 class ScrapyItemTestCase(unittest.TestCase):

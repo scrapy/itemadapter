@@ -31,6 +31,14 @@ def _is_attrs_class(obj: Any) -> bool:
     return attr.has(obj)
 
 
+def _is_pydantic_model(obj: Any) -> bool:
+    try:
+        from pydantic import BaseModel
+    except ImportError:
+        return False
+    return issubclass(obj, BaseModel)
+
+
 def is_dataclass_instance(obj: Any) -> bool:
     """Return True if the given object is a dataclass object, False otherwise.
 
@@ -43,7 +51,7 @@ def is_dataclass_instance(obj: Any) -> bool:
 
 def is_pydantic_instance(obj: Any) -> bool:
     """Return True if the given object is a Pydantic model, False otherwise."""
-    return
+    return _is_pydantic_model(type(obj)) and not isinstance(obj, type)
 
 
 def is_attrs_instance(obj: Any) -> bool:
@@ -106,7 +114,7 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
             return fields_dict(item_class)[field_name].metadata  # type: ignore
         except KeyError:
             raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    elif issubclass(item_class, dict):
+    elif issubclass(item_class, dict) or _is_pydantic_model(item_class):
         return MappingProxyType({})
     else:
         raise TypeError("%s is not a valid item class" % (item_class,))
