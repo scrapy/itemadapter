@@ -15,6 +15,7 @@ Currently supported types are:
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
+* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -29,6 +30,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed
   to interact with `dataclass`-based items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
+* [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with `pydantic`-based items
 
 ---
 
@@ -139,6 +141,7 @@ The following adapters are included by default:
 * `itemadapter.adapter.DictAdapter`: handles `Python` dictionaries
 * `itemadapter.adapter.DataclassAdapter`: handles `dataclass` objects
 * `itemadapter.adapter.AttrsAdapter`: handles `attrs` objects
+* `itemadapter.adapter.PydanticAdapter`: handles `pydantic` objects
 
 ### class `itemadapter.adapter.ItemAdapter(item: Any)`
 
@@ -402,6 +405,28 @@ InventoryItem(name='bar', price=5)
 ... class InventoryItem:
 ...     name = attr.ib()
 ...     price = attr.ib()
+...
+>>> item = InventoryItem(name="foo", price=10)
+>>> adapter = ItemAdapter(item)
+>>> adapter.item is item
+True
+>>> adapter["name"]
+'foo'
+>>> adapter["name"] = "bar"
+>>> adapter["price"] = 5
+>>> item
+InventoryItem(name='bar', price=5)
+>>>
+```
+
+### `pydantic` objects
+
+```python
+>>> from pydantic import BaseModel
+>>> from itemadapter import ItemAdapter
+>>> class InventoryItem(BaseModel):
+...     name: str
+...     price: int
 ...
 >>> item = InventoryItem(name="foo", price=10)
 >>> adapter = ItemAdapter(item)
