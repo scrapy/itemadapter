@@ -184,6 +184,14 @@ class PydanticTestCase(unittest.TestCase):
         self.assertTrue(is_pydantic_instance(PydanticModel(name="asdf", value=1234)))
         # field metadata
         self.assertEqual(
+            get_field_meta_from_class(PydanticModel, "name"),
+            MappingProxyType({"serializer": str}),
+        )
+        self.assertEqual(
+            get_field_meta_from_class(PydanticModel, "value"),
+            MappingProxyType({"serializer": int}),
+        )
+        self.assertEqual(
             get_field_meta_from_class(PydanticModel, "non_existent"),
             MappingProxyType({}),
         )
