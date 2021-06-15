@@ -39,6 +39,40 @@ def _is_pydantic_model(obj: Any) -> bool:
     return issubclass(obj, BaseModel)
 
 
+def _get_pydantic_model_metadata(item_model: type, field_name: str) -> MappingProxyType:
+    from pydantic.fields import Undefined as PydanticUndefined
+
+    metadata = {}
+    field = item_model.__fields__[field_name].field_info
+
+    if field.default is not PydanticUndefined:
+        metadata["default"] = field.default
+    if not field.allow_mutation:
+        metadata["allow_mutation"] = field.allow_mutation
+    for attr in [
+        "alias",
+        "title",
+        "description",
+        "const",
+        "gt",
+        "ge",
+        "lt",
+        "le",
+        "multiple_of",
+        "min_items",
+        "max_items",
+        "min_length",
+        "max_length",
+        "regex",
+    ]:
+        value = getattr(field, attr)
+        if value is not None:
+            metadata[attr] = value
+    metadata.update(field.extra)
+
+    return MappingProxyType(metadata)
+
+
 def is_dataclass_instance(obj: Any) -> bool:
     """Return True if the given object is a dataclass object, False otherwise.
 
@@ -94,6 +128,7 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     * scrapy.item.Item: corresponding scrapy.item.Field object
     * dataclass items: "metadata" attribute for the corresponding field
     * attrs items: "metadata" attribute for the corresponding field
+    * pydantic models: corresponding pydantic.field.FieldInfo/ModelField object
 
     The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
     of the original mapping, which gets automatically updated if the original mapping changes.
@@ -112,6 +147,11 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
 
         try:
             return fields_dict(item_class)[field_name].metadata  # type: ignore
+        except KeyError:
+            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+    elif _is_pydantic_model(item_class):
+        try:
+            return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError:
             raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
     elif issubclass(item_class, dict) or _is_pydantic_model(item_class):

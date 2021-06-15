@@ -5,6 +5,7 @@ from types import MappingProxyType
 from typing import Any, Deque, Iterator, Type
 
 from itemadapter.utils import (
+    _get_pydantic_model_metadata,
     is_attrs_instance,
     is_dataclass_instance,
     is_item,
@@ -117,6 +118,9 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 class PydanticAdapter(AdapterInterface):
 
     item: Any
+
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
+        return _get_pydantic_model_metadata(type(self.item), field_name)
 
     @classmethod
     def is_item(cls, item: Any) -> bool:

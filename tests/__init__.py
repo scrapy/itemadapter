@@ -69,8 +69,14 @@ except ImportError:
 else:
 
     class PydanticModel(BaseModel):
-        name: Optional[str] = PydanticField(default_factory=lambda: None, metadata={"serializer": str})
-        value: Optional[int] = PydanticField(default_factory=lambda: None, metadata={"serializer": int})
+        name: Optional[str] = PydanticField(
+            default_factory=lambda: None,
+            serializer=str,
+        )
+        value: Optional[int] = PydanticField(
+            default_factory=lambda: None,
+            serializer=int,
+        )
 
     class PydanticModelNested(BaseModel):
         nested: PydanticModel

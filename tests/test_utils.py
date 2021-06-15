@@ -191,10 +191,8 @@ class PydanticTestCase(unittest.TestCase):
             get_field_meta_from_class(PydanticModel, "value"),
             MappingProxyType({"serializer": int}),
         )
-        self.assertEqual(
-            get_field_meta_from_class(PydanticModel, "non_existent"),
-            MappingProxyType({}),
-        )
+        with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
+            get_field_meta_from_class(PydanticModel, "non_existent")
 
 
 class ScrapyItemTestCase(unittest.TestCase):
