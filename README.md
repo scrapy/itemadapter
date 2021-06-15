@@ -190,6 +190,7 @@ The returned value is taken from the following sources, depending on the item ty
     for `dataclass`-based items
   * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
+  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation) for `pydantic`-based items
 
 #### `field_names() -> collections.abc.KeysView`
 
@@ -219,7 +220,7 @@ support field metadata, or there is no metadata for the given field, an empty ob
 
 ## Metadata support
 
-`scrapy.item.Item`, `dataclass` and `attrs` objects allow the definition of
+`scrapy.item.Item`, `dataclass`, `attrs`, and `pydantic` objects allow the definition of
 arbitrary field metadata. This can be accessed through a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which can be retrieved from an item instance with the
@@ -269,6 +270,22 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 ... class InventoryItem:
 ...     name = attr.ib(metadata={"serializer": str})
 ...     value = attr.ib(metadata={"serializer": int, "limit": 100})
+...
+>>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
+>>> adapter.get_field_meta("name")
+mappingproxy({'serializer': <class 'str'>})
+>>> adapter.get_field_meta("value")
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+>>>
+```
+
+#### `pydantic` objects
+
+```python
+>>> from pydantic import BaseModel, Field
+>>> class InventoryItem(BaseModel):
+...     name: str = Field(serializer=str)
+...     value: int = Field(serializer=int, limit=100)
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")
