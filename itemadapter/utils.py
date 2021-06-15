@@ -40,15 +40,9 @@ def _is_pydantic_model(obj: Any) -> bool:
 
 
 def _get_pydantic_model_metadata(item_model: type, field_name: str) -> MappingProxyType:
-    from pydantic.fields import Undefined as PydanticUndefined
-
     metadata = {}
     field = item_model.__fields__[field_name].field_info
 
-    if field.default is not PydanticUndefined:
-        metadata["default"] = field.default
-    if not field.allow_mutation:
-        metadata["allow_mutation"] = field.allow_mutation
     for attr in [
         "alias",
         "title",
@@ -68,6 +62,8 @@ def _get_pydantic_model_metadata(item_model: type, field_name: str) -> MappingPr
         value = getattr(field, attr)
         if value is not None:
             metadata[attr] = value
+    if not field.allow_mutation:
+        metadata["allow_mutation"] = field.allow_mutation
     metadata.update(field.extra)
 
     return MappingProxyType(metadata)

@@ -11,7 +11,14 @@ from itemadapter.utils import (
     is_scrapy_item,
 )
 
-from tests import AttrsItem, DataClassItem, PydanticModel, ScrapyItem, ScrapySubclassedItem
+from tests import (
+    AttrsItem,
+    DataClassItem,
+    PydanticModel,
+    PydanticSpecialCasesModel,
+    ScrapyItem,
+    ScrapySubclassedItem,
+)
 
 
 def mocked_import(name, *args, **kwargs):
@@ -190,6 +197,10 @@ class PydanticTestCase(unittest.TestCase):
         self.assertEqual(
             get_field_meta_from_class(PydanticModel, "value"),
             MappingProxyType({"serializer": int}),
+        )
+        self.assertEqual(
+            get_field_meta_from_class(PydanticSpecialCasesModel, "special_cases"),
+            MappingProxyType({"alias": "special_cases", "allow_mutation": False}),
         )
         with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")

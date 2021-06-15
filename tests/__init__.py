@@ -65,6 +65,7 @@ try:
     from pydantic import BaseModel, Field as PydanticField
 except ImportError:
     PydanticModel = None
+    PydanticSpecialCasesModel = None
     PydanticModelNested = None
 else:
 
@@ -77,6 +78,16 @@ else:
             default_factory=lambda: None,
             serializer=int,
         )
+
+    class PydanticSpecialCasesModel(BaseModel):
+        special_cases: Optional[int] = PydanticField(
+            default_factory=lambda: None,
+            alias="special_cases",
+            allow_mutation=False,
+        )
+
+        class Config:
+            validate_assignment = True
 
     class PydanticModelNested(BaseModel):
         nested: PydanticModel
