@@ -39,7 +39,7 @@ def _is_pydantic_model(obj: Any) -> bool:
     return issubclass(obj, BaseModel)
 
 
-def _get_pydantic_model_metadata(item_model: type, field_name: str) -> MappingProxyType:
+def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
     metadata = {}
     field = item_model.__fields__[field_name].field_info
 
