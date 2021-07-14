@@ -15,6 +15,7 @@ Currently supported types are:
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
+* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -29,6 +30,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed
   to interact with `dataclass`-based items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
+* [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with `pydantic`-based items
 
 ---
 
@@ -139,6 +141,7 @@ The following adapters are included by default:
 * `itemadapter.adapter.DictAdapter`: handles `Python` dictionaries
 * `itemadapter.adapter.DataclassAdapter`: handles `dataclass` objects
 * `itemadapter.adapter.AttrsAdapter`: handles `attrs` objects
+* `itemadapter.adapter.PydanticAdapter`: handles `pydantic` objects
 
 ### class `itemadapter.adapter.ItemAdapter(item: Any)`
 
@@ -187,6 +190,7 @@ The returned value is taken from the following sources, depending on the item ty
     for `dataclass`-based items
   * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
+  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation) for `pydantic`-based items
 
 #### `field_names() -> collections.abc.KeysView`
 
@@ -216,7 +220,7 @@ support field metadata, or there is no metadata for the given field, an empty ob
 
 ## Metadata support
 
-`scrapy.item.Item`, `dataclass` and `attrs` objects allow the definition of
+`scrapy.item.Item`, `dataclass`, `attrs`, and `pydantic` objects allow the definition of
 arbitrary field metadata. This can be accessed through a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which can be retrieved from an item instance with the
@@ -266,6 +270,22 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 ... class InventoryItem:
 ...     name = attr.ib(metadata={"serializer": str})
 ...     value = attr.ib(metadata={"serializer": int, "limit": 100})
+...
+>>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
+>>> adapter.get_field_meta("name")
+mappingproxy({'serializer': <class 'str'>})
+>>> adapter.get_field_meta("value")
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+>>>
+```
+
+#### `pydantic` objects
+
+```python
+>>> from pydantic import BaseModel, Field
+>>> class InventoryItem(BaseModel):
+...     name: str = Field(serializer=str)
+...     value: int = Field(serializer=int, limit=100)
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")
@@ -402,6 +422,28 @@ InventoryItem(name='bar', price=5)
 ... class InventoryItem:
 ...     name = attr.ib()
 ...     price = attr.ib()
+...
+>>> item = InventoryItem(name="foo", price=10)
+>>> adapter = ItemAdapter(item)
+>>> adapter.item is item
+True
+>>> adapter["name"]
+'foo'
+>>> adapter["name"] = "bar"
+>>> adapter["price"] = 5
+>>> item
+InventoryItem(name='bar', price=5)
+>>>
+```
+
+### `pydantic` objects
+
+```python
+>>> from pydantic import BaseModel
+>>> from itemadapter import ItemAdapter
+>>> class InventoryItem(BaseModel):
+...     name: str
+...     price: int
 ...
 >>> item = InventoryItem(name="foo", price=10)
 >>> adapter = ItemAdapter(item)

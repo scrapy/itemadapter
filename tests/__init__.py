@@ -1,3 +1,5 @@
+from typing import Optional
+
 from itemadapter.adapter import ItemAdapter
 
 
@@ -57,6 +59,47 @@ else:
     class DataClassWithoutInit:
         name: str = field(metadata={"serializer": str})
         value: int = field(metadata={"serializer": int})
+
+
+try:
+    from pydantic import BaseModel, Field as PydanticField
+except ImportError:
+    PydanticModel = None
+    PydanticSpecialCasesModel = None
+    PydanticModelNested = None
+else:
+
+    class PydanticModel(BaseModel):
+        name: Optional[str] = PydanticField(
+            default_factory=lambda: None,
+            serializer=str,
+        )
+        value: Optional[int] = PydanticField(
+            default_factory=lambda: None,
+            serializer=int,
+        )
+
+    class PydanticSpecialCasesModel(BaseModel):
+        special_cases: Optional[int] = PydanticField(
+            default_factory=lambda: None,
+            alias="special_cases",
+            allow_mutation=False,
+        )
+
+        class Config:
+            validate_assignment = True
+
+    class PydanticModelNested(BaseModel):
+        nested: PydanticModel
+        adapter: ItemAdapter
+        dict_: dict
+        list_: list
+        set_: set
+        tuple_: tuple
+        int_: int
+
+        class Config:
+            arbitrary_types_allowed = True
 
 
 try:
