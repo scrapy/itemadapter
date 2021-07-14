@@ -150,7 +150,7 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
             return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError:
             raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    elif issubclass(item_class, dict) or _is_pydantic_model(item_class):
+    elif issubclass(item_class, dict):
         return MappingProxyType({})
     else:
         raise TypeError("%s is not a valid item class" % (item_class,))
