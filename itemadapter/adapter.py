@@ -6,6 +6,10 @@ from typing import Any, Deque, Iterator, Type
 
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
+    _get_scrapy_item_classes,
+    _is_attrs_class,
+    _is_dataclass,
+    _is_pydantic_model,
     is_attrs_instance,
     is_dataclass_instance,
     is_item,
@@ -41,6 +45,15 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     def is_item(cls, item: Any) -> bool:
         """Return True if the adapter can handle the given item, False otherwise"""
         raise NotImplementedError()
+
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        """Return True if the adapter can handle the given item class, False otherwise"""
+        raise NotImplementedError()
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        return MappingProxyType({})
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """Return metadata for the given field name, if available."""
@@ -101,6 +114,19 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def is_item(cls, item: Any) -> bool:
         return is_attrs_instance(item)
 
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return _is_attrs_class(item_class)
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        from attr import fields_dict
+
+        try:
+            return fields_dict(item_class)[field_name].metadata  # type: ignore
+        except KeyError:
+            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+
 
 class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def __init__(self, item: Any) -> None:
@@ -114,17 +140,41 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def is_item(cls, item: Any) -> bool:
         return is_dataclass_instance(item)
 
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return _is_dataclass(item_class)
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        from dataclasses import fields
+
+        for field in fields(item_class):
+            if field.name == field_name:
+                return field.metadata  # type: ignore
+        raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+
 
 class PydanticAdapter(AdapterInterface):
 
     item: Any
 
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return _get_pydantic_model_metadata(type(self.item), field_name)
-
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return is_pydantic_instance(item)
+
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return _is_pydantic_model(item_class)
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        try:
+            return _get_pydantic_model_metadata(item_class, field_name)
+        except KeyError:
+            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+
+    def get_field_meta(self, field_name: str) -> MappingProxyType:
+        return self.__class__.get_field_meta_from_class(type(self.item), field_name)
 
     def field_names(self) -> KeysView:
         return KeysView(self.item.__fields__)
@@ -182,6 +232,14 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     def is_item(cls, item: Any) -> bool:
         return isinstance(item, dict)
 
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return issubclass(item_class, dict)
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        return MappingProxyType({})
+
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         return MappingProxyType({})
 
@@ -193,6 +251,14 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return is_scrapy_item(item)
+
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return issubclass(item_class, _get_scrapy_item_classes())
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        return MappingProxyType(item_class.fields[field_name])  # type: ignore
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         return MappingProxyType(self.item.fields[field_name])
@@ -227,6 +293,19 @@ class ItemAdapter(MutableMapping):
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return any(adapter_class.is_item(item) for adapter_class in cls.ADAPTER_CLASSES)
+
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return any(
+            adapter_class.is_item_class(item_class) for adapter_class in cls.ADAPTER_CLASSES
+        )
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        for adapter_class in cls.ADAPTER_CLASSES:
+            if adapter_class.is_item_class(item_class):
+                return adapter_class.get_field_meta_from_class(item_class, field_name)
+        raise TypeError("%s is not a valid item class" % (item_class,))
 
     @property
     def item(self) -> Any:

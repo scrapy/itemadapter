@@ -129,28 +129,7 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
     of the original mapping, which gets automatically updated if the original mapping changes.
     """
-    if issubclass(item_class, _get_scrapy_item_classes()):
-        return MappingProxyType(item_class.fields[field_name])  # type: ignore
-    elif _is_dataclass(item_class):
-        from dataclasses import fields
 
-        for field in fields(item_class):
-            if field.name == field_name:
-                return field.metadata  # type: ignore
-        raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    elif _is_attrs_class(item_class):
-        from attr import fields_dict
+    from itemadapter.adapter import ItemAdapter
 
-        try:
-            return fields_dict(item_class)[field_name].metadata  # type: ignore
-        except KeyError:
-            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    elif _is_pydantic_model(item_class):
-        try:
-            return _get_pydantic_model_metadata(item_class, field_name)
-        except KeyError:
-            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
-    elif issubclass(item_class, dict):
-        return MappingProxyType({})
-    else:
-        raise TypeError("%s is not a valid item class" % (item_class,))
+    return ItemAdapter.get_field_meta_from_class(item_class, field_name)

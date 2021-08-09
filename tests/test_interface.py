@@ -30,6 +30,10 @@ class BaseFakeItemAdapter(AdapterInterface):
     def is_item(cls, item: Any) -> bool:
         return isinstance(item, FakeItemClass)
 
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return issubclass(item_class, FakeItemClass)
+
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self.item._fields:
             return self.item._values[field_name]
