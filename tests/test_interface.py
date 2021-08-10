@@ -11,6 +11,8 @@ class AdapterInterfaceTest(unittest.TestCase):
     def test_interface_class_methods(self):
         with self.assertRaises(NotImplementedError):
             AdapterInterface.is_item(object())
+        with self.assertRaises(NotImplementedError):
+            AdapterInterface.is_item_class(object)
 
 
 class FakeItemClass:
@@ -67,7 +69,11 @@ class FieldNamesFakeItemAdapter(BaseFakeItemAdapter):
 
 
 class MetadataFakeItemAdapter(BaseFakeItemAdapter):
-    """An adapter that also implements the get_field_meta method."""
+    """An adapter that also implements the metadata-related methods."""
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        return MappingProxyType(item_class._fields.get(field_name) or {})
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         if field_name in self.item._fields:
@@ -159,12 +165,25 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             adapter["name"]
 
-    def test_get_field_meta_defined_fields(self):
+    def test_get_field_meta(self):
         """Metadata is always empty for the default implementation."""
         adapter = ItemAdapter(self.item_class())
         self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
         self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({}))
         self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({}))
+
+    def test_get_field_meta_from_class(self):
+        """Metadata is always empty for the default implementation."""
+        self.assertEqual(
+            ItemAdapter.get_field_meta_from_class(self.item_class, "_undefined_"),
+            MappingProxyType({}),
+        )
+        self.assertEqual(
+            ItemAdapter.get_field_meta_from_class(self.item_class, "name"), MappingProxyType({})
+        )
+        self.assertEqual(
+            ItemAdapter.get_field_meta_from_class(self.item_class, "value"), MappingProxyType({})
+        )
 
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
@@ -178,11 +197,25 @@ class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
     item_class = FakeItemClass
     adapter_class = MetadataFakeItemAdapter
 
-    def test_get_field_meta_defined_fields(self):
+    def test_get_field_meta(self):
         adapter = ItemAdapter(self.item_class())
         self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
         self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
         self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
+
+    def test_get_field_meta_from_class(self):
+        self.assertEqual(
+            ItemAdapter.get_field_meta_from_class(self.item_class, "_undefined_"),
+            MappingProxyType({}),
+        )
+        self.assertEqual(
+            ItemAdapter.get_field_meta_from_class(self.item_class, "name"),
+            MappingProxyType({"serializer": str}),
+        )
+        self.assertEqual(
+            ItemAdapter.get_field_meta_from_class(self.item_class, "value"),
+            MappingProxyType({"serializer": int}),
+        )
 
 
 class FieldNamesFakeItemAdapterTest(BaseFakeItemAdapterTest):

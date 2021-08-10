@@ -47,6 +47,7 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @classmethod
+    @abstractmethod
     def is_item_class(cls, item_class: type) -> bool:
         """Return True if the adapter can handle the given item class, False otherwise"""
         raise NotImplementedError()
