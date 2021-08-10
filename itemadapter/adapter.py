@@ -125,7 +125,7 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         try:
             return fields_dict(item_class)[field_name].metadata  # type: ignore
         except KeyError:
-            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+            raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
 
 class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
@@ -151,7 +151,7 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         for field in fields(item_class):
             if field.name == field_name:
                 return field.metadata  # type: ignore
-        raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+        raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
 
 class PydanticAdapter(AdapterInterface):
@@ -171,7 +171,7 @@ class PydanticAdapter(AdapterInterface):
         try:
             return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError:
-            raise KeyError("%s does not support field: %s" % (item_class.__name__, field_name))
+            raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         return self.__class__.get_field_meta_from_class(type(self.item), field_name)
@@ -305,14 +305,14 @@ class ItemAdapter(MutableMapping):
         for adapter_class in cls.ADAPTER_CLASSES:
             if adapter_class.is_item_class(item_class):
                 return adapter_class.get_field_meta_from_class(item_class, field_name)
-        raise TypeError("%s is not a valid item class" % (item_class,))
+        raise TypeError(f"{item_class} is not a valid item class")
 
     @property
     def item(self) -> Any:
         return self.adapter.item
 
     def __repr__(self) -> str:
-        values = ", ".join(["%s=%r" % (key, value) for key, value in self.items()])
+        values = ", ".join([f"{key}={value!r}" for key, value in self.items()])
         return f"<ItemAdapter for {self.item.__class__.__name__}({values})>"
 
     def __getitem__(self, field_name: str) -> Any:
