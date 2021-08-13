@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.4.0 (2021-MM-DD)
+
+Added `ItemAdapter.is_item_class` and `ItemAdapter.get_field_meta_from_class`
+([#54](https://github.com/scrapy/itemadapter/pull/54))
+
+
 ### 0.3.0 (2021-07-15)
 
 Added suport for `pydantic` models ([#53](https://github.com/scrapy/itemadapter/pull/53))

@@ -176,7 +176,13 @@ Return `True` if any of the registed adapters can handle the item
 (i.e. if any of them returns `True` for its `is_item` method with
 `item` as argument), `False` otherwise.
 
-#### `get_field_meta(field_name: str) -> MappingProxyType`
+#### class method `is_item_class(item_class: type) -> bool`
+
+Return `True` if any of the registed adapters can handle the item class
+(i.e. if any of them returns `True` for its `is_item_class` method with
+`item_class` as argument), `False` otherwise.
+
+#### class method `get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType`
 
 Return a [`types.MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which is a read-only mapping with metadata about the given field. If the item class does not
@@ -185,12 +191,18 @@ support field metadata, or there is no metadata for the given field, an empty ob
 The returned value is taken from the following sources, depending on the item type:
 
   * [`scrapy.item.Field`](https://docs.scrapy.org/en/latest/topics/items.html#item-fields)
-  for `scrapy.item.Item`s
+    for `scrapy.item.Item`s
   * [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
     for `dataclass`-based items
   * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
-  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation) for `pydantic`-based items
+  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation)
+    for `pydantic`-based items
+
+#### `get_field_meta(field_name: str) -> MappingProxyType`
+
+Return metadata for the given field, if available. Unless overriden in a custom adapter class, by default
+this method calls the adapter's `get_field_meta_from_class` method, passing the stored item's class.
 
 #### `field_names() -> collections.abc.KeysView`
 
@@ -311,6 +323,10 @@ so all methods from the `MutableMapping` class must be implemented as well.
 * _class method `is_item(cls, item: Any) -> bool`_
 
     Return `True` if the adapter can handle the given item, `False` otherwise. Abstract (mandatory).
+
+* _class method `is_item_class(cls, item_class: type) -> bool`_
+
+    Return `True` if the adapter can handle the given item class, `False` otherwise. Abstract (mandatory).
 
 * _method `get_field_meta(self, field_name: str) -> types.MappingProxyType`_
 
