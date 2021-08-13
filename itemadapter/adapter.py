@@ -58,7 +58,7 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """Return metadata for the given field name, if available."""
-        return MappingProxyType({})
+        return self.get_field_meta_from_class(self.item.__class__, field_name)
 
     def field_names(self) -> KeysView:
         """Return a dynamic view of the item's field names."""
@@ -174,9 +174,6 @@ class PydanticAdapter(AdapterInterface):
         except KeyError:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return self.__class__.get_field_meta_from_class(type(self.item), field_name)
-
     def field_names(self) -> KeysView:
         return KeysView(self.item.__fields__)
 
@@ -241,9 +238,6 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
         return MappingProxyType({})
 
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return MappingProxyType({})
-
     def field_names(self) -> KeysView:
         return KeysView(self.item)
 
@@ -260,9 +254,6 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
         return MappingProxyType(item_class.fields[field_name])  # type: ignore
-
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return MappingProxyType(self.item.fields[field_name])
 
     def field_names(self) -> KeysView:
         return KeysView(self.item.fields)
@@ -332,18 +323,7 @@ class ItemAdapter(MutableMapping):
         return self.adapter.__len__()
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
-        """Return a read-only mapping with metadata for the given field name. If there is no metadata
-        for the field, or the wrapped item does not support field metadata, an empty object is
-        returned.
-
-        Field metadata is taken from different sources, depending on the item type:
-        * scrapy.item.Item: corresponding scrapy.item.Field object
-        * dataclass items: "metadata" attribute for the corresponding field
-        * attrs items: "metadata" attribute for the corresponding field
-
-        The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
-        of the original mapping, which gets automatically updated if the original mapping changes.
-        """
+        """Return metadata for the given field name."""
         return self.adapter.get_field_meta(field_name)
 
     def field_names(self) -> KeysView:

@@ -69,17 +69,11 @@ class FieldNamesFakeItemAdapter(BaseFakeItemAdapter):
 
 
 class MetadataFakeItemAdapter(BaseFakeItemAdapter):
-    """An adapter that also implements the metadata-related methods."""
+    """An adapter that also implements metadata-related methods."""
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
         return MappingProxyType(item_class._fields.get(field_name) or {})
-
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        if field_name in self.item._fields:
-            return MappingProxyType(self.item._fields[field_name])
-        else:
-            return super().get_field_meta(field_name)
 
 
 class BaseFakeItemAdapterTest(unittest.TestCase):
