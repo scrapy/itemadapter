@@ -66,7 +66,7 @@ Consider the following type definition:
 >>>
 ```
 
-The `ItemAdapter` object can be treated much like a dictionary:
+An `ItemAdapter` object can be treated much like a dictionary:
 
 ```python
 >>> obj = InventoryItem(name='foo', price=20.5, stock=10)
@@ -202,7 +202,7 @@ The returned value is taken from the following sources, depending on the item ty
 #### `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return metadata for the given field, if available. Unless overriden in a custom adapter class, by default
-this method calls the adapter's `get_field_meta_from_class` method, passing the stored item's class.
+this method calls the adapter's `get_field_meta_from_class` method, passing the wrapped item's class.
 
 #### `field_names() -> collections.abc.KeysView`
 
@@ -223,10 +223,7 @@ Return `True` if the given object belongs to (at least) one of the supported typ
 
 ### function `itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> types.MappingProxyType`
 
-Given an item class and a field name, return a
-[`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
-object, which is a read-only mapping with metadata about the given field. If the item class does not
-support field metadata, or there is no metadata for the given field, an empty object is returned.
+Alias for `itemadapter.adapter.ItemAdapter.get_field_meta_from_class`
 
 ---
 
@@ -235,10 +232,12 @@ support field metadata, or there is no metadata for the given field, an empty ob
 `scrapy.item.Item`, `dataclass`, `attrs`, and `pydantic` objects allow the definition of
 arbitrary field metadata. This can be accessed through a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
-object, which can be retrieved from an item instance with the
-`itemadapter.adapter.ItemAdapter.get_field_meta` method, or from an item class
-with the `itemadapter.utils.get_field_meta_from_class` function.
-The definition procedure depends on the underlying type.
+object, which can be retrieved from an item instance with
+`itemadapter.adapter.ItemAdapter.get_field_meta`, or from an item class
+with the `itemadapter.adapter.ItemAdapter.get_field_meta.get_field_meta_from_class`
+method (or its alias `itemadapter.utils.get_field_meta_from_class`).
+The source of the data depends on the underlying type (see the docs for
+`ItemAdapter.get_field_meta_from_class` above).
 
 #### `scrapy.item.Item` objects
 
@@ -318,7 +317,7 @@ _class `itemadapter.adapter.AdapterInterface(item: Any)`_
 Abstract Base Class for adapters. An adapter that handles a specific type of item must
 inherit from this class and implement the abstract methods defined on it. `AdapterInterface`
 inherits from [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
-so all methods from the `MutableMapping` class must be implemented as well.
+so all methods from the `MutableMapping` interface must be implemented as well.
 
 * _class method `is_item(cls, item: Any) -> bool`_
 
@@ -328,11 +327,19 @@ so all methods from the `MutableMapping` class must be implemented as well.
 
     Return `True` if the adapter can handle the given item class, `False` otherwise. Abstract (mandatory).
 
-* _method `get_field_meta(self, field_name: str) -> types.MappingProxyType`_
+* _class method `get_field_meta_from_class(cls, item_class: type) -> bool`_
 
-    Return metadata for the given field name, if available.
+    Return metadata for the given item class and field name, if available.
     By default, this method returns an empty `MappingProxyType` object. Please supply your
     own method definition if you want to handle field metadata based on custom logic.
+    See the [section on metadata support](#metadata-support) for additional information.
+
+* _method `get_field_meta(self, field_name: str) -> types.MappingProxyType`_
+
+    Return metadata for the given field name, if available. It's usually not necessary to
+    override this method, since the `itemadapter.adapter.AdapterInterface` base class
+    provides a default implementation that calls `ItemAdapter.get_field_meta_from_class`
+    with the wrapped item's class as argument.
     See the [section on metadata support](#metadata-support) for additional information.
 
 * _method `field_names(self) -> collections.abc.KeysView`_:
