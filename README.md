@@ -234,7 +234,7 @@ arbitrary field metadata. This can be accessed through a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which can be retrieved from an item instance with
 `itemadapter.adapter.ItemAdapter.get_field_meta`, or from an item class
-with the `itemadapter.adapter.ItemAdapter.get_field_meta.get_field_meta_from_class`
+with the `itemadapter.adapter.ItemAdapter.get_field_meta_from_class`
 method (or its alias `itemadapter.utils.get_field_meta_from_class`).
 The source of the data depends on the underlying type (see the docs for
 `ItemAdapter.get_field_meta_from_class` above).
