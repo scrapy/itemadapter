@@ -178,7 +178,7 @@ Return `True` if any of the registed adapters can handle the item
 
 #### class method `is_item_class(item_class: type) -> bool`
 
-Return `True` if any of the registed adapters can handle the item class
+Return `True` if any of the registered adapters can handle the item class
 (i.e. if any of them returns `True` for its `is_item_class` method with
 `item_class` as argument), `False` otherwise.
 
