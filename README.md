@@ -237,7 +237,7 @@ object, which can be retrieved from an item instance with
 with the `itemadapter.adapter.ItemAdapter.get_field_meta_from_class`
 method (or its alias `itemadapter.utils.get_field_meta_from_class`).
 The source of the data depends on the underlying type (see the docs for
-`ItemAdapter.get_field_meta_from_class` above).
+`ItemAdapter.get_field_meta_from_class`).
 
 #### `scrapy.item.Item` objects
 

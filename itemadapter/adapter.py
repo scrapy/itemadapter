@@ -234,10 +234,6 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, dict)
 
-    @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
-        return MappingProxyType({})
-
     def field_names(self) -> KeysView:
         return KeysView(self.item)
 
