@@ -12,7 +12,6 @@ from itemadapter.utils import (
     _is_pydantic_model,
     is_attrs_instance,
     is_dataclass_instance,
-    is_item,
     is_pydantic_instance,
     is_scrapy_item,
 )
@@ -336,7 +335,7 @@ def _asdict(obj: Any) -> Any:
         return obj.__class__(_asdict(x) for x in obj)
     elif isinstance(obj, ItemAdapter):
         return obj.asdict()
-    elif is_item(obj):
+    elif ItemAdapter.is_item(obj):
         return ItemAdapter(obj).asdict()
     else:
         return obj
