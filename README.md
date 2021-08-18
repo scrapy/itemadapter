@@ -319,13 +319,14 @@ inherit from this class and implement the abstract methods defined on it. `Adapt
 inherits from [`collections.abc.MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping),
 so all methods from the `MutableMapping` interface must be implemented as well.
 
-* _class method `is_item(cls, item: Any) -> bool`_
-
-    Return `True` if the adapter can handle the given item, `False` otherwise. Abstract (mandatory).
-
 * _class method `is_item_class(cls, item_class: type) -> bool`_
 
     Return `True` if the adapter can handle the given item class, `False` otherwise. Abstract (mandatory).
+
+* _class method `is_item(cls, item: Any) -> bool`_
+
+    Return `True` if the adapter can handle the given item, `False` otherwise.
+    The default implementation calls `cls.is_item_class(item.__class__)`.
 
 * _class method `get_field_meta_from_class(cls, item_class: type) -> bool`_
 

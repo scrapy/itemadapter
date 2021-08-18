@@ -42,15 +42,14 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def is_item(cls, item: Any) -> bool:
-        """Return True if the adapter can handle the given item, False otherwise"""
+    def is_item_class(cls, item_class: type) -> bool:
+        """Return True if the adapter can handle the given item class, False otherwise."""
         raise NotImplementedError()
 
     @classmethod
-    @abstractmethod
-    def is_item_class(cls, item_class: type) -> bool:
-        """Return True if the adapter can handle the given item class, False otherwise"""
-        raise NotImplementedError()
+    def is_item(cls, item: Any) -> bool:
+        """Return True if the adapter can handle the given item, False otherwise."""
+        return cls.is_item_class(item.__class__)
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
@@ -226,10 +225,6 @@ class _MixinDictScrapyItemAdapter:
 
 
 class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
-        return isinstance(item, dict)
-
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, dict)

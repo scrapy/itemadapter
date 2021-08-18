@@ -28,9 +28,9 @@ class FakeItemClass:
 class BaseFakeItemAdapter(AdapterInterface):
     """An adapter that only implements the required methods."""
 
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
-        return isinstance(item, FakeItemClass)
+    # @classmethod
+    # def is_item(cls, item: Any) -> bool:
+    #     return isinstance(item, FakeItemClass)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
