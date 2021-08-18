@@ -10,7 +10,6 @@ from itemadapter.utils import (
     _is_attrs_class,
     _is_dataclass,
     _is_pydantic_model,
-    is_scrapy_item,
 )
 
 
@@ -226,10 +225,6 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
 
 class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
-        return is_scrapy_item(item)
-
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, _get_scrapy_item_classes())
