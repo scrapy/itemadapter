@@ -56,7 +56,7 @@ class DataclassTestCase(unittest.TestCase):
         with self.assertRaises(KeyError, msg="DataClassItem does not support field: non_existent"):
             get_field_meta_from_class(DataClassItem, "non_existent")
 
-    def test_deprecated_is_dataclass_instance(self):
+    def test_deprecated_is_instance(self):
         from itemadapter.utils import is_dataclass_instance
 
         with warnings.catch_warnings(record=True) as caught:

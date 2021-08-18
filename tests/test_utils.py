@@ -4,7 +4,6 @@ from types import MappingProxyType
 
 from itemadapter.utils import (
     get_field_meta_from_class,
-    is_attrs_instance,
     is_item,
     is_pydantic_instance,
     is_scrapy_item,
@@ -83,46 +82,6 @@ class ItemLikeTestCase(unittest.TestCase):
     def test_true_pydantic(self):
         self.assertTrue(is_item(PydanticModel(name="asdf", value=1234)))
         self.assertTrue(ItemAdapter.is_item_class(PydanticModel))
-
-
-class AttrsTestCase(unittest.TestCase):
-    def test_false(self):
-        self.assertFalse(is_attrs_instance(int))
-        self.assertFalse(is_attrs_instance(sum))
-        self.assertFalse(is_attrs_instance(1234))
-        self.assertFalse(is_attrs_instance(object()))
-        self.assertFalse(is_attrs_instance(ScrapyItem()))
-        self.assertFalse(is_attrs_instance(DataClassItem()))
-        self.assertFalse(is_attrs_instance(PydanticModel()))
-        self.assertFalse(is_attrs_instance(ScrapySubclassedItem()))
-        self.assertFalse(is_attrs_instance("a string"))
-        self.assertFalse(is_attrs_instance(b"some bytes"))
-        self.assertFalse(is_attrs_instance({"a": "dict"}))
-        self.assertFalse(is_attrs_instance(["a", "list"]))
-        self.assertFalse(is_attrs_instance(("a", "tuple")))
-        self.assertFalse(is_attrs_instance({"a", "set"}))
-        self.assertFalse(is_attrs_instance(AttrsItem))
-
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
-        with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
-            get_field_meta_from_class(AttrsItem, "name")
-
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
-    def test_true(self):
-        self.assertTrue(is_attrs_instance(AttrsItem()))
-        self.assertTrue(is_attrs_instance(AttrsItem(name="asdf", value=1234)))
-        # field metadata
-        self.assertEqual(
-            get_field_meta_from_class(AttrsItem, "name"), MappingProxyType({"serializer": str})
-        )
-        self.assertEqual(
-            get_field_meta_from_class(AttrsItem, "value"), MappingProxyType({"serializer": int})
-        )
-        with self.assertRaises(KeyError, msg="AttrsItem does not support field: non_existent"):
-            get_field_meta_from_class(AttrsItem, "non_existent")
 
 
 class PydanticTestCase(unittest.TestCase):

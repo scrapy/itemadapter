@@ -10,7 +10,6 @@ from itemadapter.utils import (
     _is_attrs_class,
     _is_dataclass,
     _is_pydantic_model,
-    is_attrs_instance,
     is_pydantic_instance,
     is_scrapy_item,
 )
@@ -110,7 +109,7 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
-        return is_attrs_instance(item)
+        return _is_attrs_class(item) and not isinstance(item, type)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
