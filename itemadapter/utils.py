@@ -75,11 +75,6 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
     return MappingProxyType(metadata)
 
 
-def is_pydantic_instance(obj: Any) -> bool:
-    """Return True if the given object is a Pydantic model, False otherwise."""
-    return _is_pydantic_model(type(obj)) and not isinstance(obj, type)
-
-
 def is_scrapy_item(obj: Any) -> bool:
     """Return True if the given object is a Scrapy item, False otherwise."""
     try:
@@ -126,6 +121,9 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     return ItemAdapter.get_field_meta_from_class(item_class, field_name)
 
 
+# deprecated
+
+
 def is_dataclass_instance(obj: Any) -> bool:
     warnings.warn(
         "itemadapter.utils.is_dataclass_instance is deprecated"
@@ -148,3 +146,15 @@ def is_attrs_instance(obj: Any) -> bool:
     from itemadapter.adapter import AttrsAdapter
 
     return AttrsAdapter.is_item(obj)
+
+
+def is_pydantic_instance(obj: Any) -> bool:
+    warnings.warn(
+        "itemadapter.utils.is_pydantic_instance is deprecated"
+        " and it will be removed in a future version",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    from itemadapter.adapter import PydanticAdapter
+
+    return PydanticAdapter.is_item(obj)

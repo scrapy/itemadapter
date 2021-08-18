@@ -5,7 +5,6 @@ from types import MappingProxyType
 from itemadapter.utils import (
     get_field_meta_from_class,
     is_item,
-    is_pydantic_instance,
     is_scrapy_item,
 )
 from itemadapter import ItemAdapter
@@ -14,7 +13,6 @@ from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
-    PydanticSpecialCasesModel,
     ScrapyItem,
     ScrapySubclassedItem,
     mocked_import,
@@ -82,52 +80,6 @@ class ItemLikeTestCase(unittest.TestCase):
     def test_true_pydantic(self):
         self.assertTrue(is_item(PydanticModel(name="asdf", value=1234)))
         self.assertTrue(ItemAdapter.is_item_class(PydanticModel))
-
-
-class PydanticTestCase(unittest.TestCase):
-    def test_false(self):
-        self.assertFalse(is_pydantic_instance(int))
-        self.assertFalse(is_pydantic_instance(sum))
-        self.assertFalse(is_pydantic_instance(1234))
-        self.assertFalse(is_pydantic_instance(object()))
-        self.assertFalse(is_pydantic_instance(ScrapyItem()))
-        self.assertFalse(is_pydantic_instance(AttrsItem()))
-        self.assertFalse(is_pydantic_instance(DataClassItem()))
-        self.assertFalse(is_pydantic_instance(ScrapySubclassedItem()))
-        self.assertFalse(is_pydantic_instance("a string"))
-        self.assertFalse(is_pydantic_instance(b"some bytes"))
-        self.assertFalse(is_pydantic_instance({"a": "dict"}))
-        self.assertFalse(is_pydantic_instance(["a", "list"]))
-        self.assertFalse(is_pydantic_instance(("a", "tuple")))
-        self.assertFalse(is_pydantic_instance({"a", "set"}))
-        self.assertFalse(is_pydantic_instance(PydanticModel))
-
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_pydantic_instance(PydanticModel(name="asdf", value=1234)))
-        with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
-            get_field_meta_from_class(PydanticModel, "name")
-
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    def test_true(self):
-        self.assertTrue(is_pydantic_instance(PydanticModel()))
-        self.assertTrue(is_pydantic_instance(PydanticModel(name="asdf", value=1234)))
-        # field metadata
-        self.assertEqual(
-            get_field_meta_from_class(PydanticModel, "name"),
-            MappingProxyType({"serializer": str}),
-        )
-        self.assertEqual(
-            get_field_meta_from_class(PydanticModel, "value"),
-            MappingProxyType({"serializer": int}),
-        )
-        self.assertEqual(
-            get_field_meta_from_class(PydanticSpecialCasesModel, "special_cases"),
-            MappingProxyType({"alias": "special_cases", "allow_mutation": False}),
-        )
-        with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
-            get_field_meta_from_class(PydanticModel, "non_existent")
 
 
 class ScrapyItemTestCase(unittest.TestCase):
