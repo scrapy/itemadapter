@@ -1,3 +1,5 @@
+import warnings
+
 from types import MappingProxyType
 from typing import Any
 
@@ -16,6 +18,10 @@ def _get_scrapy_item_classes() -> tuple:
 
 
 def _is_dataclass(obj: Any) -> bool:
+    """Return True if the given object is a dataclass, False otherwise.
+
+    In py36, this function returns False if the "dataclasses" backport is not available.
+    """
     try:
         import dataclasses
     except ImportError:
@@ -67,16 +73,6 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
     metadata.update(field.extra)
 
     return MappingProxyType(metadata)
-
-
-def is_dataclass_instance(obj: Any) -> bool:
-    """Return True if the given object is a dataclass object, False otherwise.
-
-    In py36, this function returns False if the "dataclasses" backport is not available.
-
-    Taken from https://docs.python.org/3/library/dataclasses.html#dataclasses.is_dataclass.
-    """
-    return _is_dataclass(obj) and not isinstance(obj, type)
 
 
 def is_pydantic_instance(obj: Any) -> bool:
@@ -133,3 +129,15 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     from itemadapter.adapter import ItemAdapter
 
     return ItemAdapter.get_field_meta_from_class(item_class, field_name)
+
+
+def is_dataclass_instance(obj: Any) -> bool:
+    warnings.warn(
+        "itemadapter.utils.is_dataclass_instance is deprecated"
+        " and it will be removed in a future version",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    from itemadapter.adapter import DataclassAdapter
+
+    return DataclassAdapter.is_item(obj)

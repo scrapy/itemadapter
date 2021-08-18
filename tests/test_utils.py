@@ -1,4 +1,3 @@
-import importlib
 import unittest
 from unittest import mock
 from types import MappingProxyType
@@ -6,7 +5,6 @@ from types import MappingProxyType
 from itemadapter.utils import (
     get_field_meta_from_class,
     is_attrs_instance,
-    is_dataclass_instance,
     is_item,
     is_pydantic_instance,
     is_scrapy_item,
@@ -20,14 +18,8 @@ from tests import (
     PydanticSpecialCasesModel,
     ScrapyItem,
     ScrapySubclassedItem,
+    mocked_import,
 )
-
-
-def mocked_import(name, *args, **kwargs):
-    """Allow only internal itemadapter imports."""
-    if name.split(".")[0] == "itemadapter":
-        return importlib.__import__(name, *args, **kwargs)
-    raise ImportError(name)
 
 
 class FieldMetaFromClassTestCase(unittest.TestCase):
@@ -131,47 +123,6 @@ class AttrsTestCase(unittest.TestCase):
         )
         with self.assertRaises(KeyError, msg="AttrsItem does not support field: non_existent"):
             get_field_meta_from_class(AttrsItem, "non_existent")
-
-
-class DataclassTestCase(unittest.TestCase):
-    def test_false(self):
-        self.assertFalse(is_dataclass_instance(int))
-        self.assertFalse(is_dataclass_instance(sum))
-        self.assertFalse(is_dataclass_instance(1234))
-        self.assertFalse(is_dataclass_instance(object()))
-        self.assertFalse(is_dataclass_instance(ScrapyItem()))
-        self.assertFalse(is_dataclass_instance(AttrsItem()))
-        self.assertFalse(is_dataclass_instance(PydanticModel()))
-        self.assertFalse(is_dataclass_instance(ScrapySubclassedItem()))
-        self.assertFalse(is_dataclass_instance("a string"))
-        self.assertFalse(is_dataclass_instance(b"some bytes"))
-        self.assertFalse(is_dataclass_instance({"a": "dict"}))
-        self.assertFalse(is_dataclass_instance(["a", "list"]))
-        self.assertFalse(is_dataclass_instance(("a", "tuple")))
-        self.assertFalse(is_dataclass_instance({"a", "set"}))
-        self.assertFalse(is_dataclass_instance(DataClassItem))
-
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
-    def test_module_not_available(self):
-        self.assertFalse(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
-        with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
-            get_field_meta_from_class(DataClassItem, "name")
-
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
-    def test_true(self):
-        self.assertTrue(is_dataclass_instance(DataClassItem()))
-        self.assertTrue(is_dataclass_instance(DataClassItem(name="asdf", value=1234)))
-        # field metadata
-        self.assertEqual(
-            get_field_meta_from_class(DataClassItem, "name"), MappingProxyType({"serializer": str})
-        )
-        self.assertEqual(
-            get_field_meta_from_class(DataClassItem, "value"),
-            MappingProxyType({"serializer": int}),
-        )
-        with self.assertRaises(KeyError, msg="DataClassItem does not support field: non_existent"):
-            get_field_meta_from_class(DataClassItem, "non_existent")
 
 
 class PydanticTestCase(unittest.TestCase):

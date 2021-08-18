@@ -11,7 +11,6 @@ from itemadapter.utils import (
     _is_dataclass,
     _is_pydantic_model,
     is_attrs_instance,
-    is_dataclass_instance,
     is_pydantic_instance,
     is_scrapy_item,
 )
@@ -137,7 +136,7 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
-        return is_dataclass_instance(item)
+        return _is_dataclass(item) and not isinstance(item, type)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
