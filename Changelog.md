@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.4.0 (2021-MM-DD)
+### 0.4.0 (2021-08-26)
 
 Added `ItemAdapter.is_item_class` and `ItemAdapter.get_field_meta_from_class`
 ([#54](https://github.com/scrapy/itemadapter/pull/54))
