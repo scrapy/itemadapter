@@ -1,3 +1,4 @@
+import importlib
 import unittest
 from unittest import mock
 from types import MappingProxyType
@@ -10,6 +11,7 @@ from itemadapter.utils import (
     is_pydantic_instance,
     is_scrapy_item,
 )
+from itemadapter import ItemAdapter
 
 from tests import (
     AttrsItem,
@@ -22,6 +24,9 @@ from tests import (
 
 
 def mocked_import(name, *args, **kwargs):
+    """Allow only internal itemadapter imports."""
+    if name.split(".")[0] == "itemadapter":
+        return importlib.__import__(name, *args, **kwargs)
     raise ImportError(name)
 
 
@@ -57,26 +62,35 @@ class ItemLikeTestCase(unittest.TestCase):
         self.assertFalse(is_item(ScrapySubclassedItem))
         self.assertFalse(is_item(AttrsItem))
         self.assertFalse(is_item(PydanticModel))
+        self.assertFalse(ItemAdapter.is_item_class(list))
+        self.assertFalse(ItemAdapter.is_item_class(int))
+        self.assertFalse(ItemAdapter.is_item_class(tuple))
 
     def test_true_dict(self):
         self.assertTrue(is_item({"a": "dict"}))
+        self.assertTrue(ItemAdapter.is_item_class(dict))
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_true_scrapy(self):
         self.assertTrue(is_item(ScrapyItem()))
         self.assertTrue(is_item(ScrapySubclassedItem(name="asdf", value=1234)))
+        self.assertTrue(ItemAdapter.is_item_class(ScrapyItem))
+        self.assertTrue(ItemAdapter.is_item_class(ScrapySubclassedItem))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true_dataclass(self):
         self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
+        self.assertTrue(ItemAdapter.is_item_class(DataClassItem))
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_true_attrs(self):
         self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
+        self.assertTrue(ItemAdapter.is_item_class(AttrsItem))
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true_pydantic(self):
         self.assertTrue(is_item(PydanticModel(name="asdf", value=1234)))
+        self.assertTrue(ItemAdapter.is_item_class(PydanticModel))
 
 
 class AttrsTestCase(unittest.TestCase):
