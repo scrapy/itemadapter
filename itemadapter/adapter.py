@@ -10,10 +10,6 @@ from itemadapter.utils import (
     _is_attrs_class,
     _is_dataclass,
     _is_pydantic_model,
-    is_attrs_instance,
-    is_dataclass_instance,
-    is_pydantic_instance,
-    is_scrapy_item,
 )
 
 
@@ -111,7 +107,7 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
-        return is_attrs_instance(item)
+        return _is_attrs_class(item) and not isinstance(item, type)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
@@ -137,7 +133,7 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
-        return is_dataclass_instance(item)
+        return _is_dataclass(item) and not isinstance(item, type)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
@@ -156,10 +152,6 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 class PydanticAdapter(AdapterInterface):
 
     item: Any
-
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
-        return is_pydantic_instance(item)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
@@ -233,10 +225,6 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
 
 class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
-        return is_scrapy_item(item)
-
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, _get_scrapy_item_classes())
