@@ -3,7 +3,6 @@ import warnings
 from types import MappingProxyType
 from unittest import mock
 
-from itemadapter.adapter import DataclassAdapter
 from itemadapter.utils import get_field_meta_from_class
 
 from tests import (
@@ -12,11 +11,15 @@ from tests import (
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
+    make_mock_import,
+    clear_itemadapter_imports,
 )
 
 
 class DataclassTestCase(unittest.TestCase):
     def test_false(self):
+        from itemadapter.adapter import DataclassAdapter
+
         self.assertFalse(DataclassAdapter.is_item(int))
         self.assertFalse(DataclassAdapter.is_item(sum))
         self.assertFalse(DataclassAdapter.is_item(1234))
@@ -34,14 +37,28 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(DataclassAdapter.is_item(DataClassItem))
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
+    @mock.patch("builtins.__import__", make_mock_import("dataclasses"))
+    def test_module_import_error(self):
+        with clear_itemadapter_imports():
+            from itemadapter.adapter import DataclassAdapter
+
+            self.assertFalse(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
+            with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
+                get_field_meta_from_class(DataClassItem, "name")
+
+    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     @mock.patch("itemadapter.utils.dataclasses", None)
     def test_module_not_available(self):
+        from itemadapter.adapter import DataclassAdapter
+
         self.assertFalse(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
             get_field_meta_from_class(DataClassItem, "name")
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true(self):
+        from itemadapter.adapter import DataclassAdapter
+
         self.assertTrue(DataclassAdapter.is_item(DataClassItem()))
         self.assertTrue(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
         # field metadata
