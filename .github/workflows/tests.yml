@@ -59,4 +59,4 @@ jobs:
 
     - name: Run tests
       env: ${{ matrix.env }}
-      run: tox -e py
+      run: tox
