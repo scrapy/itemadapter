@@ -30,12 +30,14 @@ except ImportError:
 def _get_scrapy_item_classes() -> tuple:
     if scrapy is None:
         return ()
-    try:
-        # handle deprecated base classes
-        _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
-        return (scrapy.item.Item, _base_item_cls)
-    except AttributeError:
-        return (scrapy.item.Item,)
+    else:
+        try:
+            # handle deprecated base classes
+            _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
+        except AttributeError:
+            return (scrapy.item.Item,)
+        else:
+            return (scrapy.item.Item, _base_item_cls)
 
 
 def _is_dataclass(obj: Any) -> bool:
