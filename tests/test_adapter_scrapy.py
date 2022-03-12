@@ -12,7 +12,6 @@ from tests import (
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    mocked_import,
 )
 
 
@@ -34,7 +33,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(ScrapyItemAdapter.is_item(ScrapySubclassedItem))
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
+    @mock.patch("itemadapter.utils.scrapy", None)
     def test_module_not_available(self):
         self.assertFalse(ScrapyItemAdapter.is_item(ScrapySubclassedItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="ScrapySubclassedItem is not a valid item class"):

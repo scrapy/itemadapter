@@ -13,7 +13,6 @@ from tests import (
     PydanticSpecialCasesModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    mocked_import,
 )
 
 
@@ -36,7 +35,7 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(PydanticAdapter.is_item(PydanticModel))
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
+    @mock.patch("itemadapter.utils.pydantic", None)
     def test_module_not_available(self):
         self.assertFalse(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):

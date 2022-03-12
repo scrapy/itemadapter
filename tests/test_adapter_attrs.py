@@ -12,7 +12,6 @@ from tests import (
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    mocked_import,
 )
 
 
@@ -35,7 +34,7 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(AttrsAdapter.is_item(AttrsItem))
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
+    @mock.patch("itemadapter.utils.attr", None)
     def test_module_not_available(self):
         self.assertFalse(AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):

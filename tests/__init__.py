@@ -1,14 +1,6 @@
-import importlib
 from typing import Optional
 
 from itemadapter import ItemAdapter
-
-
-def mocked_import(name, *args, **kwargs):
-    """Allow only internal itemadapter imports."""
-    if name.split(".")[0] == "itemadapter":
-        return importlib.__import__(name, *args, **kwargs)
-    raise ImportError(name)
 
 
 try:
