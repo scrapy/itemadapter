@@ -27,12 +27,24 @@ jobs:
     - name: Upload coverage report
       run: bash <(curl -s https://codecov.io/bash)
 
-  tests-other-os:
-    name: "Test: py3.8, ${{ matrix.os }}"
+  tests-other:
+    name: "Test: py3, ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        include:
+        - python-version: 3
+          os: ubuntu-latest
+          env:
+            TOXENV: py38-scrapy22
+        - python-version: 3
+          os: macos-latest
+          env:
+            TOXENV: py
+        - python-version: 3
+          os: windows-latest
+          env:
+            TOXENV: py
 
     steps:
     - uses: actions/checkout@v2
@@ -46,4 +58,5 @@ jobs:
       run: pip install tox
 
     - name: Run tests
+      env: ${{ matrix.env }}
       run: tox -e py
