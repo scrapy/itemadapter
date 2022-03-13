@@ -3,28 +3,9 @@ import warnings
 from types import MappingProxyType
 from typing import Any
 
+from itemadapter._imports import attr, dataclasses, pydantic, scrapy
 
 __all__ = ["is_item", "get_field_meta_from_class"]
-
-try:
-    import scrapy
-except ImportError:
-    scrapy = None  # type: ignore [assignment]
-
-try:
-    import dataclasses
-except ImportError:
-    dataclasses = None  # type: ignore [assignment]
-
-try:
-    import attr
-except ImportError:
-    attr = None  # type: ignore [assignment]
-
-try:
-    import pydantic
-except ImportError:
-    pydantic = None  # type: ignore [assignment]
 
 
 def _get_scrapy_item_classes() -> tuple:
