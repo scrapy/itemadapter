@@ -6,13 +6,12 @@ from typing import Any, Deque, Iterator, Type
 
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
-    _get_scrapy_item_classes,
     _is_attrs_class,
     _is_dataclass,
     _is_pydantic_model,
 )
 
-from itemadapter._imports import attr, dataclasses
+from itemadapter._imports import attr, dataclasses, _scrapy_item_classes
 
 
 __all__ = [
@@ -229,7 +228,7 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        return issubclass(item_class, _get_scrapy_item_classes())
+        return issubclass(item_class, _scrapy_item_classes)
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:

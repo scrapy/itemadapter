@@ -3,21 +3,10 @@ import warnings
 from types import MappingProxyType
 from typing import Any
 
-from itemadapter._imports import attr, dataclasses, pydantic, scrapy
+from itemadapter._imports import attr, dataclasses, pydantic
+
 
 __all__ = ["is_item", "get_field_meta_from_class"]
-
-
-def _get_scrapy_item_classes() -> tuple:
-    if scrapy is None:
-        return ()
-    try:
-        # handle deprecated base classes
-        _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
-    except AttributeError:
-        return (scrapy.item.Item,)
-    else:
-        return (scrapy.item.Item, _base_item_cls)
 
 
 def _is_dataclass(obj: Any) -> bool:

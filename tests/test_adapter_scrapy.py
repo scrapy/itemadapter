@@ -50,7 +50,7 @@ class ScrapyItemTestCase(unittest.TestCase):
                 get_field_meta_from_class(ScrapySubclassedItem, "name")
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @mock.patch("itemadapter.utils.scrapy", None)
+    @mock.patch("itemadapter.adapter._scrapy_item_classes", ())
     def test_module_not_available(self):
         from itemadapter.adapter import ScrapyItemAdapter
 
