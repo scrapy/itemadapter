@@ -218,6 +218,10 @@ class _MixinDictScrapyItemAdapter:
 
 class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return isinstance(item, dict)
+
+    @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, dict)
 
@@ -226,6 +230,10 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
 
 class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
+    @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return isinstance(item, _scrapy_item_classes)
+
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, _scrapy_item_classes)
