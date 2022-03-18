@@ -57,7 +57,7 @@ Consider the following type definition:
 
 ```python
 >>> from dataclasses import dataclass
->>> from itemadapter import ItemAdapter, is_item
+>>> from itemadapter import ItemAdapter
 >>> @dataclass
 ... class InventoryItem:
 ...     name: str
@@ -70,7 +70,7 @@ An `ItemAdapter` object can be treated much like a dictionary:
 
 ```python
 >>> obj = InventoryItem(name='foo', price=20.5, stock=10)
->>> is_item(obj)
+>>> ItemAdapter.is_item(obj)
 True
 >>> adapter = ItemAdapter(obj)
 >>> len(adapter)
@@ -218,7 +218,8 @@ calling `dict(adapter)`, because it's applied recursively to nested items (if th
 ### function `itemadapter.utils.is_item(obj: Any) -> bool`
 
 Return `True` if the given object belongs to (at least) one of the supported types,
-`False` otherwise. This is an alias for `itemadapter.adapter.ItemAdapter.is_item`.
+`False` otherwise. This is an alias, using the `itemadapter.adapter.ItemAdapter.is_item`
+class method is encouraged for better performance.
 
 
 ### function `itemadapter.utils.get_field_meta_from_class(item_class: type, field_name: str) -> types.MappingProxyType`
