@@ -3,7 +3,6 @@ import warnings
 from types import MappingProxyType
 from unittest import mock
 
-from itemadapter.adapter import PydanticAdapter
 from itemadapter.utils import get_field_meta_from_class
 
 from tests import (
@@ -13,12 +12,15 @@ from tests import (
     PydanticSpecialCasesModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    mocked_import,
+    make_mock_import,
+    clear_itemadapter_imports,
 )
 
 
 class DataclassTestCase(unittest.TestCase):
     def test_false(self):
+        from itemadapter.adapter import PydanticAdapter
+
         self.assertFalse(PydanticAdapter.is_item(int))
         self.assertFalse(PydanticAdapter.is_item(sum))
         self.assertFalse(PydanticAdapter.is_item(1234))
@@ -36,14 +38,28 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(PydanticAdapter.is_item(PydanticModel))
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
+    @mock.patch("builtins.__import__", make_mock_import("pydantic"))
+    def test_module_import_error(self):
+        with clear_itemadapter_imports():
+            from itemadapter.adapter import PydanticAdapter
+
+            self.assertFalse(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
+            with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
+                get_field_meta_from_class(PydanticModel, "name")
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @mock.patch("itemadapter.utils.pydantic", None)
     def test_module_not_available(self):
+        from itemadapter.adapter import PydanticAdapter
+
         self.assertFalse(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
             get_field_meta_from_class(PydanticModel, "name")
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true(self):
+        from itemadapter.adapter import PydanticAdapter
+
         self.assertTrue(PydanticAdapter.is_item(PydanticModel()))
         self.assertTrue(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
         # field metadata

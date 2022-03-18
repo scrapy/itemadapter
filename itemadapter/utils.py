@@ -3,55 +3,36 @@ import warnings
 from types import MappingProxyType
 from typing import Any
 
+from itemadapter._imports import attr, dataclasses, pydantic
+
 
 __all__ = ["is_item", "get_field_meta_from_class"]
 
 
-def _get_scrapy_item_classes() -> tuple:
-    try:
-        import scrapy
-    except ImportError:
-        return ()
-    else:
-        try:
-            # handle deprecated base classes
-            _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
-        except AttributeError:
-            return (scrapy.item.Item,)
-        else:
-            return (scrapy.item.Item, _base_item_cls)
-
-
 def _is_dataclass(obj: Any) -> bool:
     """In py36, this returns False if the "dataclasses" backport module is not installed."""
-    try:
-        import dataclasses
-    except ImportError:
+    if dataclasses is None:
         return False
     return dataclasses.is_dataclass(obj)
 
 
 def _is_attrs_class(obj: Any) -> bool:
-    try:
-        import attr
-    except ImportError:
+    if attr is None:
         return False
     return attr.has(obj)
 
 
 def _is_pydantic_model(obj: Any) -> bool:
-    try:
-        from pydantic import BaseModel
-    except ImportError:
+    if pydantic is None:
         return False
-    return issubclass(obj, BaseModel)
+    return issubclass(obj, pydantic.BaseModel)
 
 
 def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
     metadata = {}
     field = item_model.__fields__[field_name].field_info
 
-    for attr in [
+    for attribute in [
         "alias",
         "title",
         "description",
@@ -67,9 +48,9 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
         "max_length",
         "regex",
     ]:
-        value = getattr(field, attr)
+        value = getattr(field, attribute)
         if value is not None:
-            metadata[attr] = value
+            metadata[attribute] = value
     if not field.allow_mutation:
         metadata["allow_mutation"] = field.allow_mutation
     metadata.update(field.extra)

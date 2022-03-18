@@ -1,14 +1,31 @@
 import importlib
-from typing import Optional
+import sys
+from contextlib import contextmanager
+from typing import Callable, Optional
 
 from itemadapter import ItemAdapter
 
 
-def mocked_import(name, *args, **kwargs):
-    """Allow only internal itemadapter imports."""
-    if name.split(".")[0] == "itemadapter":
+def make_mock_import(block_name: str) -> Callable:
+    def mock_import(name: str, *args, **kwargs):
+        """Prevent importing a specific module, let everything else pass."""
+        if name.split(".")[0] == block_name:
+            raise ImportError(name)
         return importlib.__import__(name, *args, **kwargs)
-    raise ImportError(name)
+
+    return mock_import
+
+
+@contextmanager
+def clear_itemadapter_imports() -> None:
+    backup = {}
+    for key in sys.modules.copy().keys():
+        if key.startswith("itemadapter"):
+            backup[key] = sys.modules.pop(key)
+    try:
+        yield
+    finally:
+        sys.modules.update(backup)
 
 
 try:

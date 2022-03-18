@@ -3,7 +3,6 @@ import warnings
 from types import MappingProxyType
 from unittest import mock
 
-from itemadapter.adapter import AttrsAdapter
 from itemadapter.utils import get_field_meta_from_class
 
 from tests import (
@@ -12,12 +11,15 @@ from tests import (
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    mocked_import,
+    make_mock_import,
+    clear_itemadapter_imports,
 )
 
 
 class AttrsTestCase(unittest.TestCase):
     def test_false(self):
+        from itemadapter.adapter import AttrsAdapter
+
         self.assertFalse(AttrsAdapter.is_item(int))
         self.assertFalse(AttrsAdapter.is_item(sum))
         self.assertFalse(AttrsAdapter.is_item(1234))
@@ -35,14 +37,32 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(AttrsAdapter.is_item(AttrsItem))
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
-    @mock.patch("builtins.__import__", mocked_import)
+    @mock.patch("builtins.__import__", make_mock_import("attr"))
+    def test_module_import_error(self):
+        with clear_itemadapter_imports():
+            from itemadapter.adapter import AttrsAdapter
+
+            self.assertFalse(AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234)))
+            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+                AttrsAdapter(AttrsItem(name="asdf", value=1234))
+            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+                AttrsAdapter.get_field_meta_from_class(AttrsItem, "name")
+            with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
+                get_field_meta_from_class(AttrsItem, "name")
+
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @mock.patch("itemadapter.utils.attr", None)
     def test_module_not_available(self):
+        from itemadapter.adapter import AttrsAdapter
+
         self.assertFalse(AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
             get_field_meta_from_class(AttrsItem, "name")
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_true(self):
+        from itemadapter.adapter import AttrsAdapter
+
         self.assertTrue(AttrsAdapter.is_item(AttrsItem()))
         self.assertTrue(AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234)))
         # field metadata

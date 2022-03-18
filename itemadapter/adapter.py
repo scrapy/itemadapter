@@ -6,11 +6,12 @@ from typing import Any, Deque, Iterator, Type
 
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
-    _get_scrapy_item_classes,
     _is_attrs_class,
     _is_dataclass,
     _is_pydantic_model,
 )
+
+from itemadapter._imports import attr, dataclasses, _scrapy_item_classes
 
 
 __all__ = [
@@ -100,8 +101,8 @@ class _MixinAttrsDataclassAdapter:
 class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def __init__(self, item: Any) -> None:
         super().__init__(item)
-        import attr
-
+        if attr is None:
+            raise RuntimeError("attr module is not available")
         # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
         self._fields_dict = attr.fields_dict(self.item.__class__)
 
@@ -115,10 +116,10 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
-        from attr import fields_dict
-
+        if attr is None:
+            raise RuntimeError("attr module is not available")
         try:
-            return fields_dict(item_class)[field_name].metadata  # type: ignore
+            return attr.fields_dict(item_class)[field_name].metadata  # type: ignore
         except KeyError:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
@@ -126,8 +127,8 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def __init__(self, item: Any) -> None:
         super().__init__(item)
-        import dataclasses
-
+        if dataclasses is None:
+            raise RuntimeError("dataclasses module is not available")
         # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
         self._fields_dict = {field.name: field for field in dataclasses.fields(self.item)}
 
@@ -141,9 +142,9 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
-        from dataclasses import fields
-
-        for field in fields(item_class):
+        if dataclasses is None:
+            raise RuntimeError("dataclasses module is not available")
+        for field in dataclasses.fields(item_class):
             if field.name == field_name:
                 return field.metadata  # type: ignore
         raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
@@ -217,6 +218,10 @@ class _MixinDictScrapyItemAdapter:
 
 class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return isinstance(item, dict)
+
+    @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, dict)
 
@@ -226,8 +231,12 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
 class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
+    def is_item(cls, item: Any) -> bool:
+        return isinstance(item, _scrapy_item_classes)
+
+    @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        return issubclass(item_class, _get_scrapy_item_classes())
+        return issubclass(item_class, _scrapy_item_classes)
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
