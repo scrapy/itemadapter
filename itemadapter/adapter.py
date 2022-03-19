@@ -292,7 +292,7 @@ class ItemAdapter(MutableMapping):
 
     def __repr__(self) -> str:
         values = ", ".join([f"{key}={value!r}" for key, value in self.items()])
-        return f"<ItemAdapter for {self.item.__class__.__name__}({values})>"
+        return f"<{self.__class__.__name__} for {self.item.__class__.__name__}({values})>"
 
     def __getitem__(self, field_name: str) -> Any:
         return self.adapter.__getitem__(field_name)
