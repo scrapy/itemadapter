@@ -106,16 +106,16 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
         self._fields_dict = attr.fields_dict(self.item.__class__)
 
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
+    @staticmethod
+    def is_item(item: Any) -> bool:
         return _is_attrs_class(item) and not isinstance(item, type)
 
-    @classmethod
-    def is_item_class(cls, item_class: type) -> bool:
+    @staticmethod
+    def is_item_class(item_class: type) -> bool:
         return _is_attrs_class(item_class)
 
-    @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    @staticmethod
+    def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
         if attr is None:
             raise RuntimeError("attr module is not available")
         try:
@@ -132,16 +132,16 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
         self._fields_dict = {field.name: field for field in dataclasses.fields(self.item)}
 
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
+    @staticmethod
+    def is_item(item: Any) -> bool:
         return _is_dataclass(item) and not isinstance(item, type)
 
-    @classmethod
-    def is_item_class(cls, item_class: type) -> bool:
+    @staticmethod
+    def is_item_class(item_class: type) -> bool:
         return _is_dataclass(item_class)
 
-    @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    @staticmethod
+    def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
         if dataclasses is None:
             raise RuntimeError("dataclasses module is not available")
         for field in dataclasses.fields(item_class):
@@ -154,12 +154,12 @@ class PydanticAdapter(AdapterInterface):
 
     item: Any
 
-    @classmethod
-    def is_item_class(cls, item_class: type) -> bool:
+    @staticmethod
+    def is_item_class(item_class: type) -> bool:
         return _is_pydantic_model(item_class)
 
-    @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    @staticmethod
+    def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
         try:
             return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError:
@@ -217,12 +217,12 @@ class _MixinDictScrapyItemAdapter:
 
 
 class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
+    @staticmethod
+    def is_item(item: Any) -> bool:
         return isinstance(item, dict)
 
-    @classmethod
-    def is_item_class(cls, item_class: type) -> bool:
+    @staticmethod
+    def is_item_class(item_class: type) -> bool:
         return issubclass(item_class, dict)
 
     def field_names(self) -> KeysView:
@@ -230,16 +230,16 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
 
 class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
-    @classmethod
-    def is_item(cls, item: Any) -> bool:
+    @staticmethod
+    def is_item(item: Any) -> bool:
         return isinstance(item, _scrapy_item_classes)
 
-    @classmethod
-    def is_item_class(cls, item_class: type) -> bool:
+    @staticmethod
+    def is_item_class(item_class: type) -> bool:
         return issubclass(item_class, _scrapy_item_classes)
 
-    @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    @staticmethod
+    def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxyType:
         return MappingProxyType(item_class.fields[field_name])  # type: ignore
 
     def field_names(self) -> KeysView:
