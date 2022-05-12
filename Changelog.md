@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.6.0 (2022-05-12)
+
+Slight performance improvement
+([#62](https://github.com/scrapy/itemadapter/pull/62))
+
+
 ### 0.5.0 (2022-03-18)
 
 Improve performance by removing imports inside functions
