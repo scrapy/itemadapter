@@ -271,13 +271,17 @@ class ItemAdapter(MutableMapping):
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
-        return any(adapter_class.is_item(item) for adapter_class in cls.ADAPTER_CLASSES)
+        for adapter_class in cls.ADAPTER_CLASSES:
+            if adapter_class.is_item(item):
+                return True
+        return False
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        return any(
-            adapter_class.is_item_class(item_class) for adapter_class in cls.ADAPTER_CLASSES
-        )
+        for adapter_class in cls.ADAPTER_CLASSES:
+            if adapter_class.is_item_class(item_class):
+                return True
+        return False
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
