@@ -8,13 +8,21 @@ from tests import (
     AttrsItem,
     AttrsItemNested,
     AttrsItemWithoutInit,
+    AttrsItemSubclassed,
+    AttrsItemEmpty,
     DataClassItem,
     DataClassItemNested,
     DataClassWithoutInit,
+    DataClassItemSubclassed,
+    DataClassItemEmpty,
     PydanticModel,
     PydanticModelNested,
+    PydanticModelSubclassed,
+    PydanticModelEmpty,
     ScrapySubclassedItem,
     ScrapySubclassedItemNested,
+    ScrapySubclassedItemSubclassed,
+    ScrapySubclassedItemEmpty,
 )
 
 
@@ -161,6 +169,9 @@ class BaseTestMixin:
 
 
 class NonDictTestMixin(BaseTestMixin):
+    item_class_subclassed = None
+    item_class_empty = None
+
     def test_set_value_keyerror(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
@@ -200,6 +211,21 @@ class NonDictTestMixin(BaseTestMixin):
         with self.assertRaises(KeyError):
             del adapter["undefined_field"]
 
+    def test_field_names_from_class(self):
+        field_names = ItemAdapter.get_field_names_from_class(self.item_class)
+        assert isinstance(field_names, list)
+        self.assertEqual(sorted(field_names), ["name", "value"])
+
+    def test_field_names_from_class_nested(self):
+        field_names = ItemAdapter.get_field_names_from_class(self.item_class_subclassed)
+        assert isinstance(field_names, list)
+        self.assertEqual(sorted(field_names), ["name", "subclassed", "value"])
+
+    def test_field_names_from_class_empty(self):
+        field_names = ItemAdapter.get_field_names_from_class(self.item_class_empty)
+        assert isinstance(field_names, list)
+        self.assertEqual(field_names, [])
+
 
 class DictTestCase(unittest.TestCase, BaseTestMixin):
 
@@ -224,11 +250,16 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
         item["value"] = 1234
         self.assertEqual(sorted(field_names), ["name", "value"])
 
+    def test_field_names_from_class(self):
+        assert ItemAdapter.get_field_names_from_class(dict) is None
+
 
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = ScrapySubclassedItem
     item_class_nested = ScrapySubclassedItemNested
+    item_class_subclassed = ScrapySubclassedItemSubclassed
+    item_class_empty = ScrapySubclassedItemEmpty
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
@@ -241,15 +272,21 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = PydanticModel
     item_class_nested = PydanticModelNested
+    item_class_subclassed = PydanticModelSubclassed
+    item_class_empty = PydanticModelEmpty
 
 
 class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = DataClassItem
     item_class_nested = DataClassItemNested
+    item_class_subclassed = DataClassItemSubclassed
+    item_class_empty = DataClassItemEmpty
 
 
 class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
 
     item_class = AttrsItem
     item_class_nested = AttrsItemNested
+    item_class_subclassed = AttrsItemSubclassed
+    item_class_empty = AttrsItemEmpty
