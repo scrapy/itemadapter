@@ -164,7 +164,7 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
         if dataclasses is None:
-            raise RuntimeError("attr module is not available")
+            raise RuntimeError("dataclasses module is not available")
         return [a.name for a in dataclasses.fields(item_class)]
 
 

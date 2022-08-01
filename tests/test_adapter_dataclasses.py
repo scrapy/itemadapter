@@ -43,10 +43,13 @@ class DataclassTestCase(unittest.TestCase):
             from itemadapter.adapter import DataclassAdapter
 
             self.assertFalse(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
-            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+            with self.assertRaises(RuntimeError, msg="dataclasses module is not available"):
                 DataclassAdapter(DataClassItem(name="asdf", value=1234))
-            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+            with self.assertRaises(RuntimeError, msg="dataclasses module is not available"):
                 DataclassAdapter.get_field_meta_from_class(DataClassItem, "name")
+            with self.assertRaises(RuntimeError, msg="dataclasses module is not available"):
+                DataclassAdapter.get_field_names_from_class(DataClassItem)
+
             with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
                 get_field_meta_from_class(DataClassItem, "name")
 

@@ -47,6 +47,8 @@ class AttrsTestCase(unittest.TestCase):
                 AttrsAdapter(AttrsItem(name="asdf", value=1234))
             with self.assertRaises(RuntimeError, msg="attr module is not available"):
                 AttrsAdapter.get_field_meta_from_class(AttrsItem, "name")
+            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+                AttrsAdapter.get_field_names_from_class(AttrsItem)
             with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
                 get_field_meta_from_class(AttrsItem, "name")
 
