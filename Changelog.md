@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.7.0 (2022-08-02)
+
+ItemAdapter.get_field_names_from_class
+([#64](https://github.com/scrapy/itemadapter/pull/64))
+
+
 ### 0.6.0 (2022-05-12)
 
 Slight performance improvement
