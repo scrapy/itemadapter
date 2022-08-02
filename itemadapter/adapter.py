@@ -2,7 +2,7 @@ from abc import abstractmethod, ABCMeta
 from collections import deque
 from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Deque, Iterator, Type
+from typing import Any, Deque, Iterator, Type, Optional, List
 
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
@@ -50,6 +50,12 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
         return MappingProxyType({})
+
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+        """Return a list of fields defined for ``item_class``.
+        If a class doesn't support fields, None is returned."""
+        return None
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """Return metadata for the given field name, if available."""
@@ -123,6 +129,12 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         except KeyError:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+        if attr is None:
+            raise RuntimeError("attr module is not available")
+        return [a.name for a in attr.fields(item_class)]
+
 
 class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def __init__(self, item: Any) -> None:
@@ -149,6 +161,12 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
                 return field.metadata  # type: ignore
         raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+        if dataclasses is None:
+            raise RuntimeError("dataclasses module is not available")
+        return [a.name for a in dataclasses.fields(item_class)]
+
 
 class PydanticAdapter(AdapterInterface):
 
@@ -164,6 +182,10 @@ class PydanticAdapter(AdapterInterface):
             return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
+
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+        return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
 
     def field_names(self) -> KeysView:
         return KeysView(self.item.__fields__)
@@ -240,7 +262,11 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
-        return MappingProxyType(item_class.fields[field_name])  # type: ignore
+        return MappingProxyType(item_class.fields[field_name])  # type: ignore[attr-defined]
+
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+        return list(item_class.fields.keys())  # type: ignore[attr-defined]
 
     def field_names(self) -> KeysView:
         return KeysView(self.item.fields)
@@ -284,11 +310,21 @@ class ItemAdapter(MutableMapping):
         return False
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def _get_adapter_class(cls, item_class: type) -> Type[AdapterInterface]:
         for adapter_class in cls.ADAPTER_CLASSES:
             if adapter_class.is_item_class(item_class):
-                return adapter_class.get_field_meta_from_class(item_class, field_name)
+                return adapter_class
         raise TypeError(f"{item_class} is not a valid item class")
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        adapter_class = cls._get_adapter_class(item_class)
+        return adapter_class.get_field_meta_from_class(item_class, field_name)
+
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+        adapter_class = cls._get_adapter_class(item_class)
+        return adapter_class.get_field_names_from_class(item_class)
 
     @property
     def item(self) -> Any:

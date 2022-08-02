@@ -199,6 +199,11 @@ The returned value is taken from the following sources, depending on the item ty
   * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation)
     for `pydantic`-based items
 
+#### class method `get_field_names_from_class(item_class: type) -> Optional[list[str]]`
+
+Return a list with the names of all the fields defined for the item class.
+If an item class doesn't support defining fields upfront, None is returned.
+
 #### `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return metadata for the given field, if available. Unless overriden in a custom adapter class, by default

@@ -34,6 +34,8 @@ except ImportError:
     AttrsItem = None
     AttrsItemNested = None
     AttrsItemWithoutInit = None
+    AttrsItemSubclassed = None
+    AttrsItemEmpty = None
 else:
 
     @attr.s
@@ -56,6 +58,14 @@ else:
         name = attr.ib(default=None, metadata={"serializer": str})
         value = attr.ib(default=None, metadata={"serializer": int})
 
+    @attr.s(init=False)
+    class AttrsItemSubclassed(AttrsItem):
+        subclassed = attr.ib(default=True, type=bool)
+
+    @attr.s
+    class AttrsItemEmpty:
+        pass
+
 
 try:
     from dataclasses import dataclass, field
@@ -63,6 +73,8 @@ except ImportError:
     DataClassItem = None
     DataClassItemNested = None
     DataClassWithoutInit = None
+    DataClassItemSubclassed = None
+    DataClassItemEmpty = None
 else:
 
     @dataclass
@@ -85,6 +97,14 @@ else:
         name: str = field(metadata={"serializer": str})
         value: int = field(metadata={"serializer": int})
 
+    @dataclass
+    class DataClassItemSubclassed(DataClassItem):
+        subclassed: bool = True
+
+    @dataclass
+    class DataClassItemEmpty:
+        pass
+
 
 try:
     from pydantic import BaseModel, Field as PydanticField
@@ -92,6 +112,8 @@ except ImportError:
     PydanticModel = None
     PydanticSpecialCasesModel = None
     PydanticModelNested = None
+    PydanticModelSubclassed = None
+    PydanticModelEmpty = None
 else:
 
     class PydanticModel(BaseModel):
@@ -126,6 +148,14 @@ else:
         class Config:
             arbitrary_types_allowed = True
 
+    class PydanticModelSubclassed(PydanticModel):
+        subclassed: bool = PydanticField(
+            default_factory=lambda: True,
+        )
+
+    class PydanticModelEmpty(BaseModel):
+        pass
+
 
 try:
     from scrapy.item import Item as ScrapyItem, Field
@@ -133,6 +163,8 @@ except ImportError:
     ScrapyItem = None
     ScrapySubclassedItem = None
     ScrapySubclassedItemNested = None
+    ScrapySubclassedItemSubclassed = None
+    ScrapySubclassedItemEmpty = None
 else:
 
     class ScrapySubclassedItem(ScrapyItem):
@@ -147,3 +179,9 @@ else:
         set_ = Field()
         tuple_ = Field()
         int_ = Field()
+
+    class ScrapySubclassedItemSubclassed(ScrapySubclassedItem):
+        subclassed = Field()
+
+    class ScrapySubclassedItemEmpty(ScrapyItem):
+        pass
