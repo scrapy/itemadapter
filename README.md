@@ -24,11 +24,10 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
 ## Requirements
 
-* Python 3.6+
+* Python 3.7+
 * [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
 * `dataclasses` ([stdlib](https://docs.python.org/3/library/dataclasses.html) in Python 3.7+,
-  or its [backport](https://pypi.org/project/dataclasses/) in Python 3.6): optional, needed
-  to interact with `dataclass`-based items
+  needed to interact with `dataclass`-based items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
 * [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with `pydantic`-based items
 
