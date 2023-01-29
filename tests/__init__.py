@@ -1,7 +1,7 @@
 import importlib
 import sys
 from contextlib import contextmanager
-from typing import Callable, Optional
+from typing import Callable, Generator, Optional
 
 from itemadapter import ItemAdapter
 
@@ -17,7 +17,7 @@ def make_mock_import(block_name: str) -> Callable:
 
 
 @contextmanager
-def clear_itemadapter_imports() -> None:
+def clear_itemadapter_imports() -> Generator[None, None, None]:
     backup = {}
     for key in sys.modules.copy().keys():
         if key.startswith("itemadapter"):

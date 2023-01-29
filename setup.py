@@ -16,6 +16,10 @@ setuptools.setup(
     author_email="eugenio.lacuesta@gmail.com",
     url="https://github.com/scrapy/itemadapter",
     packages=["itemadapter"],
+    package_data={
+        "itemadapter": ["py.typed"],
+    },
+    include_package_data=True,
     python_requires=">=3.7",
     classifiers=[
         "Development Status :: 3 - Alpha",
