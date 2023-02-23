@@ -383,29 +383,26 @@ attribute as needed:
 
 **Example**
 ```python
-from collections import deque
-
-from itemadapter.adapter import (
-    ItemAdapter,
-    AttrsAdapter,
-    DataclassAdapter,
-    DictAdapter,
-    PydanticAdapter,
-    ScrapyItemAdapter,
-)
-from scrapy.item import Item, Field
-
-
-class BuiltinTypesItemAdapter(ItemAdapter):
-    ADAPTER_CLASSES = deque([DictAdapter, DataclassAdapter])
-
-class ThirdPartyTypesItemAdapter(ItemAdapter):
-    ADAPTER_CLASSES = deque([AttrsAdapter, PydanticAdapter, ScrapyItemAdapter])
-
-class ScrapyItem(Item):
-    foo = Field()
-```
-```python
+>>> from collections import deque
+>>> from itemadapter.adapter import (
+...     ItemAdapter,
+...     AttrsAdapter,
+...     DataclassAdapter,
+...     DictAdapter,
+...     PydanticAdapter,
+...     ScrapyItemAdapter,
+... )
+>>> from scrapy.item import Item, Field
+>>>
+>>> class BuiltinTypesItemAdapter(ItemAdapter):
+...     ADAPTER_CLASSES = deque([DictAdapter, DataclassAdapter])
+...
+>>> class ThirdPartyTypesItemAdapter(ItemAdapter):
+...     ADAPTER_CLASSES = deque([AttrsAdapter, PydanticAdapter, ScrapyItemAdapter])
+...
+>>> class ScrapyItem(Item):
+...     foo = Field()
+...
 >>> BuiltinTypesItemAdapter.is_item(dict())
 True
 >>> ThirdPartyTypesItemAdapter.is_item(dict())
@@ -414,6 +411,7 @@ False
 False
 >>> ThirdPartyTypesItemAdapter.is_item(ScrapyItem(foo="bar"))
 True
+>>>
 ```
 
 ---
