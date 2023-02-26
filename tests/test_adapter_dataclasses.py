@@ -1,7 +1,6 @@
-import unittest
 import warnings
 from types import MappingProxyType
-from unittest import mock
+from unittest import mock, TestCase
 
 from itemadapter.utils import get_field_meta_from_class
 
@@ -16,7 +15,7 @@ from tests import (
 )
 
 
-class DataclassTestCase(unittest.TestCase):
+class DataclassTestCase(TestCase):
     def test_false(self):
         from itemadapter.adapter import DataclassAdapter
 
@@ -36,7 +35,6 @@ class DataclassTestCase(unittest.TestCase):
         self.assertFalse(DataclassAdapter.is_item({"a", "set"}))
         self.assertFalse(DataclassAdapter.is_item(DataClassItem))
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     @mock.patch("builtins.__import__", make_mock_import("dataclasses"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
@@ -53,7 +51,6 @@ class DataclassTestCase(unittest.TestCase):
             with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
                 get_field_meta_from_class(DataClassItem, "name")
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     @mock.patch("itemadapter.utils.dataclasses", None)
     def test_module_not_available(self):
         from itemadapter.adapter import DataclassAdapter
@@ -62,7 +59,6 @@ class DataclassTestCase(unittest.TestCase):
         with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
             get_field_meta_from_class(DataClassItem, "name")
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true(self):
         from itemadapter.adapter import DataclassAdapter
 
