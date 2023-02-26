@@ -1,6 +1,6 @@
 import warnings
 from types import MappingProxyType
-from unittest import mock, TestCase
+from unittest import TestCase
 
 from itemadapter.utils import get_field_meta_from_class
 
@@ -10,8 +10,6 @@ from tests import (
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    make_mock_import,
-    clear_itemadapter_imports,
 )
 
 
@@ -34,30 +32,6 @@ class DataclassTestCase(TestCase):
         self.assertFalse(DataclassAdapter.is_item(("a", "tuple")))
         self.assertFalse(DataclassAdapter.is_item({"a", "set"}))
         self.assertFalse(DataclassAdapter.is_item(DataClassItem))
-
-    @mock.patch("builtins.__import__", make_mock_import("dataclasses"))
-    def test_module_import_error(self):
-        with clear_itemadapter_imports():
-            from itemadapter.adapter import DataclassAdapter
-
-            self.assertFalse(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
-            with self.assertRaises(RuntimeError, msg="dataclasses module is not available"):
-                DataclassAdapter(DataClassItem(name="asdf", value=1234))
-            with self.assertRaises(RuntimeError, msg="dataclasses module is not available"):
-                DataclassAdapter.get_field_meta_from_class(DataClassItem, "name")
-            with self.assertRaises(RuntimeError, msg="dataclasses module is not available"):
-                DataclassAdapter.get_field_names_from_class(DataClassItem)
-
-            with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
-                get_field_meta_from_class(DataClassItem, "name")
-
-    @mock.patch("itemadapter.utils.dataclasses", None)
-    def test_module_not_available(self):
-        from itemadapter.adapter import DataclassAdapter
-
-        self.assertFalse(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
-        with self.assertRaises(TypeError, msg="DataClassItem is not a valid item class"):
-            get_field_meta_from_class(DataClassItem, "name")
 
     def test_true(self):
         from itemadapter.adapter import DataclassAdapter
