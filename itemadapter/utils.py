@@ -3,17 +3,10 @@ import warnings
 from types import MappingProxyType
 from typing import Any
 
-from itemadapter._imports import attr, dataclasses, pydantic
+from itemadapter._imports import attr, pydantic
 
 
 __all__ = ["is_item", "get_field_meta_from_class"]
-
-
-def _is_dataclass(obj: Any) -> bool:
-    """In py36, this returns False if the "dataclasses" backport module is not installed."""
-    if dataclasses is None:
-        return False
-    return dataclasses.is_dataclass(obj)
 
 
 def _is_attrs_class(obj: Any) -> bool:

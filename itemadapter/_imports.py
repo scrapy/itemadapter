@@ -18,11 +18,6 @@ else:
         _scrapy_item_classes = (scrapy.item.Item, _base_item_cls)
 
 try:
-    import dataclasses  # pylint: disable=W0611 (unused-import)
-except ImportError:
-    dataclasses = None  # type: ignore [assignment]
-
-try:
     import attr  # pylint: disable=W0611 (unused-import)
 except ImportError:
     attr = None  # type: ignore [assignment]

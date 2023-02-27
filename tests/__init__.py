@@ -1,6 +1,7 @@
 import importlib
 import sys
 from contextlib import contextmanager
+from dataclasses import dataclass, field
 from typing import Callable, Generator, Optional
 
 from itemadapter import ItemAdapter
@@ -26,6 +27,39 @@ def clear_itemadapter_imports() -> Generator[None, None, None]:
         yield
     finally:
         sys.modules.update(backup)
+
+
+@dataclass
+class DataClassItem:
+    name: str = field(default_factory=lambda: None, metadata={"serializer": str})
+    value: int = field(default_factory=lambda: None, metadata={"serializer": int})
+
+
+@dataclass
+class DataClassItemNested:
+    nested: DataClassItem
+    adapter: ItemAdapter
+    dict_: dict
+    list_: list
+    set_: set
+    tuple_: tuple
+    int_: int
+
+
+@dataclass(init=False)
+class DataClassWithoutInit:
+    name: str = field(metadata={"serializer": str})
+    value: int = field(metadata={"serializer": int})
+
+
+@dataclass
+class DataClassItemSubclassed(DataClassItem):
+    subclassed: bool = True
+
+
+@dataclass
+class DataClassItemEmpty:
+    pass
 
 
 try:
@@ -64,45 +98,6 @@ else:
 
     @attr.s
     class AttrsItemEmpty:
-        pass
-
-
-try:
-    from dataclasses import dataclass, field
-except ImportError:
-    DataClassItem = None
-    DataClassItemNested = None
-    DataClassWithoutInit = None
-    DataClassItemSubclassed = None
-    DataClassItemEmpty = None
-else:
-
-    @dataclass
-    class DataClassItem:
-        name: str = field(default_factory=lambda: None, metadata={"serializer": str})
-        value: int = field(default_factory=lambda: None, metadata={"serializer": int})
-
-    @dataclass
-    class DataClassItemNested:
-        nested: DataClassItem
-        adapter: ItemAdapter
-        dict_: dict
-        list_: list
-        set_: set
-        tuple_: tuple
-        int_: int
-
-    @dataclass(init=False)
-    class DataClassWithoutInit:
-        name: str = field(metadata={"serializer": str})
-        value: int = field(metadata={"serializer": int})
-
-    @dataclass
-    class DataClassItemSubclassed(DataClassItem):
-        subclassed: bool = True
-
-    @dataclass
-    class DataClassItemEmpty:
         pass
 
 
