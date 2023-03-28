@@ -373,8 +373,4 @@ class ItemAdapter(MutableMapping):
             return obj.asdict()
         if cls.is_item(obj):
             return cls(obj).asdict()
-        if isinstance(obj, ItemAdapter):
-            return obj.asdict()
-        if ItemAdapter.is_item(obj):
-            return ItemAdapter(obj).asdict()
         return obj
