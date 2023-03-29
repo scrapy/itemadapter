@@ -355,17 +355,16 @@ class ItemAdapter(MutableMapping):
         """Return a dict object with the contents of the adapter. This works slightly different
         than calling `dict(adapter)`: it's applied recursively to nested items (if there are any).
         """
-        return {key: _asdict(value) for key, value in self.items()}
+        return {key: self._asdict(value) for key, value in self.items()}
 
-
-def _asdict(obj: Any) -> Any:
-    """Helper for ItemAdapter.asdict()."""
-    if isinstance(obj, dict):
-        return {key: _asdict(value) for key, value in obj.items()}
-    if isinstance(obj, (list, set, tuple)):
-        return obj.__class__(_asdict(x) for x in obj)
-    if isinstance(obj, ItemAdapter):
-        return obj.asdict()
-    if ItemAdapter.is_item(obj):
-        return ItemAdapter(obj).asdict()
-    return obj
+    @classmethod
+    def _asdict(cls, obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {key: cls._asdict(value) for key, value in obj.items()}
+        if isinstance(obj, (list, set, tuple)):
+            return obj.__class__(cls._asdict(x) for x in obj)
+        if isinstance(obj, cls):
+            return obj.asdict()
+        if cls.is_item(obj):
+            return cls(obj).asdict()
+        return obj

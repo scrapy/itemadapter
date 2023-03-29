@@ -1,10 +1,11 @@
 import unittest
+from collections import deque
 
-from itemadapter.adapter import ItemAdapter
+from itemadapter.adapter import ItemAdapter, DictAdapter
 
 
-class SubclassedItemAdapter(ItemAdapter):
-    pass
+class DictOnlyItemAdapter(ItemAdapter):
+    ADAPTER_CLASSES = deque([DictAdapter])
 
 
 class ItemAdapterTestCase(unittest.TestCase):
@@ -13,5 +14,5 @@ class ItemAdapterTestCase(unittest.TestCase):
         self.assertEqual(repr(adapter), "<ItemAdapter for dict(foo='bar')>")
 
     def test_repr_subclass(self):
-        adapter = SubclassedItemAdapter(dict(foo="bar"))
-        self.assertEqual(repr(adapter), "<SubclassedItemAdapter for dict(foo='bar')>")
+        adapter = DictOnlyItemAdapter(dict(foo="bar"))
+        self.assertEqual(repr(adapter), "<DictOnlyItemAdapter for dict(foo='bar')>")
