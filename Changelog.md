@@ -1,5 +1,21 @@
 # Changelog
 
+### 0.8.0 (to be released)
+
+Dropped Python 3.6 support, and made Python 3.11 support official
+([#65](https://github.com/scrapy/itemadapter/pull/65),
+[#66](https://github.com/scrapy/itemadapter/pull/66),
+[#69](https://github.com/scrapy/itemadapter/pull/69)).
+
+It is now possible to declare custom `ItemAdapter` subclasses with their own
+`ADAPTER_CLASSES` attribute, allowing to support different item types in
+different parts of the same code base
+([#68](https://github.com/scrapy/itemadapter/pull/68)).
+
+Improved type hint support
+([#67](https://github.com/scrapy/itemadapter/pull/67)).
+
+
 ### 0.7.0 (2022-08-02)
 
 ItemAdapter.get_field_names_from_class
