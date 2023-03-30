@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.8.0 (to be released)
+### 0.8.0 (2023-03-30)
 
 Dropped Python 3.6 support, and made Python 3.11 support official
 ([#65](https://github.com/scrapy/itemadapter/pull/65),
