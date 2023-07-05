@@ -3,7 +3,7 @@ from abc import abstractmethod, ABCMeta
 from collections import deque
 from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Deque, Iterator, Type, Optional, List
+from typing import Any, Iterable, Iterator, Type, Optional, List
 
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
@@ -271,7 +271,7 @@ class ItemAdapter(MutableMapping):
     to extract and set data without having to take the object's type into account.
     """
 
-    ADAPTER_CLASSES: Deque[Type[AdapterInterface]] = deque(
+    ADAPTER_CLASSES: Iterable[Type[AdapterInterface]] = deque(
         [
             ScrapyItemAdapter,
             DictAdapter,

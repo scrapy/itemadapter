@@ -151,11 +151,12 @@ interface, providing a `dict`-like API to manipulate data for the object it wrap
 
 **Attributes**
 
-#### class attribute `ADAPTER_CLASSES: collections.deque`
+#### class attribute `ADAPTER_CLASSES: Iterable`
 
-Stores the currently registered adapter classes. Being a
-[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque),
-it supports efficient addition/deletion of adapters classes to both ends.
+Stores the currently registered adapter classes. The default implementation uses a
+[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
+to support efficient addition/deletion of adapters classes to both ends, but any other iterable
+(e.g. `list`, `tuple`) will work.
 
 The order in which the adapters are registered is important. When an `ItemAdapter` object is
 created for a specific item, the registered adapters are traversed in order and the first
@@ -383,7 +384,6 @@ attribute as needed:
 
 **Example**
 ```python
->>> from collections import deque
 >>> from itemadapter.adapter import (
 ...     ItemAdapter,
 ...     AttrsAdapter,
@@ -395,10 +395,10 @@ attribute as needed:
 >>> from scrapy.item import Item, Field
 >>>
 >>> class BuiltinTypesItemAdapter(ItemAdapter):
-...     ADAPTER_CLASSES = deque([DictAdapter, DataclassAdapter])
+...     ADAPTER_CLASSES = [DictAdapter, DataclassAdapter]
 ...
 >>> class ThirdPartyTypesItemAdapter(ItemAdapter):
-...     ADAPTER_CLASSES = deque([AttrsAdapter, PydanticAdapter, ScrapyItemAdapter])
+...     ADAPTER_CLASSES = [AttrsAdapter, PydanticAdapter, ScrapyItemAdapter]
 ...
 >>> class ScrapyItem(Item):
 ...     foo = Field()
