@@ -17,7 +17,7 @@ from tests import (
 )
 
 
-class DataclassTestCase(unittest.TestCase):
+class PydanticTestCase(unittest.TestCase):
     def test_false(self):
         from itemadapter.adapter import PydanticAdapter
 

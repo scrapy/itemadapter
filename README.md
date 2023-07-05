@@ -15,7 +15,7 @@ Currently supported types are:
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
-* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
+* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes (`pydantic>=2` not yet supported)
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -27,7 +27,8 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 * Python 3.7+
 * [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
-* [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with `pydantic`-based items
+* [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with
+  `pydantic`-based items (`pydantic>=2` not yet supported)
 
 ---
 
