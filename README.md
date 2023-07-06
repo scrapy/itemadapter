@@ -152,11 +152,9 @@ interface, providing a `dict`-like API to manipulate data for the object it wrap
 
 **Attributes**
 
-#### class attribute `ADAPTER_CLASSES: collections.deque`
+#### class attribute `ADAPTER_CLASSES: Iterable`
 
-Stores the currently registered adapter classes. Being a
-[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque),
-it supports efficient addition/deletion of adapters classes to both ends.
+Stores the currently registered adapter classes.
 
 The order in which the adapters are registered is important. When an `ItemAdapter` object is
 created for a specific item, the registered adapters are traversed in order and the first
@@ -164,7 +162,11 @@ adapter class to return `True` for the `is_item` class method is used for all su
 operations. The default order is the one defined in the
 [built-in adapters](#built-in-adapters) section.
 
-See the section on [extending itemadapter](#extending-itemadapter) for additional information.
+The default implementation uses a
+[`collections.deque`](https://docs.python.org/3/library/collections.html#collections.deque)
+to support efficient addition/deletion of adapters classes to both ends, but if you are
+deriving a subclass (see the section on [extending itemadapter](#extending-itemadapter)
+for additional information), any other iterable (e.g. `list`, `tuple`) will work.
 
 **Methods**
 
@@ -384,7 +386,6 @@ attribute as needed:
 
 **Example**
 ```python
->>> from collections import deque
 >>> from itemadapter.adapter import (
 ...     ItemAdapter,
 ...     AttrsAdapter,
@@ -396,10 +397,10 @@ attribute as needed:
 >>> from scrapy.item import Item, Field
 >>>
 >>> class BuiltinTypesItemAdapter(ItemAdapter):
-...     ADAPTER_CLASSES = deque([DictAdapter, DataclassAdapter])
+...     ADAPTER_CLASSES = [DictAdapter, DataclassAdapter]
 ...
 >>> class ThirdPartyTypesItemAdapter(ItemAdapter):
-...     ADAPTER_CLASSES = deque([AttrsAdapter, PydanticAdapter, ScrapyItemAdapter])
+...     ADAPTER_CLASSES = [AttrsAdapter, PydanticAdapter, ScrapyItemAdapter]
 ...
 >>> class ScrapyItem(Item):
 ...     foo = Field()

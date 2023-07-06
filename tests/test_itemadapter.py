@@ -1,11 +1,10 @@
 import unittest
-from collections import deque
 
 from itemadapter.adapter import ItemAdapter, DictAdapter
 
 
 class DictOnlyItemAdapter(ItemAdapter):
-    ADAPTER_CLASSES = deque([DictAdapter])
+    ADAPTER_CLASSES = [DictAdapter]
 
 
 class ItemAdapterTestCase(unittest.TestCase):
