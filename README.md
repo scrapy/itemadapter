@@ -15,7 +15,7 @@ Currently supported types are:
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
-* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes (`pydantic>=2` not yet supported)
+* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -28,7 +28,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 * [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
 * [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with
-  `pydantic`-based items (`pydantic>=2` not yet supported)
+  `pydantic`-based items
 
 ---
 
@@ -196,7 +196,7 @@ The returned value is taken from the following sources, depending on the item ty
     for `dataclass`-based items
   * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
-  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation)
+  * [`pydantic.fields.FieldInfo`](https://docs.pydantic.dev/latest/api/fields/#pydantic.fields.FieldInfo)
     for `pydantic`-based items
 
 #### class method `get_field_names_from_class(item_class: type) -> Optional[list[str]]`

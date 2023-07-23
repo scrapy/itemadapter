@@ -179,24 +179,24 @@ class PydanticAdapter(AdapterInterface):
 
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
-        return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
+        return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
 
     def field_names(self) -> KeysView:
-        return KeysView(self.item.__fields__)
+        return KeysView(self.item.model_fields)
 
     def __getitem__(self, field_name: str) -> Any:
-        if field_name in self.item.__fields__:
+        if field_name in self.item.model_fields:
             return getattr(self.item, field_name)
         raise KeyError(field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
-        if field_name in self.item.__fields__:
+        if field_name in self.item.model_fields:
             setattr(self.item, field_name, value)
         else:
             raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
     def __delitem__(self, field_name: str) -> None:
-        if field_name in self.item.__fields__:
+        if field_name in self.item.model_fields:
             try:
                 delattr(self.item, field_name)
             except AttributeError:
@@ -205,7 +205,7 @@ class PydanticAdapter(AdapterInterface):
             raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
     def __iter__(self) -> Iterator:
-        return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
+        return iter(attr for attr in self.item.model_fields if hasattr(self.item, attr))
 
     def __len__(self) -> int:
         return len(list(iter(self)))
