@@ -1,5 +1,5 @@
 attrs
-pydantic<2
+pydantic
 pytest-cov>=2.8
 pytest>=5.4
 scrapy>=2.0
