@@ -99,7 +99,6 @@ class ItemAdapterInitError(unittest.TestCase):
 
 
 class BaseTestMixin:
-
     item_class = None
     item_class_nested = None
 
@@ -228,7 +227,6 @@ class NonDictTestMixin(BaseTestMixin):
 
 
 class DictTestCase(unittest.TestCase, BaseTestMixin):
-
     item_class = dict
     item_class_nested = dict
 
@@ -255,7 +253,6 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
 
 
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
-
     item_class = ScrapySubclassedItem
     item_class_nested = ScrapySubclassedItemNested
     item_class_subclassed = ScrapySubclassedItemSubclassed
@@ -269,7 +266,6 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
 
 
 class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
-
     item_class = PydanticModel
     item_class_nested = PydanticModelNested
     item_class_subclassed = PydanticModelSubclassed
@@ -277,7 +273,6 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
 
 
 class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
-
     item_class = DataClassItem
     item_class_nested = DataClassItemNested
     item_class_subclassed = DataClassItemSubclassed
@@ -285,7 +280,6 @@ class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
 
 
 class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
-
     item_class = AttrsItem
     item_class_nested = AttrsItemNested
     item_class_subclassed = AttrsItemSubclassed
