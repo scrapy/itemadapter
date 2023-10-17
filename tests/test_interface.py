@@ -73,7 +73,6 @@ class MetadataFakeItemAdapter(BaseFakeItemAdapter):
 
 
 class BaseFakeItemAdapterTest(unittest.TestCase):
-
     item_class = FakeItemClass
     adapter_class = BaseFakeItemAdapter
 
@@ -183,7 +182,6 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
 
 
 class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
-
     item_class = FakeItemClass
     adapter_class = MetadataFakeItemAdapter
 
@@ -209,7 +207,6 @@ class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
 
 
 class FieldNamesFakeItemAdapterTest(BaseFakeItemAdapterTest):
-
     item_class = FakeItemClass
     adapter_class = FieldNamesFakeItemAdapter
 

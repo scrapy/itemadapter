@@ -67,7 +67,6 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
 
 
 class _MixinAttrsDataclassAdapter:
-
     _fields_dict: dict
     item: Any
 
@@ -163,7 +162,6 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
 
 class PydanticAdapter(AdapterInterface):
-
     item: Any
 
     @classmethod
@@ -212,7 +210,6 @@ class PydanticAdapter(AdapterInterface):
 
 
 class _MixinDictScrapyItemAdapter:
-
     _fields_dict: dict
     item: Any
 
