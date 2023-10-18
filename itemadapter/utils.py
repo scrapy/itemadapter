@@ -23,30 +23,21 @@ def _is_pydantic_model(obj: Any) -> bool:
 
 def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
     metadata = {}
-    field = item_model.__fields__[field_name].field_info
+    field = item_model.model_fields[field_name]
 
     for attribute in [
         "alias",
         "title",
         "description",
-        "const",
-        "gt",
-        "ge",
-        "lt",
-        "le",
-        "multiple_of",
-        "min_items",
-        "max_items",
-        "min_length",
-        "max_length",
-        "regex",
     ]:
         value = getattr(field, attribute)
         if value is not None:
             metadata[attribute] = value
-    if not field.allow_mutation:
-        metadata["allow_mutation"] = field.allow_mutation
-    metadata.update(field.extra)
+    if field.frozen is not None:
+        metadata["frozen"] = field.frozen
+
+    if field.json_schema_extra is not None:
+        metadata.update(field.json_schema_extra)
 
     return MappingProxyType(metadata)
 

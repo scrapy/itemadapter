@@ -102,7 +102,7 @@ else:
 
 
 try:
-    from pydantic import BaseModel, Field as PydanticField
+    from pydantic import ConfigDict, BaseModel, Field as PydanticField
 except ImportError:
     PydanticModel = None
     PydanticSpecialCasesModel = None
@@ -125,11 +125,9 @@ else:
         special_cases: Optional[int] = PydanticField(
             default_factory=lambda: None,
             alias="special_cases",
-            allow_mutation=False,
+            frozen=False,
         )
-
-        class Config:
-            validate_assignment = True
+        model_config = ConfigDict(validate_assignment=True)
 
     class PydanticModelNested(BaseModel):
         nested: PydanticModel
@@ -139,9 +137,7 @@ else:
         set_: set
         tuple_: tuple
         int_: int
-
-        class Config:
-            arbitrary_types_allowed = True
+        model_config = ConfigDict(arbitrary_types_allowed=True)
 
     class PydanticModelSubclassed(PydanticModel):
         subclassed: bool = PydanticField(

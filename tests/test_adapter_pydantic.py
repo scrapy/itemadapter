@@ -73,7 +73,7 @@ class PydanticTestCase(unittest.TestCase):
         )
         self.assertEqual(
             get_field_meta_from_class(PydanticSpecialCasesModel, "special_cases"),
-            MappingProxyType({"alias": "special_cases", "allow_mutation": False}),
+            MappingProxyType({"alias": "special_cases", "frozen": False}),
         )
         with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")
