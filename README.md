@@ -24,7 +24,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
 ## Requirements
 
-* Python 3.8+
+* Python 3.8+, either the CPython implementation (default) or the PyPy implementation
 * [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
 * [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
 * [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with
