@@ -209,6 +209,12 @@ class NonDictTestMixin(BaseTestMixin):
                 del adapter["name"]
             with self.assertRaises(KeyError):
                 del adapter["value"]
+        else:
+            for field_name in ["name", "value"]:
+                try:
+                    del adapter[field_name]
+                except Exception as err:
+                    assert type(err) is KeyError
         with self.assertRaises(KeyError):
             del adapter["undefined_field"]
 
