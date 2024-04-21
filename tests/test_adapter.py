@@ -3,7 +3,6 @@ from types import MappingProxyType
 from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
-from platform import python_implementation
 
 from tests import (
     AttrsItem,
