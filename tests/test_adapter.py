@@ -204,17 +204,14 @@ class NonDictTestMixin(BaseTestMixin):
         self.assertEqual(len(adapter), 0)
         self.assertEqual(sorted(list(iter(adapter))), [])
 
-        if python_implementation() != "PyPy":
-            with self.assertRaises(KeyError):
-                del adapter["name"]
-            with self.assertRaises(KeyError):
-                del adapter["value"]
-        else:
-            for field_name in ["name", "value"]:
-                try:
-                    del adapter[field_name]
-                except Exception as err:
-                    assert type(err) is KeyError
+        for field_name in ["name", "value"]:
+            key_error_raised = False
+            try:
+                del adapter[field_name]
+            except KeyError:
+                key_error_raised = True
+            finally:
+                assert key_error_raised, "KeyError was not raised"
         with self.assertRaises(KeyError):
             del adapter["undefined_field"]
 
