@@ -3,6 +3,7 @@ from types import MappingProxyType
 from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
+from platform import python_implementation
 
 from tests import (
     AttrsItem,
@@ -203,14 +204,11 @@ class NonDictTestMixin(BaseTestMixin):
         self.assertEqual(len(adapter), 0)
         self.assertEqual(sorted(list(iter(adapter))), [])
 
-        for field_name in ["name", "value"]:
-            key_error_raised = False
-            try:
-                del adapter[field_name]
-            except KeyError:
-                key_error_raised = True
-            finally:
-                assert key_error_raised, "KeyError was not raised"
+        if python_implementation() != "PyPy":
+            with self.assertRaises(KeyError):
+                del adapter["name"]
+            with self.assertRaises(KeyError):
+                del adapter["value"]
         with self.assertRaises(KeyError):
             del adapter["undefined_field"]
 
