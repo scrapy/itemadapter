@@ -1,5 +1,23 @@
 # Changelog
 
+### 0.9.0 (YYYY-MM-DD)
+
+Dropped Python 3.7 support, added official Python 3.12 support
+([#75](https://github.com/scrapy/itemadapter/pull/75),
+[#77](https://github.com/scrapy/itemadapter/pull/77)).
+
+Updated the documentation and the type hint about `ItemAdapter.ADAPTER_CLASSES`
+to say that subclasses can use any iterable, not just `collections.deque`
+([#74](https://github.com/scrapy/itemadapter/pull/74).
+
+Documented that `Pydantic >= 2` is not supported yet
+([#73](https://github.com/scrapy/itemadapter/pull/73).
+
+Updated CI configuration
+([#77](https://github.com/scrapy/itemadapter/pull/77),
+[#80](https://github.com/scrapy/itemadapter/pull/80)).
+
+
 ### 0.8.0 (2023-03-30)
 
 Dropped Python 3.6 support, and made Python 3.11 support official
