@@ -23,6 +23,9 @@ jobs:
         - python-version: 3.12
           env:
             TOXENV: pylint
+        - python-version: 3.12
+          env:
+            TOXENV: twinecheck
 
     steps:
     - uses: actions/checkout@v4
