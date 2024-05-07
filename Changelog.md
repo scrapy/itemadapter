@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.9.0 (YYYY-MM-DD)
+### 0.9.0 (2024-05-07)
 
 Dropped Python 3.7 support, added official Python 3.12 support
 ([#75](https://github.com/scrapy/itemadapter/pull/75),
