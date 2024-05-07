@@ -8,10 +8,10 @@ Dropped Python 3.7 support, added official Python 3.12 support
 
 Updated the documentation and the type hint about `ItemAdapter.ADAPTER_CLASSES`
 to say that subclasses can use any iterable, not just `collections.deque`
-([#74](https://github.com/scrapy/itemadapter/pull/74).
+([#74](https://github.com/scrapy/itemadapter/pull/74)).
 
 Documented that `Pydantic >= 2` is not supported yet
-([#73](https://github.com/scrapy/itemadapter/pull/73).
+([#73](https://github.com/scrapy/itemadapter/pull/73)).
 
 Updated CI configuration
 ([#77](https://github.com/scrapy/itemadapter/pull/77),
