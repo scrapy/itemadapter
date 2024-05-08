@@ -90,7 +90,10 @@ class _MixinAttrsDataclassAdapter:
     def __delitem__(self, field_name: str) -> None:
         if field_name in self._fields_dict:
             try:
-                delattr(self.item, field_name)
+                if hasattr(self.item, field_name):
+                    delattr(self.item, field_name)
+                else:
+                    raise AttributeError
             except AttributeError:
                 raise KeyError(field_name)
         else:
@@ -196,7 +199,10 @@ class PydanticAdapter(AdapterInterface):
     def __delitem__(self, field_name: str) -> None:
         if field_name in self.item.__fields__:
             try:
-                delattr(self.item, field_name)
+                if hasattr(self.item, field_name):
+                    delattr(self.item, field_name)
+                else:
+                    raise AttributeError
             except AttributeError:
                 raise KeyError(field_name)
         else:

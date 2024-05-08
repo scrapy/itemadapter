@@ -4,11 +4,11 @@ on: [push, pull_request]
 
 jobs:
   tests-ubuntu:
-    name: "Test: py${{ matrix.python-version }}, Ubuntu"
+    name: "Test: ${{ matrix.python-version }}, Ubuntu"
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "pypy3.9", "pypy3.10"]
 
     steps:
     - uses: actions/checkout@v4
