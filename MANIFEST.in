@@ -1,2 +1,5 @@
-include LICENSE
-include README.md
+include Changelog.md
+include pytest.ini
+include tox.ini
+
+recursive-include tests *.py *.txt
