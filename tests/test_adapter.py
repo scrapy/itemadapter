@@ -190,7 +190,8 @@ class NonDictTestMixin(BaseTestMixin):
         self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
 
     def test_delitem_len_iter(self):
-        item = dict(name="asdf", value=1234)
+        item = self.item_class(name="asdf", value=1234)
+
         adapter = ItemAdapter(item)
         self.assertEqual(len(adapter), 2)
         self.assertEqual(sorted(list(iter(adapter))), ["name", "value"])
