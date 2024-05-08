@@ -191,7 +191,6 @@ class NonDictTestMixin(BaseTestMixin):
 
     def test_delitem_len_iter(self):
         item = self.item_class(name="asdf", value=1234)
-
         adapter = ItemAdapter(item)
         self.assertEqual(len(adapter), 2)
         self.assertEqual(sorted(list(iter(adapter))), ["name", "value"])
