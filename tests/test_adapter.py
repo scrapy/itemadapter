@@ -3,7 +3,6 @@ from types import MappingProxyType
 from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
-from platform import python_implementation
 
 from tests import (
     AttrsItem,
@@ -191,7 +190,7 @@ class NonDictTestMixin(BaseTestMixin):
         self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
 
     def test_delitem_len_iter(self):
-        item = self.item_class(name="asdf", value=1234)
+        item = dict(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(len(adapter), 2)
         self.assertEqual(sorted(list(iter(adapter))), ["name", "value"])
@@ -204,11 +203,10 @@ class NonDictTestMixin(BaseTestMixin):
         self.assertEqual(len(adapter), 0)
         self.assertEqual(sorted(list(iter(adapter))), [])
 
-        if python_implementation() != "PyPy":
-            with self.assertRaises(KeyError):
-                del adapter["name"]
-            with self.assertRaises(KeyError):
-                del adapter["value"]
+        with self.assertRaises(KeyError):
+            del adapter["name"]
+        with self.assertRaises(KeyError):
+            del adapter["value"]
         with self.assertRaises(KeyError):
             del adapter["undefined_field"]
 
