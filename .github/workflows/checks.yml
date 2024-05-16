@@ -10,19 +10,10 @@ jobs:
         include:
         - python-version: 3.12
           env:
-            TOXENV: black
-        - python-version: 3.12
-          env:
-            TOXENV: bandit
-        - python-version: 3.12
-          env:
-            TOXENV: flake8
+            TOXENV: pylint
         - python-version: 3.12
           env:
             TOXENV: typing
-        - python-version: 3.12
-          env:
-            TOXENV: pylint
         - python-version: 3.12
           env:
             TOXENV: twinecheck
@@ -41,3 +32,9 @@ jobs:
         pip install -U pip
         pip install -U tox
         tox
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: pre-commit/action@v3.0.0

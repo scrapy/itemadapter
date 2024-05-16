@@ -1,18 +1,16 @@
 import dataclasses
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 from collections import deque
 from collections.abc import KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Iterable, Iterator, Type, Optional, List
+from typing import Any, Iterable, Iterator, List, Optional, Type
 
+from itemadapter._imports import _scrapy_item_classes, attr
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
     _is_attrs_class,
     _is_pydantic_model,
 )
-
-from itemadapter._imports import attr, _scrapy_item_classes
-
 
 __all__ = [
     "AdapterInterface",

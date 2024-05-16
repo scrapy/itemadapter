@@ -3,26 +3,25 @@ from types import MappingProxyType
 from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
-
 from tests import (
     AttrsItem,
-    AttrsItemNested,
-    AttrsItemWithoutInit,
-    AttrsItemSubclassed,
     AttrsItemEmpty,
+    AttrsItemNested,
+    AttrsItemSubclassed,
+    AttrsItemWithoutInit,
     DataClassItem,
-    DataClassItemNested,
-    DataClassWithoutInit,
-    DataClassItemSubclassed,
     DataClassItemEmpty,
+    DataClassItemNested,
+    DataClassItemSubclassed,
+    DataClassWithoutInit,
     PydanticModel,
+    PydanticModelEmpty,
     PydanticModelNested,
     PydanticModelSubclassed,
-    PydanticModelEmpty,
     ScrapySubclassedItem,
+    ScrapySubclassedItemEmpty,
     ScrapySubclassedItemNested,
     ScrapySubclassedItemSubclassed,
-    ScrapySubclassedItemEmpty,
 )
 
 

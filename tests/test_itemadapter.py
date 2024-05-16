@@ -1,6 +1,6 @@
 import unittest
 
-from itemadapter.adapter import ItemAdapter, DictAdapter
+from itemadapter.adapter import DictAdapter, ItemAdapter
 
 
 class DictOnlyItemAdapter(ItemAdapter):

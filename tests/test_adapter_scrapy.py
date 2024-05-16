@@ -4,15 +4,14 @@ from types import MappingProxyType
 from unittest import mock
 
 from itemadapter.utils import get_field_meta_from_class
-
 from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
-    make_mock_import,
     clear_itemadapter_imports,
+    make_mock_import,
 )
 
 

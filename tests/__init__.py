@@ -102,7 +102,8 @@ else:
 
 
 try:
-    from pydantic import BaseModel, Field as PydanticField
+    from pydantic import BaseModel
+    from pydantic import Field as PydanticField
 except ImportError:
     PydanticModel = None
     PydanticSpecialCasesModel = None
@@ -153,7 +154,8 @@ else:
 
 
 try:
-    from scrapy.item import Item as ScrapyItem, Field
+    from scrapy.item import Field
+    from scrapy.item import Item as ScrapyItem
 except ImportError:
     ScrapyItem = None
     ScrapySubclassedItem = None
