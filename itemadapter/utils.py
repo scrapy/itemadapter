@@ -1,10 +1,8 @@
 import warnings
-
 from types import MappingProxyType
 from typing import Any
 
 from itemadapter._imports import attr, pydantic
-
 
 __all__ = ["is_item", "get_field_meta_from_class"]
 

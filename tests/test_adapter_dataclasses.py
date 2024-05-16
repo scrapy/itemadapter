@@ -3,7 +3,6 @@ from types import MappingProxyType
 from unittest import TestCase
 
 from itemadapter.utils import get_field_meta_from_class
-
 from tests import (
     AttrsItem,
     DataClassItem,
