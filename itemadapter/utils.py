@@ -2,7 +2,7 @@ import warnings
 from types import MappingProxyType
 from typing import Any
 
-from itemadapter._imports import attr, pydantic
+from itemadapter._imports import attr, pydantic, pydantic_v1
 
 __all__ = ["is_item", "get_field_meta_from_class"]
 
@@ -19,7 +19,62 @@ def _is_pydantic_model(obj: Any) -> bool:
     return issubclass(obj, pydantic.BaseModel)
 
 
+def _is_pydantic_v1_model(obj: Any) -> bool:
+    if pydantic_v1 is None:
+        return False
+    return issubclass(obj, pydantic_v1.BaseModel)
+
+
 def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
+    metadata = {}
+    field = item_model.model_fields[field_name]
+
+    for attribute in [
+        "default",
+        "default_factory",
+        "alias",
+        "alias_priority",
+        "validation_alias",
+        "serialization_alias",
+        "title",
+        "field_title_generator",
+        "description",
+        "examples",
+        "exclude",
+        "discriminator",
+        "deprecated",
+        "json_schema_extra",
+        "frozen",
+        "validate_default",
+        "repr",
+        "init",
+        "init_var",
+        "kw_only",
+        "pattern",
+        "strict",
+        "coerce_numbers_to_str",
+        "gt",
+        "ge",
+        "lt",
+        "le",
+        "multiple_of",
+        "allow_inf_nan",
+        "max_digits",
+        "decimal_places",
+        "min_length",
+        "max_length",
+        "union_mode",
+        "fail_fast",
+    ]:
+        if hasattr(field, attribute) and (value := getattr(field, attribute)) is not None:
+            metadata[attribute] = value
+        # if field.json_schema_extra is not None:
+        #     metadata.update(field.json_schema_extra)
+
+    return MappingProxyType(metadata)
+
+
+def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
     metadata = {}
     field = item_model.__fields__[field_name].field_info
 

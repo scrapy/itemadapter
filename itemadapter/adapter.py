@@ -8,8 +8,10 @@ from typing import Any, Iterable, Iterator, List, Optional, Type
 from itemadapter._imports import _scrapy_item_classes, attr
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
+    _get_pydantic_v1_model_metadata,
     _is_attrs_class,
     _is_pydantic_model,
+    _is_pydantic_v1_model
 )
 
 __all__ = [
@@ -18,6 +20,7 @@ __all__ = [
     "DataclassAdapter",
     "DictAdapter",
     "ItemAdapter",
+    "PydanticV1Adapter",
     "PydanticAdapter",
     "ScrapyItemAdapter",
 ]
@@ -162,17 +165,17 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         return [a.name for a in dataclasses.fields(item_class)]
 
 
-class PydanticAdapter(AdapterInterface):
+class PydanticV1Adapter(AdapterInterface):
     item: Any
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        return _is_pydantic_model(item_class)
+        return _is_pydantic_v1_model(item_class)
 
     @classmethod
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
         try:
-            return _get_pydantic_model_metadata(item_class, field_name)
+            return _get_pydantic_v1_model_metadata(item_class, field_name)
         except KeyError:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
@@ -208,6 +211,58 @@ class PydanticAdapter(AdapterInterface):
 
     def __iter__(self) -> Iterator:
         return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
+
+    def __len__(self) -> int:
+        return len(list(iter(self)))
+
+
+class PydanticAdapter(AdapterInterface):
+    item: Any
+    import pydantic
+
+    @classmethod
+    def is_item_class(cls, item_class: type) -> bool:
+        return _is_pydantic_model(item_class)
+
+    @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        try:
+            return _get_pydantic_model_metadata(item_class, field_name)
+        except KeyError:
+            raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
+
+    @classmethod
+    def get_field_names_from_class(cls, item_class: pydantic.BaseModel) -> Optional[List[str]]:
+        return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
+
+    def field_names(self) -> KeysView:
+        return KeysView(self.item.model_fields)
+
+    def __getitem__(self, field_name: str) -> Any:
+        if field_name in self.item.model_fields:
+            return getattr(self.item, field_name)
+        raise KeyError(field_name)
+
+    def __setitem__(self, field_name: str, value: Any) -> None:
+        if field_name in self.item.model_fields:
+            setattr(self.item, field_name, value)
+        else:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+
+    def __delitem__(self, field_name: str) -> None:
+        if field_name in self.item.model_fields:
+            try:
+                if hasattr(self.item, field_name):
+                    delattr(self.item, field_name)
+                else:
+                    raise AttributeError
+            except AttributeError:
+                raise KeyError(field_name)
+        else:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+
+    def __iter__(self) -> Iterator:
+        return iter(attr for attr in self.item.model_fields if hasattr(self.item, attr))
 
     def __len__(self) -> int:
         return len(list(iter(self)))
@@ -278,7 +333,8 @@ class ItemAdapter(MutableMapping):
             DictAdapter,
             DataclassAdapter,
             AttrsAdapter,
-            PydanticAdapter,
+            PydanticV1Adapter,
+            PydanticAdapter
         ]
     )
 

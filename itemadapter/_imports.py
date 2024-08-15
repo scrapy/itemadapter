@@ -23,6 +23,12 @@ except ImportError:
     attr = None  # type: ignore [assignment]
 
 try:
+    import pydantic.v1 as pydantic_v1  # pylint: disable=W0611 (unused-import)
     import pydantic  # pylint: disable=W0611 (unused-import)
 except ImportError:
-    pydantic = None  # type: ignore [assignment]
+    try:
+        import pydantic as pydantic_v1  # pylint: disable=W0611 (unused-import)
+        pydantic = None  # type: ignore [assignment]
+    except ImportError:
+        # Handle the case where neither pydantic.v1 nor pydantic is available
+        pydantic_v1 = None
