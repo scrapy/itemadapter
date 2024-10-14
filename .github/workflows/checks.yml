@@ -8,13 +8,13 @@ jobs:
     strategy:
       matrix:
         include:
-        - python-version: 3.12
+        - python-version: 3.13
           env:
             TOXENV: pylint
-        - python-version: 3.12
+        - python-version: 3.13
           env:
             TOXENV: typing
-        - python-version: 3.12
+        - python-version: 3.13
           env:
             TOXENV: twinecheck
 
