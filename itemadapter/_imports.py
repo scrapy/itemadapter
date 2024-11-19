@@ -11,7 +11,11 @@ except ImportError:
 else:
     try:
         # handle deprecated base classes
-        _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
+        _base_item_cls = getattr(
+            scrapy.item,
+            "_BaseItem",
+            scrapy.item.BaseItem,  # type: ignore[attr-defined]
+        )
     except AttributeError:
         _scrapy_item_classes = (scrapy.item.Item,)
     else:
