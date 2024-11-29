@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.10.0 (YYYY-MM-DD)
+### 0.10.0 (2024-11-29)
 
 Dropped Python 3.8 support, added official Python 3.13 and PyPy 3.10 support
 ([#79](https://github.com/scrapy/itemadapter/pull/79),
