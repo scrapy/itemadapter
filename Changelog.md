@@ -7,7 +7,7 @@ Dropped Python 3.8 support, added official Python 3.13 and PyPy 3.10 support
 [#87](https://github.com/scrapy/itemadapter/pull/87)).
 
 Fixed the typing check when run with Scrapy 2.12.0+
-([#84](https://github.com/scrapy/itemadapter/pull/88)).
+([#88](https://github.com/scrapy/itemadapter/pull/88)).
 
 Fixed `MANIFEST.in` that was missing some files
 ([#84](https://github.com/scrapy/itemadapter/pull/84)).
