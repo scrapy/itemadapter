@@ -1,5 +1,20 @@
 # Changelog
 
+### 0.10.0 (YYYY-MM-DD)
+
+Dropped Python 3.8 support, added official Python 3.13 and PyPy 3.10 support
+([#79](https://github.com/scrapy/itemadapter/pull/79),
+[#87](https://github.com/scrapy/itemadapter/pull/87)).
+
+Fixed the typing check when run with Scrapy 2.12.0+
+([#88](https://github.com/scrapy/itemadapter/pull/88)).
+
+Fixed `MANIFEST.in` that was missing some files
+([#84](https://github.com/scrapy/itemadapter/pull/84)).
+
+Enabled `pre-commit`
+([#85](https://github.com/scrapy/itemadapter/pull/85)).
+
 ### 0.9.0 (2024-05-07)
 
 Dropped Python 3.7 support, added official Python 3.12 support
