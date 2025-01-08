@@ -6,12 +6,16 @@ _scrapy_item_classes: tuple
 try:
     import scrapy  # pylint: disable=W0611 (unused-import)
 except ImportError:
-    scrapy = None  # type: ignore [assignment]
+    scrapy = None  # type: ignore[assignment]
     _scrapy_item_classes = ()
 else:
     try:
         # handle deprecated base classes
-        _base_item_cls = getattr(scrapy.item, "_BaseItem", scrapy.item.BaseItem)
+        _base_item_cls = getattr(
+            scrapy.item,
+            "_BaseItem",
+            scrapy.item.BaseItem,  # type: ignore[attr-defined]
+        )
     except AttributeError:
         _scrapy_item_classes = (scrapy.item.Item,)
     else:
@@ -20,7 +24,7 @@ else:
 try:
     import attr  # pylint: disable=W0611 (unused-import)
 except ImportError:
-    attr = None  # type: ignore [assignment]
+    attr = None  # type: ignore[assignment]
 
 try:
     import pydantic.v1 as pydantic_v1  # pylint: disable=W0611 (unused-import)
@@ -28,7 +32,7 @@ try:
 except ImportError:
     try:
         import pydantic as pydantic_v1  # pylint: disable=W0611 (unused-import)
-        pydantic = None  # type: ignore [assignment]
+        pydantic = None  # type: ignore[assignment]
     except ImportError:
         # Handle the case where neither pydantic.v1 nor pydantic is available
         pydantic_v1 = None

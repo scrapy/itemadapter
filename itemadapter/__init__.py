@@ -1,4 +1,10 @@
-from .adapter import ItemAdapter  # noqa: F401
-from .utils import get_field_meta_from_class, is_item  # noqa: F401
+from .adapter import ItemAdapter
+from .utils import get_field_meta_from_class, is_item
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
+
+__all__ = [
+    "ItemAdapter",
+    "get_field_meta_from_class",
+    "is_item",
+]
