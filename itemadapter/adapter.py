@@ -227,8 +227,7 @@ class PydanticAdapter(AdapterInterface):
                     if hasattr(self.item, field_name):
                         delattr(self.item, field_name)
                         return
-                    else:
-                        raise AttributeError
+                    raise AttributeError
                 except AttributeError:
                     raise KeyError(field_name)
         else:
@@ -237,8 +236,7 @@ class PydanticAdapter(AdapterInterface):
                     if hasattr(self.item, field_name):
                         delattr(self.item, field_name)
                         return
-                    else:
-                        raise AttributeError
+                    raise AttributeError
                 except AttributeError:
                     raise KeyError(field_name)
         raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")

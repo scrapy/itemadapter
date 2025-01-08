@@ -6,6 +6,7 @@ from itemadapter.utils import get_field_meta_from_class
 from tests import (
     AttrsItem,
     DataClassItem,
+    PydanticModel,
     PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
@@ -35,9 +36,9 @@ class DataclassTestCase(TestCase):
         else:
             self.assertFalse(DataclassAdapter.is_item(AttrsItem()))
 
-        from itemadapter._imports import pydantic_v1
-
-        if pydantic_v1 is not None:
+        if PydanticModel is not None:
+            self.assertFalse(DataclassAdapter.is_item(PydanticModel()))
+        if PydanticV1Model is not None:
             self.assertFalse(DataclassAdapter.is_item(PydanticV1Model()))
 
         try:

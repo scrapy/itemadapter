@@ -9,7 +9,6 @@ from tests import (
     DataClassItem,
     PydanticModel,
     PydanticSpecialCasesModel,
-    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
     clear_itemadapter_imports,
@@ -40,9 +39,6 @@ class PydanticTestCase(unittest.TestCase):
             pass
         else:
             self.assertFalse(PydanticAdapter.is_item(AttrsItem()))
-
-        if PydanticV1Model:
-            self.assertFalse(PydanticAdapter.is_item(PydanticV1Model))
 
         try:
             import scrapy  # noqa: F401
