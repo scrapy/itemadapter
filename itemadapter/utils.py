@@ -68,8 +68,6 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
     ]:
         if hasattr(field, attribute) and (value := getattr(field, attribute)) is not None:
             metadata[attribute] = value
-        # if field.json_schema_extra is not None:
-        #     metadata.update(field.json_schema_extra)
 
     return MappingProxyType(metadata)
 
