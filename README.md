@@ -156,8 +156,7 @@ The following adapters are included by default:
 * `itemadapter.adapter.DictAdapter`: handles `Python` dictionaries
 * `itemadapter.adapter.DataclassAdapter`: handles `dataclass` objects
 * `itemadapter.adapter.AttrsAdapter`: handles `attrs` objects
-* `itemadapter.adapter.PydanticV1Adapter`: handles `pydantic` 1.x objects
-* `itemadapter.adapter.PydanticAdapter`: handles `pydantic` 2+ objects
+* `itemadapter.adapter.PydanticAdapter`: handles `pydantic` objects
 
 ### class `itemadapter.adapter.ItemAdapter(item: Any)`
 

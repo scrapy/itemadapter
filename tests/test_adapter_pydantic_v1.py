@@ -18,43 +18,43 @@ from tests import (
 
 class PydanticTestCase(unittest.TestCase):
     def test_false(self):
-        from itemadapter.adapter import PydanticV1Adapter
+        from itemadapter.adapter import PydanticAdapter
 
-        self.assertFalse(PydanticV1Adapter.is_item(int))
-        self.assertFalse(PydanticV1Adapter.is_item(sum))
-        self.assertFalse(PydanticV1Adapter.is_item(1234))
-        self.assertFalse(PydanticV1Adapter.is_item(object()))
-        self.assertFalse(PydanticV1Adapter.is_item(DataClassItem()))
-        self.assertFalse(PydanticV1Adapter.is_item("a string"))
-        self.assertFalse(PydanticV1Adapter.is_item(b"some bytes"))
-        self.assertFalse(PydanticV1Adapter.is_item({"a": "dict"}))
-        self.assertFalse(PydanticV1Adapter.is_item(["a", "list"]))
-        self.assertFalse(PydanticV1Adapter.is_item(("a", "tuple")))
-        self.assertFalse(PydanticV1Adapter.is_item({"a", "set"}))
-        self.assertFalse(PydanticV1Adapter.is_item(PydanticV1Model))
+        self.assertFalse(PydanticAdapter.is_item(int))
+        self.assertFalse(PydanticAdapter.is_item(sum))
+        self.assertFalse(PydanticAdapter.is_item(1234))
+        self.assertFalse(PydanticAdapter.is_item(object()))
+        self.assertFalse(PydanticAdapter.is_item(DataClassItem()))
+        self.assertFalse(PydanticAdapter.is_item("a string"))
+        self.assertFalse(PydanticAdapter.is_item(b"some bytes"))
+        self.assertFalse(PydanticAdapter.is_item({"a": "dict"}))
+        self.assertFalse(PydanticAdapter.is_item(["a", "list"]))
+        self.assertFalse(PydanticAdapter.is_item(("a", "tuple")))
+        self.assertFalse(PydanticAdapter.is_item({"a", "set"}))
+        self.assertFalse(PydanticAdapter.is_item(PydanticV1Model))
 
         try:
             import attrs  # noqa: F401
         except ImportError:
             pass
         else:
-            self.assertFalse(PydanticV1Adapter.is_item(AttrsItem()))
+            self.assertFalse(PydanticAdapter.is_item(AttrsItem()))
 
         try:
             import scrapy  # noqa: F401
         except ImportError:
             pass
         else:
-            self.assertFalse(PydanticV1Adapter.is_item(ScrapyItem()))
-            self.assertFalse(PydanticV1Adapter.is_item(ScrapySubclassedItem()))
+            self.assertFalse(PydanticAdapter.is_item(ScrapyItem()))
+            self.assertFalse(PydanticAdapter.is_item(ScrapySubclassedItem()))
 
     @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
     @mock.patch("builtins.__import__", make_mock_import("pydantic"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
-            from itemadapter.adapter import PydanticV1Adapter
+            from itemadapter.adapter import PydanticAdapter
 
-            self.assertFalse(PydanticV1Adapter.is_item(PydanticV1Model(name="asdf", value=1234)))
+            self.assertFalse(PydanticAdapter.is_item(PydanticV1Model(name="asdf", value=1234)))
             with self.assertRaises(TypeError, msg="PydanticV1Model is not a valid item class"):
                 get_field_meta_from_class(PydanticV1Model, "name")
 
@@ -62,18 +62,18 @@ class PydanticTestCase(unittest.TestCase):
     @mock.patch("itemadapter.utils.pydantic", None)
     @mock.patch("itemadapter.utils.pydantic_v1", None)
     def test_module_not_available(self):
-        from itemadapter.adapter import PydanticV1Adapter
+        from itemadapter.adapter import PydanticAdapter
 
-        self.assertFalse(PydanticV1Adapter.is_item(PydanticV1Model(name="asdf", value=1234)))
+        self.assertFalse(PydanticAdapter.is_item(PydanticV1Model(name="asdf", value=1234)))
         with self.assertRaises(TypeError, msg="PydanticV1Model is not a valid item class"):
             get_field_meta_from_class(PydanticV1Model, "name")
 
     @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_true(self):
-        from itemadapter.adapter import PydanticV1Adapter
+        from itemadapter.adapter import PydanticAdapter
 
-        self.assertTrue(PydanticV1Adapter.is_item(PydanticV1Model()))
-        self.assertTrue(PydanticV1Adapter.is_item(PydanticV1Model(name="asdf", value=1234)))
+        self.assertTrue(PydanticAdapter.is_item(PydanticV1Model()))
+        self.assertTrue(PydanticAdapter.is_item(PydanticV1Model(name="asdf", value=1234)))
         # field metadata
         self.assertEqual(
             get_field_meta_from_class(PydanticV1Model, "name"),
