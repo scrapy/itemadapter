@@ -11,7 +11,7 @@ from itemadapter.utils import (
     _get_pydantic_v1_model_metadata,
     _is_attrs_class,
     _is_pydantic_model,
-    _is_pydantic_v1_model
+    _is_pydantic_v1_model,
 )
 
 __all__ = [
@@ -218,7 +218,6 @@ class PydanticV1Adapter(AdapterInterface):
 
 class PydanticAdapter(AdapterInterface):
     item: Any
-    import pydantic
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
@@ -232,7 +231,7 @@ class PydanticAdapter(AdapterInterface):
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: pydantic.BaseModel) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
         return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
 
     def field_names(self) -> KeysView:
@@ -334,7 +333,7 @@ class ItemAdapter(MutableMapping):
             DataclassAdapter,
             AttrsAdapter,
             PydanticV1Adapter,
-            PydanticAdapter
+            PydanticAdapter,
         ]
     )
 

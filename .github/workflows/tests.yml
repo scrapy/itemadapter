@@ -12,6 +12,15 @@ jobs:
         include:
         - python-version: "3.9"
           env:
+            TOXENV: min-attrs
+        - python-version: "3.9"
+          env:
+            TOXENV: min-pydantic
+        - python-version: "3.9"
+          env:
+            TOXENV: min-scrapy
+        - python-version: "3.9"
+          env:
             TOXENV: py
         - python-version: "3.10"
           env:
@@ -28,14 +37,18 @@ jobs:
         - python-version: "3.13"
           env:
             TOXENV: py
-
-        # pinned deps
-        - python-version: "3.9"
+        - python-version: "3.13"
           env:
-            TOXENV: py39-scrapy22
-        - python-version: "3.9"
+            TOXENV: attrs
+        - python-version: "3.13"
           env:
-            TOXENV: py-pydantic1
+            TOXENV: pydantic1
+        - python-version: "3.13"
+          env:
+            TOXENV: pydantic
+        - python-version: "3.13"
+          env:
+            TOXENV: scrapy
 
     steps:
     - uses: actions/checkout@v4

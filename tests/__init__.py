@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Generator, Optional
 
 from itemadapter import ItemAdapter
+from itemadapter._imports import pydantic, pydantic_v1
 
 
 def make_mock_import(block_name: str) -> Callable:
@@ -101,29 +102,26 @@ else:
         pass
 
 
-try:
-    from pydantic import BaseModel
-    from pydantic import Field as PydanticField
-except ImportError:
-    PydanticModel = None
-    PydanticSpecialCasesModel = None
-    PydanticModelNested = None
-    PydanticModelSubclassed = None
-    PydanticModelEmpty = None
+if pydantic_v1 is None:
+    PydanticV1Model = None
+    PydanticV1SpecialCasesModel = None
+    PydanticV1ModelNested = None
+    PydanticV1ModelSubclassed = None
+    PydanticV1ModelEmpty = None
 else:
 
-    class PydanticModel(BaseModel):
-        name: Optional[str] = PydanticField(
+    class PydanticV1Model(pydantic_v1.BaseModel):
+        name: Optional[str] = pydantic_v1.Field(
             default_factory=lambda: None,
             serializer=str,
         )
-        value: Optional[int] = PydanticField(
+        value: Optional[int] = pydantic_v1.Field(
             default_factory=lambda: None,
             serializer=int,
         )
 
-    class PydanticSpecialCasesModel(BaseModel):
-        special_cases: Optional[int] = PydanticField(
+    class PydanticV1SpecialCasesModel(pydantic_v1.BaseModel):
+        special_cases: Optional[int] = pydantic_v1.Field(
             default_factory=lambda: None,
             alias="special_cases",
             allow_mutation=False,
@@ -132,7 +130,56 @@ else:
         class Config:
             validate_assignment = True
 
-    class PydanticModelNested(BaseModel):
+    class PydanticV1ModelNested(pydantic_v1.BaseModel):
+        nested: PydanticV1Model
+        adapter: ItemAdapter
+        dict_: dict
+        list_: list
+        set_: set
+        tuple_: tuple
+        int_: int
+
+        class Config:
+            arbitrary_types_allowed = True
+
+    class PydanticV1ModelSubclassed(PydanticV1Model):
+        subclassed: bool = pydantic_v1.Field(
+            default_factory=lambda: True,
+        )
+
+    class PydanticV1ModelEmpty(pydantic_v1.BaseModel):
+        pass
+
+
+if pydantic is None:
+    PydanticModel = None
+    PydanticSpecialCasesModel = None
+    PydanticModelNested = None
+    PydanticModelSubclassed = None
+    PydanticModelEmpty = None
+else:
+
+    class PydanticModel(pydantic.BaseModel):
+        name: Optional[str] = pydantic.Field(
+            default_factory=lambda: None,
+            serializer=str,
+        )
+        value: Optional[int] = pydantic.Field(
+            default_factory=lambda: None,
+            serializer=int,
+        )
+
+    class PydanticSpecialCasesModel(pydantic.BaseModel):
+        special_cases: Optional[int] = pydantic.Field(
+            default_factory=lambda: None,
+            alias="special_cases",
+            allow_mutation=False,
+        )
+
+        class Config:
+            validate_assignment = True
+
+    class PydanticModelNested(pydantic.BaseModel):
         nested: PydanticModel
         adapter: ItemAdapter
         dict_: dict
@@ -145,11 +192,11 @@ else:
             arbitrary_types_allowed = True
 
     class PydanticModelSubclassed(PydanticModel):
-        subclassed: bool = PydanticField(
+        subclassed: bool = pydantic.Field(
             default_factory=lambda: True,
         )
 
-    class PydanticModelEmpty(BaseModel):
+    class PydanticModelEmpty(pydantic.BaseModel):
         pass
 
 

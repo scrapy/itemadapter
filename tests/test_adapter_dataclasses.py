@@ -6,7 +6,7 @@ from itemadapter.utils import get_field_meta_from_class
 from tests import (
     AttrsItem,
     DataClassItem,
-    PydanticModel,
+    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
 )
@@ -20,10 +20,6 @@ class DataclassTestCase(TestCase):
         self.assertFalse(DataclassAdapter.is_item(sum))
         self.assertFalse(DataclassAdapter.is_item(1234))
         self.assertFalse(DataclassAdapter.is_item(object()))
-        self.assertFalse(DataclassAdapter.is_item(ScrapyItem()))
-        self.assertFalse(DataclassAdapter.is_item(AttrsItem()))
-        self.assertFalse(DataclassAdapter.is_item(PydanticModel()))
-        self.assertFalse(DataclassAdapter.is_item(ScrapySubclassedItem()))
         self.assertFalse(DataclassAdapter.is_item("a string"))
         self.assertFalse(DataclassAdapter.is_item(b"some bytes"))
         self.assertFalse(DataclassAdapter.is_item({"a": "dict"}))
@@ -31,6 +27,26 @@ class DataclassTestCase(TestCase):
         self.assertFalse(DataclassAdapter.is_item(("a", "tuple")))
         self.assertFalse(DataclassAdapter.is_item({"a", "set"}))
         self.assertFalse(DataclassAdapter.is_item(DataClassItem))
+
+        try:
+            import attrs  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            self.assertFalse(DataclassAdapter.is_item(AttrsItem()))
+
+        from itemadapter._imports import pydantic_v1
+
+        if pydantic_v1 is not None:
+            self.assertFalse(DataclassAdapter.is_item(PydanticV1Model()))
+
+        try:
+            import scrapy  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            self.assertFalse(DataclassAdapter.is_item(ScrapyItem()))
+            self.assertFalse(DataclassAdapter.is_item(ScrapySubclassedItem()))
 
     def test_true(self):
         from itemadapter.adapter import DataclassAdapter
