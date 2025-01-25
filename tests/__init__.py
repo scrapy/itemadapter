@@ -21,7 +21,7 @@ def make_mock_import(block_name: str) -> Callable:
 @contextmanager
 def clear_itemadapter_imports() -> Generator[None, None, None]:
     backup = {}
-    for key in sys.modules.copy().keys():
+    for key in sys.modules.copy():
         if key.startswith("itemadapter"):
             backup[key] = sys.modules.pop(key)
     try:

@@ -6,7 +6,7 @@ from __future__ import annotations
 _scrapy_item_classes: tuple
 
 try:
-    import scrapy  # pylint: disable=W0611 (unused-import)
+    import scrapy
 except ImportError:
     scrapy = None  # type: ignore[assignment]
     _scrapy_item_classes = ()
