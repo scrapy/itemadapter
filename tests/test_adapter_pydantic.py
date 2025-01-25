@@ -1,5 +1,4 @@
 import unittest
-import warnings
 from types import MappingProxyType
 from unittest import mock
 
@@ -76,16 +75,3 @@ class PydanticTestCase(unittest.TestCase):
         )
         with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")
-
-    def test_deprecated_is_instance(self):
-        from itemadapter.utils import is_pydantic_instance
-
-        with warnings.catch_warnings(record=True) as caught:
-            is_pydantic_instance(1)
-            self.assertEqual(len(caught), 1)
-            self.assertTrue(issubclass(caught[0].category, DeprecationWarning))
-            self.assertEqual(
-                "itemadapter.utils.is_pydantic_instance is deprecated"
-                " and it will be removed in a future version",
-                str(caught[0].message),
-            )

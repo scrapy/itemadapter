@@ -1,4 +1,3 @@
-import warnings
 from types import MappingProxyType
 from typing import Any
 
@@ -77,54 +76,3 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     from itemadapter.adapter import ItemAdapter
 
     return ItemAdapter.get_field_meta_from_class(item_class, field_name)
-
-
-# deprecated
-
-
-def is_dataclass_instance(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_dataclass_instance is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import DataclassAdapter
-
-    return DataclassAdapter.is_item(obj)
-
-
-def is_attrs_instance(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_attrs_instance is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import AttrsAdapter
-
-    return AttrsAdapter.is_item(obj)
-
-
-def is_pydantic_instance(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_pydantic_instance is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import PydanticAdapter
-
-    return PydanticAdapter.is_item(obj)
-
-
-def is_scrapy_item(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_scrapy_item is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import ScrapyItemAdapter
-
-    return ScrapyItemAdapter.is_item(obj)

@@ -1,4 +1,3 @@
-import warnings
 from types import MappingProxyType
 from unittest import TestCase
 
@@ -47,16 +46,3 @@ class DataclassTestCase(TestCase):
         )
         with self.assertRaises(KeyError, msg="DataClassItem does not support field: non_existent"):
             get_field_meta_from_class(DataClassItem, "non_existent")
-
-    def test_deprecated_is_instance(self):
-        from itemadapter.utils import is_dataclass_instance
-
-        with warnings.catch_warnings(record=True) as caught:
-            is_dataclass_instance(1)
-            self.assertEqual(len(caught), 1)
-            self.assertTrue(issubclass(caught[0].category, DeprecationWarning))
-            self.assertEqual(
-                "itemadapter.utils.is_dataclass_instance is deprecated"
-                " and it will be removed in a future version",
-                str(caught[0].message),
-            )

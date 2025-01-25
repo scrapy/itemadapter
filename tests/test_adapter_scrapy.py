@@ -1,5 +1,4 @@
 import unittest
-import warnings
 from types import MappingProxyType
 from unittest import mock
 
@@ -73,19 +72,6 @@ class ScrapyItemTestCase(unittest.TestCase):
             get_field_meta_from_class(ScrapySubclassedItem, "value"),
             MappingProxyType({"serializer": int}),
         )
-
-    def test_deprecated_is_instance(self):
-        from itemadapter.utils import is_scrapy_item
-
-        with warnings.catch_warnings(record=True) as caught:
-            is_scrapy_item(1)
-            self.assertEqual(len(caught), 1)
-            self.assertTrue(issubclass(caught[0].category, DeprecationWarning))
-            self.assertEqual(
-                "itemadapter.utils.is_scrapy_item is deprecated"
-                " and it will be removed in a future version",
-                str(caught[0].message),
-            )
 
 
 try:
