@@ -26,10 +26,7 @@ jobs:
       run: tox -e py
 
     - name: Upload coverage report
-      run: |
-        curl -Os https://uploader.codecov.io/latest/linux/codecov
-        chmod +x codecov
-        ./codecov
+      uses: codecov/codecov-action@v5
 
   tests-other:
     name: "Test: py39-scrapy22, Ubuntu"
@@ -50,10 +47,7 @@ jobs:
       run: tox -e py39-scrapy22
 
     - name: Upload coverage report
-      run: |
-        curl -Os https://uploader.codecov.io/latest/linux/codecov
-        chmod +x codecov
-        ./codecov
+      uses: codecov/codecov-action@v5
 
   tests-other-os:
     name: "Test: py39, ${{ matrix.os }}"
@@ -75,3 +69,6 @@ jobs:
 
     - name: Run tests
       run: tox -e py
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v5
