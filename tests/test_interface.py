@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import unittest
+from collections.abc import Iterator, KeysView
 from types import MappingProxyType
-from typing import Any, Iterator, KeysView
+from typing import Any
 from unittest import mock
 
 from itemadapter.adapter import AdapterInterface, ItemAdapter

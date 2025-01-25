@@ -1,8 +1,9 @@
 import importlib
 import sys
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Callable, Generator, Optional
+from typing import Callable, Optional
 
 from itemadapter import ItemAdapter
 

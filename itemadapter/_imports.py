@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # attempt the following imports only once,
 # to be imported from itemadapter's submodules
 
