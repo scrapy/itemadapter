@@ -29,7 +29,7 @@ class DataclassTestCase(TestCase):
         self.assertFalse(DataclassAdapter.is_item(DataClassItem))
 
         try:
-            import attrs  # noqa: F401
+            import attrs  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:
@@ -41,7 +41,7 @@ class DataclassTestCase(TestCase):
             self.assertFalse(DataclassAdapter.is_item(PydanticV1Model()))
 
         try:
-            import scrapy  # noqa: F401
+            import scrapy  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:

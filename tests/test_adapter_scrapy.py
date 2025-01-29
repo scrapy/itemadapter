@@ -33,7 +33,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(ScrapyItemAdapter.is_item(ScrapySubclassedItem))
 
         try:
-            import attrs  # noqa: F401
+            import attrs  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:

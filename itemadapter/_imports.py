@@ -37,7 +37,7 @@ pydantic_v1: Any = None
 pydantic: Any = None
 
 try:
-    import pydantic  # pylint: disable=W0611 (unused-import)
+    import pydantic
 except ImportError:  # No pydantic
     pass
 else:
@@ -45,8 +45,8 @@ else:
         import pydantic.v1 as pydantic_v1  # pylint: disable=W0611 (unused-import)
     except ImportError:  # Pydantic <1.10.17
         pydantic_v1 = pydantic
-        pydantic = None  # pylint: disable=C0103 (invalid-name)
+        pydantic = None
     else:  # Pydantic 1.10.17+
         if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic <2
             pydantic_v1 = pydantic
-            pydantic = None  # pylint: disable=C0103 (invalid-name)
+            pydantic = None

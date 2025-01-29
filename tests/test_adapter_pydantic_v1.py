@@ -33,14 +33,14 @@ class PydanticTestCase(unittest.TestCase):
         self.assertFalse(PydanticAdapter.is_item(PydanticV1Model))
 
         try:
-            import attrs  # noqa: F401
+            import attrs  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:
             self.assertFalse(PydanticAdapter.is_item(AttrsItem()))
 
         try:
-            import scrapy  # noqa: F401
+            import scrapy  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:

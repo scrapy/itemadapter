@@ -38,7 +38,7 @@ class AttrsTestCase(unittest.TestCase):
             self.assertFalse(AttrsAdapter.is_item(PydanticV1Model()))
 
         try:
-            import scrapy  # noqa: F401
+            import scrapy  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:
