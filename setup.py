@@ -6,7 +6,7 @@ with open("README.md") as fh:
 
 setuptools.setup(
     name="itemadapter",
-    version="0.10.0",
+    version="0.11.0",
     license="BSD",
     description="Common interface for data container classes",
     long_description=long_description,

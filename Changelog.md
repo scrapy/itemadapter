@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.11.0 (YYYY-MM-DD)
+### 0.11.0 (2025-01-29)
 
 Removed functions deprecated in 0.5.0:
 
