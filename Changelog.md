@@ -1,5 +1,26 @@
 # Changelog
 
+### 0.11.0 (YYYY-MM-DD)
+
+Removed functions deprecated in 0.5.0:
+
+* `itemadapter.utils.is_attrs_instance()`
+* `itemadapter.utils.is_dataclass_instance()`
+* `itemadapter.utils.is_pydantic_instance()`
+* `itemadapter.utils.is_scrapy_item()`
+
+([#93](https://github.com/scrapy/itemadapter/pull/93)).
+
+Added support for Pydantic 2
+([#91](https://github.com/scrapy/itemadapter/pull/91)).
+
+Added `__all__` to the top-level module to improve type checks
+([#90](https://github.com/scrapy/itemadapter/pull/90)).
+
+Improved `pre-commit` and CI configuration
+([#91](https://github.com/scrapy/itemadapter/pull/91),
+[#92](https://github.com/scrapy/itemadapter/pull/92)).
+
 ### 0.10.0 (2024-11-29)
 
 Dropped Python 3.8 support, added official Python 3.13 and PyPy 3.10 support
