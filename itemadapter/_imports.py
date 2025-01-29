@@ -1,32 +1,49 @@
 # attempt the following imports only once,
 # to be imported from itemadapter's submodules
 
+from typing import Any
+
 _scrapy_item_classes: tuple
+scrapy: Any
 
 try:
     import scrapy  # pylint: disable=W0611 (unused-import)
 except ImportError:
-    scrapy = None  # type: ignore[assignment]
     _scrapy_item_classes = ()
+    scrapy = None
 else:
     try:
         # handle deprecated base classes
         _base_item_cls = getattr(
             scrapy.item,
             "_BaseItem",
-            scrapy.item.BaseItem,  # type: ignore[attr-defined]
+            scrapy.item.BaseItem,
         )
     except AttributeError:
         _scrapy_item_classes = (scrapy.item.Item,)
     else:
         _scrapy_item_classes = (scrapy.item.Item, _base_item_cls)
 
+attr: Any
 try:
     import attr  # pylint: disable=W0611 (unused-import)
 except ImportError:
-    attr = None  # type: ignore[assignment]
+    attr = None
+
+pydantic_v1: Any = None
+pydantic: Any = None
 
 try:
     import pydantic  # pylint: disable=W0611 (unused-import)
-except ImportError:
-    pydantic = None  # type: ignore[assignment]
+except ImportError:  # No pydantic
+    pass
+else:
+    try:
+        import pydantic.v1 as pydantic_v1  # pylint: disable=W0611 (unused-import)
+    except ImportError:  # Pydantic <1.10.17
+        pydantic_v1 = pydantic
+        pydantic = None  # pylint: disable=C0103 (invalid-name)
+    else:  # Pydantic 1.10.17+
+        if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic <2
+            pydantic_v1 = pydantic
+            pydantic = None  # pylint: disable=C0103 (invalid-name)

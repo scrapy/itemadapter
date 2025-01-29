@@ -7,6 +7,7 @@ from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
+    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
     clear_itemadapter_imports,
@@ -22,10 +23,7 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(AttrsAdapter.is_item(sum))
         self.assertFalse(AttrsAdapter.is_item(1234))
         self.assertFalse(AttrsAdapter.is_item(object()))
-        self.assertFalse(AttrsAdapter.is_item(ScrapyItem()))
         self.assertFalse(AttrsAdapter.is_item(DataClassItem()))
-        self.assertFalse(AttrsAdapter.is_item(PydanticModel()))
-        self.assertFalse(AttrsAdapter.is_item(ScrapySubclassedItem()))
         self.assertFalse(AttrsAdapter.is_item("a string"))
         self.assertFalse(AttrsAdapter.is_item(b"some bytes"))
         self.assertFalse(AttrsAdapter.is_item({"a": "dict"}))
@@ -33,6 +31,19 @@ class AttrsTestCase(unittest.TestCase):
         self.assertFalse(AttrsAdapter.is_item(("a", "tuple")))
         self.assertFalse(AttrsAdapter.is_item({"a", "set"}))
         self.assertFalse(AttrsAdapter.is_item(AttrsItem))
+
+        if PydanticModel is not None:
+            self.assertFalse(AttrsAdapter.is_item(PydanticModel()))
+        if PydanticV1Model is not None:
+            self.assertFalse(AttrsAdapter.is_item(PydanticV1Model()))
+
+        try:
+            import scrapy  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            self.assertFalse(AttrsAdapter.is_item(ScrapyItem()))
+            self.assertFalse(AttrsAdapter.is_item(ScrapySubclassedItem()))
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     @mock.patch("builtins.__import__", make_mock_import("attr"))
