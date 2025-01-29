@@ -1,6 +1,6 @@
 import unittest
+from collections.abc import KeysView
 from types import MappingProxyType
-from typing import KeysView
 
 from itemadapter.adapter import ItemAdapter
 from tests import (
@@ -27,7 +27,7 @@ from tests import (
 
 class ItemAdapterReprTestCase(unittest.TestCase):
     def test_repr_dict(self):
-        item = dict(name="asdf", value=1234)
+        item = {"name": "asdf", "value": 1234}
         adapter = ItemAdapter(item)
         self.assertEqual(repr(adapter), "<ItemAdapter for dict(name='asdf', value=1234)>")
 
@@ -133,12 +133,12 @@ class BaseTestMixin:
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
+        self.assertEqual({"name": "asdf", "value": 1234}, dict(adapter))
 
     def test_as_dict_nested(self):
         item = self.item_class_nested(
             nested=self.item_class(name="asdf", value=1234),
-            adapter=ItemAdapter(dict(foo="bar", nested_list=[1, 2, 3, 4, 5])),
+            adapter=ItemAdapter({"foo": "bar", "nested_list": [1, 2, 3, 4, 5]}),
             dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
             list_=[1, 2, 3],
             set_={1, 2, 3},
@@ -148,15 +148,15 @@ class BaseTestMixin:
         adapter = ItemAdapter(item)
         self.assertEqual(
             adapter.asdict(),
-            dict(
-                nested=dict(name="asdf", value=1234),
-                adapter=dict(foo="bar", nested_list=[1, 2, 3, 4, 5]),
-                dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
-                list_=[1, 2, 3],
-                set_={1, 2, 3},
-                tuple_=(1, 2, 3),
-                int_=123,
-            ),
+            {
+                "nested": {"name": "asdf", "value": 1234},
+                "adapter": {"foo": "bar", "nested_list": [1, 2, 3, 4, 5]},
+                "dict_": {"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
+                "list_": [1, 2, 3],
+                "set_": {1, 2, 3},
+                "tuple_": (1, 2, 3),
+                "int_": 123,
+            },
         )
 
     def test_field_names(self):

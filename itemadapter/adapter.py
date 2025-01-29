@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import dataclasses
 from abc import ABCMeta, abstractmethod
 from collections import deque
-from collections.abc import KeysView, MutableMapping
+from collections.abc import Iterable, Iterator, KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any, Iterable, Iterator, List, Optional, Type
+from typing import Any
 
 from itemadapter._imports import _scrapy_item_classes, attr
 from itemadapter.utils import (
@@ -52,7 +54,7 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         return MappingProxyType({})
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         """Return a list of fields defined for ``item_class``.
         If a class doesn't support fields, None is returned."""
         return None
@@ -132,7 +134,7 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         if attr is None:
             raise RuntimeError("attr module is not available")
         return [a.name for a in attr.fields(item_class)]
@@ -160,7 +162,7 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         return [a.name for a in dataclasses.fields(item_class)]
 
 
@@ -182,7 +184,7 @@ class PydanticAdapter(AdapterInterface):
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         try:
             return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
         except AttributeError:
@@ -298,7 +300,7 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         return MappingProxyType(item_class.fields[field_name])  # type: ignore[attr-defined]
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         return list(item_class.fields.keys())  # type: ignore[attr-defined]
 
     def field_names(self) -> KeysView:
@@ -310,7 +312,7 @@ class ItemAdapter(MutableMapping):
     to extract and set data without having to take the object's type into account.
     """
 
-    ADAPTER_CLASSES: Iterable[Type[AdapterInterface]] = deque(
+    ADAPTER_CLASSES: Iterable[type[AdapterInterface]] = deque(
         [
             ScrapyItemAdapter,
             DictAdapter,
@@ -343,7 +345,7 @@ class ItemAdapter(MutableMapping):
         return False
 
     @classmethod
-    def _get_adapter_class(cls, item_class: type) -> Type[AdapterInterface]:
+    def _get_adapter_class(cls, item_class: type) -> type[AdapterInterface]:
         for adapter_class in cls.ADAPTER_CLASSES:
             if adapter_class.is_item_class(item_class):
                 return adapter_class
@@ -355,7 +357,7 @@ class ItemAdapter(MutableMapping):
         return adapter_class.get_field_meta_from_class(item_class, field_name)
 
     @classmethod
-    def get_field_names_from_class(cls, item_class: type) -> Optional[List[str]]:
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         adapter_class = cls._get_adapter_class(item_class)
         return adapter_class.get_field_names_from_class(item_class)
 

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import unittest
+from collections.abc import Iterator, KeysView
 from types import MappingProxyType
-from typing import Any, Iterator, KeysView
+from typing import Any
 from unittest import mock
 
 from itemadapter.adapter import AdapterInterface, ItemAdapter
@@ -35,8 +38,7 @@ class BaseFakeItemAdapter(AdapterInterface):
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self.item._fields:
             return self.item._values[field_name]
-        else:
-            raise KeyError(field_name)
+        raise KeyError(field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
         if field_name in self.item._fields:
@@ -119,7 +121,7 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(dict(name="asdf", value=1234), dict(adapter))
+        self.assertEqual({"name": "asdf", "value": 1234}, dict(adapter))
 
     def test_set_value_keyerror(self):
         item = self.item_class()

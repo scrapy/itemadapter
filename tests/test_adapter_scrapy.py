@@ -33,7 +33,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(ScrapyItemAdapter.is_item(ScrapySubclassedItem))
 
         try:
-            import attrs  # noqa: F401
+            import attrs  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:
@@ -129,7 +129,7 @@ class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
             Item = ScrapyItem
 
         with mock.patch("scrapy.item", MockItemModule):
-            self.assertFalse(ScrapyItemAdapter.is_item(dict()))
+            self.assertFalse(ScrapyItemAdapter.is_item({}))
             self.assertEqual(
                 get_field_meta_from_class(ScrapySubclassedItem, "name"),
                 MappingProxyType({"serializer": str}),
