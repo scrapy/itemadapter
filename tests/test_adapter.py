@@ -14,10 +14,10 @@ from tests import (
     DataClassItemNested,
     DataClassItemSubclassed,
     DataClassWithoutInit,
-    PydanticModel,
-    PydanticModelEmpty,
-    PydanticModelNested,
-    PydanticModelSubclassed,
+    PydanticV1Model,
+    PydanticV1ModelEmpty,
+    PydanticV1ModelNested,
+    PydanticV1ModelSubclassed,
     ScrapySubclassedItem,
     ScrapySubclassedItemEmpty,
     ScrapySubclassedItemNested,
@@ -77,13 +77,13 @@ class ItemAdapterReprTestCase(unittest.TestCase):
             repr(adapter), "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
         )
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_repr_pydantic(self):
-        item = PydanticModel(name="asdf", value=1234)
+        item = PydanticV1Model(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
             repr(adapter),
-            "<ItemAdapter for PydanticModel(name='asdf', value=1234)>",
+            "<ItemAdapter for PydanticV1Model(name='asdf', value=1234)>",
         )
 
 
@@ -264,11 +264,11 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
             adapter["name"]
 
 
-class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
-    item_class = PydanticModel
-    item_class_nested = PydanticModelNested
-    item_class_subclassed = PydanticModelSubclassed
-    item_class_empty = PydanticModelEmpty
+class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
+    item_class = PydanticV1Model
+    item_class_nested = PydanticV1ModelNested
+    item_class_subclassed = PydanticV1ModelSubclassed
+    item_class_empty = PydanticV1ModelEmpty
 
 
 class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):

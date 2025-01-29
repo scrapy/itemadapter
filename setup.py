@@ -20,6 +20,11 @@ setuptools.setup(
     },
     include_package_data=True,
     python_requires=">=3.9",
+    extras_require={
+        "attrs": ["attrs>=18.1.0"],
+        "pydantic": ["pydantic>=1.8"],
+        "scrapy": ["scrapy>=2.2"],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: BSD License",

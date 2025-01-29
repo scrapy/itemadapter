@@ -1,5 +1,4 @@
 import unittest
-import warnings
 from types import MappingProxyType
 from unittest import mock
 
@@ -8,6 +7,7 @@ from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
+    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
     clear_itemadapter_imports,
@@ -23,9 +23,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(ScrapyItemAdapter.is_item(sum))
         self.assertFalse(ScrapyItemAdapter.is_item(1234))
         self.assertFalse(ScrapyItemAdapter.is_item(object()))
-        self.assertFalse(ScrapyItemAdapter.is_item(AttrsItem()))
         self.assertFalse(ScrapyItemAdapter.is_item(DataClassItem()))
-        self.assertFalse(ScrapyItemAdapter.is_item(PydanticModel()))
         self.assertFalse(ScrapyItemAdapter.is_item("a string"))
         self.assertFalse(ScrapyItemAdapter.is_item(b"some bytes"))
         self.assertFalse(ScrapyItemAdapter.is_item({"a": "dict"}))
@@ -33,6 +31,18 @@ class ScrapyItemTestCase(unittest.TestCase):
         self.assertFalse(ScrapyItemAdapter.is_item(("a", "tuple")))
         self.assertFalse(ScrapyItemAdapter.is_item({"a", "set"}))
         self.assertFalse(ScrapyItemAdapter.is_item(ScrapySubclassedItem))
+
+        try:
+            import attrs  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            self.assertFalse(ScrapyItemAdapter.is_item(AttrsItem()))
+
+        if PydanticModel is not None:
+            self.assertFalse(ScrapyItemAdapter.is_item(PydanticModel()))
+        if PydanticV1Model is not None:
+            self.assertFalse(ScrapyItemAdapter.is_item(PydanticV1Model()))
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @mock.patch("builtins.__import__", make_mock_import("scrapy"))
@@ -73,19 +83,6 @@ class ScrapyItemTestCase(unittest.TestCase):
             get_field_meta_from_class(ScrapySubclassedItem, "value"),
             MappingProxyType({"serializer": int}),
         )
-
-    def test_deprecated_is_instance(self):
-        from itemadapter.utils import is_scrapy_item
-
-        with warnings.catch_warnings(record=True) as caught:
-            is_scrapy_item(1)
-            self.assertEqual(len(caught), 1)
-            self.assertTrue(issubclass(caught[0].category, DeprecationWarning))
-            self.assertEqual(
-                "itemadapter.utils.is_scrapy_item is deprecated"
-                " and it will be removed in a future version",
-                str(caught[0].message),
-            )
 
 
 try:

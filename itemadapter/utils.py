@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import warnings
 from types import MappingProxyType
 from typing import Any
 
-from itemadapter._imports import attr, pydantic
+from itemadapter._imports import attr, pydantic, pydantic_v1
 
 __all__ = ["is_item", "get_field_meta_from_class"]
 
@@ -21,7 +20,60 @@ def _is_pydantic_model(obj: Any) -> bool:
     return issubclass(obj, pydantic.BaseModel)
 
 
+def _is_pydantic_v1_model(obj: Any) -> bool:
+    if pydantic_v1 is None:
+        return False
+    return issubclass(obj, pydantic_v1.BaseModel)
+
+
 def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
+    metadata = {}
+    field = item_model.model_fields[field_name]
+
+    for attribute in [
+        "default",
+        "default_factory",
+        "alias",
+        "alias_priority",
+        "validation_alias",
+        "serialization_alias",
+        "title",
+        "field_title_generator",
+        "description",
+        "examples",
+        "exclude",
+        "discriminator",
+        "deprecated",
+        "json_schema_extra",
+        "frozen",
+        "validate_default",
+        "repr",
+        "init",
+        "init_var",
+        "kw_only",
+        "pattern",
+        "strict",
+        "coerce_numbers_to_str",
+        "gt",
+        "ge",
+        "lt",
+        "le",
+        "multiple_of",
+        "allow_inf_nan",
+        "max_digits",
+        "decimal_places",
+        "min_length",
+        "max_length",
+        "union_mode",
+        "fail_fast",
+    ]:
+        if hasattr(field, attribute) and (value := getattr(field, attribute)) is not None:
+            metadata[attribute] = value
+
+    return MappingProxyType(metadata)
+
+
+def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
     metadata = {}
     field = item_model.__fields__[field_name].field_info
 
@@ -79,54 +131,3 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     from itemadapter.adapter import ItemAdapter
 
     return ItemAdapter.get_field_meta_from_class(item_class, field_name)
-
-
-# deprecated
-
-
-def is_dataclass_instance(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_dataclass_instance is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import DataclassAdapter
-
-    return DataclassAdapter.is_item(obj)
-
-
-def is_attrs_instance(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_attrs_instance is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import AttrsAdapter
-
-    return AttrsAdapter.is_item(obj)
-
-
-def is_pydantic_instance(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_pydantic_instance is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import PydanticAdapter
-
-    return PydanticAdapter.is_item(obj)
-
-
-def is_scrapy_item(obj: Any) -> bool:
-    warnings.warn(
-        "itemadapter.utils.is_scrapy_item is deprecated"
-        " and it will be removed in a future version",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    from itemadapter.adapter import ScrapyItemAdapter
-
-    return ScrapyItemAdapter.is_item(obj)

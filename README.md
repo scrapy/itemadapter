@@ -15,7 +15,7 @@ Currently supported types are:
 * [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
-* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes (`pydantic>=2` not yet supported)
+* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -24,11 +24,14 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
 ## Requirements
 
-* Python 3.9+, either the CPython implementation (default) or the PyPy implementation
-* [`scrapy`](https://scrapy.org/): optional, needed to interact with `scrapy` items
-* [`attrs`](https://pypi.org/project/attrs/): optional, needed to interact with `attrs`-based items
-* [`pydantic`](https://pypi.org/project/pydantic/): optional, needed to interact with
-  `pydantic`-based items (`pydantic>=2` not yet supported)
+* Python 3.9+, either the CPython implementation (default) or the PyPy
+  implementation
+* [`scrapy`](https://scrapy.org/) 2.2+: optional, needed to interact with
+  `scrapy` items
+* [`attrs`](https://pypi.org/project/attrs/) 18.1.0+: optional, needed to
+  interact with `attrs`-based items
+* [`pydantic`](https://pypi.org/project/pydantic/) 1.8+: optional, needed to
+  interact with `pydantic`-based items
 
 ---
 
@@ -38,6 +41,20 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
 ```
 pip install itemadapter
+```
+
+For `attrs`, `pydantic` and `scrapy` support, install the corresponding extra
+to ensure that a supported version of the corresponding dependencies is
+installed. For example:
+
+```
+pip install itemadapter[scrapy]
+```
+
+Mind that you can install multiple extras as needed. For example:
+
+```
+pip install itemadapter[attrs,pydantic,scrapy]
 ```
 
 ---
@@ -306,9 +323,9 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")
-mappingproxy({'serializer': <class 'str'>})
+mappingproxy({'default': PydanticUndefined, 'json_schema_extra': {'serializer': <class 'str'>}, 'repr': True})
 >>> adapter.get_field_meta("value")
-mappingproxy({'serializer': <class 'int'>, 'limit': 100})
+mappingproxy({'default': PydanticUndefined, 'json_schema_extra': {'serializer': <class 'int'>, 'limit': 100}, 'repr': True})
 >>>
 ```
 
@@ -361,19 +378,23 @@ so all methods from the `MutableMapping` interface must be implemented as well.
 
 ### Registering an adapter
 
-Add your custom adapter class to the `itemadapter.adapter.ItemAdapter.ADAPTER_CLASSES`
-class attribute in order to handle custom item classes:
+Add your custom adapter class to the
+`itemadapter.adapter.ItemAdapter.ADAPTER_CLASSES` class attribute in order to
+handle custom item classes.
 
 **Example**
+```
+pip install zyte-common-items
+```
 ```python
 >>> from itemadapter.adapter import ItemAdapter
->>> from tests.test_interface import BaseFakeItemAdapter, FakeItemClass
+>>> from zyte_common_items import Item, ZyteItemAdapter
 >>>
->>> ItemAdapter.ADAPTER_CLASSES.appendleft(BaseFakeItemAdapter)
->>> item = FakeItemClass()
+>>> ItemAdapter.ADAPTER_CLASSES.appendleft(ZyteItemAdapter)
+>>> item = Item()
 >>> adapter = ItemAdapter(item)
 >>> adapter
-<ItemAdapter for FakeItemClass()>
+<ItemAdapter for Item()>
 >>>
 ```
 

@@ -11,13 +11,16 @@ jobs:
         include:
         - python-version: 3.13
           env:
-            TOXENV: pylint
-        - python-version: 3.13
-          env:
             TOXENV: typing
         - python-version: 3.13
           env:
+            TOXENV: docs
+        - python-version: 3.13
+          env:
             TOXENV: twinecheck
+        - python-version: 3.13
+          env:
+            TOXENV: pylint
 
     steps:
     - uses: actions/checkout@v4
