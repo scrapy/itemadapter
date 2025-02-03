@@ -4,7 +4,7 @@ import importlib
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Optional
 
 from itemadapter import ItemAdapter
 from itemadapter._imports import pydantic, pydantic_v1
@@ -116,17 +116,17 @@ if pydantic_v1 is None:
 else:
 
     class PydanticV1Model(pydantic_v1.BaseModel):
-        name: str | None = pydantic_v1.Field(
+        name: Optional[str] = pydantic_v1.Field(
             default_factory=lambda: None,
             serializer=str,
         )
-        value: int | None = pydantic_v1.Field(
+        value: Optional[int] = pydantic_v1.Field(
             default_factory=lambda: None,
             serializer=int,
         )
 
     class PydanticV1SpecialCasesModel(pydantic_v1.BaseModel):
-        special_cases: int | None = pydantic_v1.Field(
+        special_cases: Optional[int] = pydantic_v1.Field(
             default_factory=lambda: None,
             alias="special_cases",
             allow_mutation=False,
@@ -165,17 +165,17 @@ if pydantic is None:
 else:
 
     class PydanticModel(pydantic.BaseModel):
-        name: str | None = pydantic.Field(
+        name: Optional[str] = pydantic.Field(
             default_factory=lambda: None,
             serializer=str,
         )
-        value: int | None = pydantic.Field(
+        value: Optional[int] = pydantic.Field(
             default_factory=lambda: None,
             serializer=int,
         )
 
     class PydanticSpecialCasesModel(pydantic.BaseModel):
-        special_cases: int | None = pydantic.Field(
+        special_cases: Optional[int] = pydantic.Field(
             default_factory=lambda: None,
             alias="special_cases",
             allow_mutation=False,

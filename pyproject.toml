@@ -166,3 +166,7 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
+
+[tool.ruff.lint.pyupgrade]
+# for Pydantic annotations while we support Python 3.92
+keep-runtime-typing = true
