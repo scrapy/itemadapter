@@ -36,7 +36,8 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
+            repr(adapter),
+            "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>",
         )
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
@@ -55,7 +56,8 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         self.assertEqual(repr(adapter), "<ItemAdapter for DataClassWithoutInit()>")
         adapter["name"] = "set after init"
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for DataClassWithoutInit(name='set after init')>"
+            repr(adapter),
+            "<ItemAdapter for DataClassWithoutInit(name='set after init')>",
         )
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
@@ -74,7 +76,8 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         self.assertEqual(repr(adapter), "<ItemAdapter for AttrsItemWithoutInit()>")
         adapter["name"] = "set after init"
         self.assertEqual(
-            repr(adapter), "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
+            repr(adapter),
+            "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>",
         )
 
     @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
@@ -103,7 +106,7 @@ class BaseTestMixin:
 
     def setUp(self):
         if self.item_class is None:
-            raise unittest.SkipTest()
+            raise unittest.SkipTest
 
     def test_get_set_value(self):
         item = self.item_class()
@@ -192,15 +195,15 @@ class NonDictTestMixin(BaseTestMixin):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(len(adapter), 2)
-        self.assertEqual(sorted(list(iter(adapter))), ["name", "value"])
+        self.assertEqual(sorted(iter(adapter)), ["name", "value"])
 
         del adapter["name"]
         self.assertEqual(len(adapter), 1)
-        self.assertEqual(sorted(list(iter(adapter))), ["value"])
+        self.assertEqual(sorted(iter(adapter)), ["value"])
 
         del adapter["value"]
         self.assertEqual(len(adapter), 0)
-        self.assertEqual(sorted(list(iter(adapter))), [])
+        self.assertEqual(sorted(iter(adapter)), [])
 
         with self.assertRaises(KeyError):
             del adapter["name"]

@@ -42,7 +42,7 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     @abstractmethod
     def is_item_class(cls, item_class: type) -> bool:
         """Return True if the adapter can handle the given item class, False otherwise."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
@@ -96,8 +96,8 @@ class _MixinAttrsDataclassAdapter:
                     delattr(self.item, field_name)
                 else:
                     raise AttributeError
-            except AttributeError:
-                raise KeyError(field_name)
+            except AttributeError as ex:
+                raise KeyError(field_name) from ex
         else:
             raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
@@ -129,9 +129,9 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         if attr is None:
             raise RuntimeError("attr module is not available")
         try:
-            return attr.fields_dict(item_class)[field_name].metadata  # type: ignore
-        except KeyError:
-            raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
+            return attr.fields_dict(item_class)[field_name].metadata
+        except KeyError as ex:
+            raise KeyError(f"{item_class.__name__} does not support field: {field_name}") from ex
 
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
@@ -158,7 +158,7 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
         for field in dataclasses.fields(item_class):
             if field.name == field_name:
-                return field.metadata  # type: ignore
+                return field.metadata
         raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
 
     @classmethod
@@ -180,8 +180,8 @@ class PydanticAdapter(AdapterInterface):
                 return _get_pydantic_model_metadata(item_class, field_name)
             except AttributeError:
                 return _get_pydantic_v1_model_metadata(item_class, field_name)
-        except KeyError:
-            raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
+        except KeyError as ex:
+            raise KeyError(f"{item_class.__name__} does not support field: {field_name}") from ex
 
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
@@ -198,7 +198,7 @@ class PydanticAdapter(AdapterInterface):
 
     def __getitem__(self, field_name: str) -> Any:
         try:
-            self.item.model_fields
+            self.item.model_fields  # noqa: B018
         except AttributeError:
             if field_name in self.item.__fields__:
                 return getattr(self.item, field_name)
@@ -209,7 +209,7 @@ class PydanticAdapter(AdapterInterface):
 
     def __setitem__(self, field_name: str, value: Any) -> None:
         try:
-            self.item.model_fields
+            self.item.model_fields  # noqa: B018
         except AttributeError:
             if field_name in self.item.__fields__:
                 setattr(self.item, field_name, value)
@@ -222,16 +222,16 @@ class PydanticAdapter(AdapterInterface):
 
     def __delitem__(self, field_name: str) -> None:
         try:
-            self.item.model_fields
-        except AttributeError:
+            self.item.model_fields  # noqa: B018
+        except AttributeError as ex:
             if field_name in self.item.__fields__:
                 try:
                     if hasattr(self.item, field_name):
                         delattr(self.item, field_name)
                         return
-                    raise AttributeError
-                except AttributeError:
-                    raise KeyError(field_name)
+                    raise AttributeError from ex
+                except AttributeError as ex2:
+                    raise KeyError(field_name) from ex2
         else:
             if field_name in self.item.model_fields:
                 try:
@@ -239,8 +239,8 @@ class PydanticAdapter(AdapterInterface):
                         delattr(self.item, field_name)
                         return
                     raise AttributeError
-                except AttributeError:
-                    raise KeyError(field_name)
+                except AttributeError as ex:
+                    raise KeyError(field_name) from ex
         raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
     def __iter__(self) -> Iterator:
@@ -332,17 +332,13 @@ class ItemAdapter(MutableMapping):
 
     @classmethod
     def is_item(cls, item: Any) -> bool:
-        for adapter_class in cls.ADAPTER_CLASSES:
-            if adapter_class.is_item(item):
-                return True
-        return False
+        return any(adapter_class.is_item(item) for adapter_class in cls.ADAPTER_CLASSES)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        for adapter_class in cls.ADAPTER_CLASSES:
-            if adapter_class.is_item_class(item_class):
-                return True
-        return False
+        return any(
+            adapter_class.is_item_class(item_class) for adapter_class in cls.ADAPTER_CLASSES
+        )
 
     @classmethod
     def _get_adapter_class(cls, item_class: type) -> type[AdapterInterface]:

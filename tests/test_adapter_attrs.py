@@ -78,10 +78,12 @@ class AttrsTestCase(unittest.TestCase):
         self.assertTrue(AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234)))
         # field metadata
         self.assertEqual(
-            get_field_meta_from_class(AttrsItem, "name"), MappingProxyType({"serializer": str})
+            get_field_meta_from_class(AttrsItem, "name"),
+            MappingProxyType({"serializer": str}),
         )
         self.assertEqual(
-            get_field_meta_from_class(AttrsItem, "value"), MappingProxyType({"serializer": int})
+            get_field_meta_from_class(AttrsItem, "value"),
+            MappingProxyType({"serializer": int}),
         )
         with self.assertRaises(KeyError, msg="AttrsItem does not support field: non_existent"):
             get_field_meta_from_class(AttrsItem, "non_existent")
