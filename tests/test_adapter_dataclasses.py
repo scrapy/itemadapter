@@ -55,7 +55,8 @@ class DataclassTestCase(TestCase):
         self.assertTrue(DataclassAdapter.is_item(DataClassItem(name="asdf", value=1234)))
         # field metadata
         self.assertEqual(
-            get_field_meta_from_class(DataClassItem, "name"), MappingProxyType({"serializer": str})
+            get_field_meta_from_class(DataClassItem, "name"),
+            MappingProxyType({"serializer": str}),
         )
         self.assertEqual(
             get_field_meta_from_class(DataClassItem, "value"),

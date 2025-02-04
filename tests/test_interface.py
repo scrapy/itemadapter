@@ -133,15 +133,15 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         self.assertEqual(len(adapter), 2)
-        self.assertEqual(sorted(list(iter(adapter))), ["name", "value"])
+        self.assertEqual(sorted(iter(adapter)), ["name", "value"])
 
         del adapter["name"]
         self.assertEqual(len(adapter), 1)
-        self.assertEqual(sorted(list(iter(adapter))), ["value"])
+        self.assertEqual(sorted(iter(adapter)), ["value"])
 
         del adapter["value"]
         self.assertEqual(len(adapter), 0)
-        self.assertEqual(sorted(list(iter(adapter))), [])
+        self.assertEqual(sorted(iter(adapter)), [])
 
         with self.assertRaises(KeyError):
             del adapter["name"]
@@ -170,10 +170,12 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
             MappingProxyType({}),
         )
         self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "name"), MappingProxyType({})
+            ItemAdapter.get_field_meta_from_class(self.item_class, "name"),
+            MappingProxyType({}),
         )
         self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "value"), MappingProxyType({})
+            ItemAdapter.get_field_meta_from_class(self.item_class, "value"),
+            MappingProxyType({}),
         )
 
     def test_field_names(self):

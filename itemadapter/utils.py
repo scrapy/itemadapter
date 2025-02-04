@@ -5,7 +5,7 @@ from typing import Any
 
 from itemadapter._imports import attr, pydantic, pydantic_v1
 
-__all__ = ["is_item", "get_field_meta_from_class"]
+__all__ = ["get_field_meta_from_class", "is_item"]
 
 
 def _is_attrs_class(obj: Any) -> bool:

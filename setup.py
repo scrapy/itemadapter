@@ -1,15 +1,13 @@
+from pathlib import Path
+
 import setuptools
-
-with open("README.md") as fh:
-    long_description = fh.read()
-
 
 setuptools.setup(
     name="itemadapter",
     version="0.11.0",
     license="BSD",
     description="Common interface for data container classes",
-    long_description=long_description,
+    long_description=Path("README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     author="Eugenio Lacuesta",
     author_email="eugenio.lacuesta@gmail.com",

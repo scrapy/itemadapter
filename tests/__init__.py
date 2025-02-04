@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 import importlib
 import sys
-from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from itemadapter import ItemAdapter
 from itemadapter._imports import pydantic, pydantic_v1
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 def make_mock_import(block_name: str) -> Callable:
@@ -20,7 +24,7 @@ def make_mock_import(block_name: str) -> Callable:
 
 
 @contextmanager
-def clear_itemadapter_imports() -> Generator[None, None, None]:
+def clear_itemadapter_imports() -> Generator[None]:
     backup = {}
     for key in sys.modules.copy():
         if key.startswith("itemadapter"):
