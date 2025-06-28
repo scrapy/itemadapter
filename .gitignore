@@ -8,3 +8,6 @@
 htmlcov/
 coverage.xml
 /dist/
+.venv/
+.idea/
+.vscode/
