@@ -1,10 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "itemadapter"
+description = "Common interface for data container classes"
+authors = [
+    { name = "Eugenio Lacuesta", email = "eugenio.lacuesta@gmail.com" },
+]
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Operating System :: OS Independent",
+    "Framework :: Scrapy",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+attrs = [
+    "attrs>=18.1.0",
+]
+pydantic = [
+    "pydantic>=1.8",
+]
+scrapy = [
+    "scrapy>=2.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/scrapy/itemadapter"
+Source = "https://github.com/scrapy/itemadapter"
+Tracker = "https://github.com/scrapy/itemadapter/issues"
+"Release notes" = "https://github.com/scrapy/itemadapter/blob/master/Changelog.md"
+
+[tool.hatch.version]
+path = "itemadapter/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/itemadapter",
+    "/tests",
+    "/Changelog.md",
+    "/tox.ini",
+]
+
 [tool.bumpversion]
 current_version = "0.11.0"
 commit = true
 tag = true
-
-[[tool.bumpversion.files]]
-filename = "setup.py"
 
 [[tool.bumpversion.files]]
 filename = "itemadapter/__init__.py"
@@ -142,6 +201,8 @@ ignore = [
     "D402",
     # First word of the first line should be properly capitalized
     "D403",
+    # `import` should be at the top-level of a file
+    "PLC0415",
     # Too many return statements
     "PLR0911",
     # Too many branches
