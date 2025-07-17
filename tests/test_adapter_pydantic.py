@@ -3,6 +3,7 @@ from types import MappingProxyType
 from unittest import mock
 
 from itemadapter.utils import get_field_meta_from_class
+from itemadapter._imports import PydanticUndefined
 from tests import (
     AttrsItem,
     DataClassItem,
@@ -71,8 +72,6 @@ class PydanticTestCase(unittest.TestCase):
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true(self):
-        from pydantic_core import PydanticUndefined
-
         from itemadapter.adapter import PydanticAdapter
 
         self.assertTrue(PydanticAdapter.is_item(PydanticModel()))

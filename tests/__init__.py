@@ -213,10 +213,10 @@ else:
         is_nested: bool = True
     
     class PydanticV1ModelJsonSchema(pydantic_v1.BaseModel):
-        name: str = pydantic_v1.Field(description="Display name")
+        name: str = pydantic_v1.Field(description="Display name", title="Name")
         value: Any = None
         color: Color
-        produced: bool = pydantic_v1.Field(default_factory=lambda: True)
+        produced: bool
         answer: Union[str, float, int, None]
         numbers: list[float]
         aliases: dict[str, str]
@@ -284,7 +284,7 @@ else:
         is_nested: bool = True
     
     class PydanticModelJsonSchema(pydantic.BaseModel):
-        name: str = pydantic.Field(description="Display name")
+        name: str = pydantic.Field(description="Display name", title="Name")
         value: Any = None
         color: Color
         produced: bool = pydantic.Field(default_factory=lambda: True)

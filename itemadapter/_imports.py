@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ast import Import
 from typing import Any
 
 # attempt the following imports only once,
@@ -50,3 +51,12 @@ else:
         if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic <2
             pydantic_v1 = pydantic
             pydantic = None
+
+try:
+    from pydantic_core import PydanticUndefined
+    from pydantic.v1.fields import Undefined as PydanticV1Undefined
+except ImportError:  # < Pydantic 2.0
+    try:
+        from pydantic.fields import Undefined as PydanticV1Undefined, Undefined as PydanticUndefined
+    except ImportError:
+        PydanticUndefined = PydanticV1Undefined = None

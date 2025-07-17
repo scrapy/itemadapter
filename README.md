@@ -226,13 +226,16 @@ If an item class doesn't support defining fields upfront, None is returned.
 Return a dict with a [JSON Schema](https://json-schema.org/) representation of
 the item class.
 
-Dict items are not supported.
+Dict items are not supported, everything else is.
 
-For Pydantic items, it works like calling 
-[`model_json_schema`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema).
+Note that, for Pydantic items, itemadapter does not use 
+[`model_json_schema()`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema)
+and instead uses its own implementation. This makes it possible to generate 
+JSON Schemas for Pydantic models that have nested non-Pydantic item classes 
+as fields. The downside is that JSON Schema support in itemadapter may not be
+as advanced as Pydantic‘s.
 
-For dataclasses, attrs and `scrapy.items.Item`, itemadapter makes a best effort
-to generate a JSON Schema:
+The output JSON Schema is generated on a best-effort basis:
 
 -   `required` is set to a list of fields that do not have a known default 
     value or default value factory.

@@ -22,7 +22,7 @@ except ImportError:  # Python < 3.10
     NoneType = type(None)
     UnionType = type(Union)
 
-from itemadapter._imports import _scrapy_item_classes, attr
+from itemadapter._imports import _scrapy_item_classes, attr, PydanticUndefined, PydanticV1Undefined
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
     _get_pydantic_v1_model_metadata,
@@ -78,7 +78,7 @@ def _is_json_schema_pattern(pattern: str) -> bool:
 def _type_hint_to_json_schema_type(type_hint: Any) -> str | list[str] | None:
     if type_hint in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING:
         return _JSON_SCHEMA_SIMPLE_TYPE_MAPPING[type_hint]
-    if get_origin(type_hint) is UnionType:
+    if get_origin(type_hint) in (UnionType, Union):
         united_types = get_args(type_hint)
         if len(united_types) == 1:
             return _type_hint_to_json_schema_type(united_types[0])
@@ -112,7 +112,7 @@ def _get_array_item_type(type_hint):
 def _update_prop_from_type(
     prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState
 ) -> None:
-    if (origin := get_origin(prop_type)) is not None:
+    if (origin := get_origin(prop_type)) not in (None, Union):
         if issubclass(origin, (Sequence, Set)):
             prop.setdefault("type", "array")
             if issubclass(origin, Set):
@@ -508,13 +508,85 @@ class PydanticAdapter(AdapterInterface):
             return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
         except AttributeError:
             return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
-        
+    
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         try:
-            return item_class.model_json_schema()
-        except AttributeError:
-            return item_class.schema()
+            schema = copy(item_class.model_config.get("json_schema_extra", {}))
+            extra = item_class.model_config.get("extra")
+        except AttributeError:  # Pydantic V1
+            schema = copy(getattr(item_class.Config, "schema_extra", {}))
+            extra = getattr(item_class.Config, "extra", None)
+        schema.setdefault('type', 'object')
+        if extra == "forbid":
+            schema.setdefault('additionalProperties', False)
+        fields = {
+            name: cls.get_field_meta_from_class(item_class, name)
+            for name in cls.get_field_names_from_class(item_class) or ()
+        }
+        if not fields:
+            return schema
+        schema["properties"] = {
+            name: copy(metadata.get("json_schema_extra", {}))
+            for name, metadata in fields.items()
+        }
+        default_factory_fields = set()
+        field_type_hints = get_type_hints(item_class)
+        for name, metadata in fields.items():
+            prop = schema["properties"][name]
+            if "default_factory" in metadata:
+                default_factory_fields.add(name)
+            elif (
+                "default" in metadata 
+                and metadata["default"] not in (Ellipsis, PydanticUndefined, PydanticV1Undefined)
+            ):
+                prop.setdefault("default", metadata["default"])
+            if "annotation" in metadata:
+                _update_prop_from_type(prop, metadata["annotation"], _state)
+            else:
+                try:
+                    field_type = field_type_hints[name]
+                except KeyError:
+                    pass
+                else:
+                    _update_prop_from_type(prop, field_type, _state)
+            for metadata_key, json_schema_field in (
+                ("ge", "minimum"),
+                ("gt", "exclusiveMinimum"),
+                ("le", "maximum"),
+                ("lt", "exclusiveMaximum"),
+                ("description", "description"),
+                ("examples", "examples"),
+                ("title", "title"),
+            ):
+                if metadata_key in metadata:
+                    prop.setdefault(json_schema_field, metadata[metadata_key])
+            for prefix in ("min", "max"):
+                if f"{prefix}_length" in metadata:
+                    key = f"{prefix}Length" if metadata["annotation"] is str else f"{prefix}Items"
+                    prop.setdefault(key, metadata[f"{prefix}_length"])
+                elif f"{prefix}_items" in metadata:
+                    prop.setdefault(f"{prefix}Items", metadata[f"{prefix}_items"])
+            for metadata_key in ("pattern", "regex"):
+                if metadata_key in metadata:
+                    pattern = metadata[metadata_key]
+                    if _is_json_schema_pattern(pattern):
+                        prop.setdefault("pattern", pattern)
+                    break
+            if "deprecated" in metadata:
+                prop.setdefault("deprecated", bool(metadata["deprecated"]))
+        required = [
+            field_name 
+            for field_name, data in schema["properties"].items() 
+            if (
+                "default" not in data 
+                and field_name not in default_factory_fields
+            )
+        ]
+        if required:
+            schema["required"] = required
+        _setdefault_attribute_docstrings_on_schema(schema, item_class)
+        return schema
 
     def field_names(self) -> KeysView:
         try:
