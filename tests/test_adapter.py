@@ -1,25 +1,43 @@
+from dataclasses import dataclass
+from enum import Enum
 import unittest
 from collections.abc import KeysView
 from types import MappingProxyType
+
+import pytest
 
 from itemadapter.adapter import ItemAdapter
 from tests import (
     AttrsItem,
     AttrsItemEmpty,
+    AttrsItemJsonSchema,
+    AttrsItemJsonSchemaNested,
     AttrsItemNested,
     AttrsItemSubclassed,
     AttrsItemWithoutInit,
     DataClassItem,
     DataClassItemEmpty,
+    DataClassItemJsonSchema,
+    DataClassItemJsonSchemaNested,
     DataClassItemNested,
     DataClassItemSubclassed,
     DataClassWithoutInit,
+    PydanticModel,
+    PydanticModelEmpty,
+    PydanticModelJsonSchema,
+    PydanticModelJsonSchemaNested,
+    PydanticModelNested,
+    PydanticModelSubclassed,
     PydanticV1Model,
     PydanticV1ModelEmpty,
+    PydanticV1ModelJsonSchema,
+    PydanticV1ModelJsonSchemaNested,
     PydanticV1ModelNested,
     PydanticV1ModelSubclassed,
     ScrapySubclassedItem,
     ScrapySubclassedItemEmpty,
+    ScrapySubclassedItemJsonSchema,
+    ScrapySubclassedItemJsonSchemaNested,
     ScrapySubclassedItemNested,
     ScrapySubclassedItemSubclassed,
 )
@@ -103,6 +121,7 @@ class ItemAdapterInitError(unittest.TestCase):
 class BaseTestMixin:
     item_class = None
     item_class_nested = None
+    maxDiff = None
 
     def setUp(self):
         if self.item_class is None:
@@ -169,9 +188,43 @@ class BaseTestMixin:
         self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
 
 
-class NonDictTestMixin(BaseTestMixin):
+class CustomItemClassTestMixin(BaseTestMixin):
     item_class_subclassed = None
     item_class_empty = None
+    expected_json_schema = {
+        'additionalProperties': False,
+        'properties': {
+            'name': {
+                'type': 'string',
+                'title': 'Name',
+                'description': 'Display name',
+            },
+            'value': {
+                'default': None,
+            },
+            'color': {
+                'type': 'string',
+                'enum': ['red', 'green', 'blue'],
+            },
+            'produced': {'type': 'boolean'},
+            'answer': {'type': ['string', 'number', 'null']},
+            'numbers': {'type': 'array', 'items': {'type': 'number'}},
+            'aliases': {
+                'type': 'object',
+                'additionalProperties': {'type': 'string'},
+            },
+            'nested': {
+                'type': 'object',
+                'properties': {
+                    'is_nested': {'type': 'boolean', 'default': True},
+                },
+                'additionalProperties': False,
+            },
+        },
+        'required': ['name', 'color', 'answer', 'numbers', 'aliases', 'nested'],
+        'type': 'object',
+        'llmHint': 'Hi model!',
+    }
 
     def test_set_value_keyerror(self):
         item = self.item_class()
@@ -227,6 +280,11 @@ class NonDictTestMixin(BaseTestMixin):
         assert isinstance(field_names, list)
         self.assertEqual(field_names, [])
 
+    def test_json_schema(self):
+        item_class = self.item_class_json_schema
+        actual = ItemAdapter.get_json_schema(item_class)
+        self.assertEqual(self.expected_json_schema, actual)
+
 
 class DictTestCase(unittest.TestCase, BaseTestMixin):
     item_class = dict
@@ -253,12 +311,244 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
     def test_field_names_from_class(self):
         assert ItemAdapter.get_field_names_from_class(dict) is None
 
+    def test_json_schema(self):
+        with pytest.raises(ValueError):
+            ItemAdapter.get_json_schema(dict)
 
-class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
+
+class DataClassItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
+    item_class = DataClassItem
+    item_class_nested = DataClassItemNested
+    item_class_subclassed = DataClassItemSubclassed
+    item_class_empty = DataClassItemEmpty
+    item_class_json_schema = DataClassItemJsonSchema
+
+
+class AttrsItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
+    item_class = AttrsItem
+    item_class_nested = AttrsItemNested
+    item_class_subclassed = AttrsItemSubclassed
+    item_class_empty = AttrsItemEmpty
+    item_class_json_schema = AttrsItemJsonSchema
+
+    def test_json_schema_validators(self):
+        import attr
+        from attr import validators
+
+        @attr.s
+        class ItemClass:
+            # String with min/max length and regex pattern
+            name = attr.ib(
+                type=str,
+                validator=[
+                    validators.min_len(3),
+                    validators.max_len(10),
+                    validators.matches_re(r"^[A-Za-z]+$"),
+                ],
+            )
+            # Integer with minimum, maximum, exclusive minimum, exclusive maximum
+            age = attr.ib(
+                type=int,
+                validator=[
+                    validators.ge(18),
+                    validators.le(99),
+                    validators.gt(17),
+                    validators.lt(100),
+                ],
+            )
+            # Enum (membership)
+            color = attr.ib(
+                validator=validators.in_(["red", "green", "blue"])
+            )
+            # Unsupported pattern [(?i)]
+            year = attr.ib(
+                type=str,
+                validator=[
+                    validators.matches_re(r"(?i)\bY\d{4}\b"),
+                ],
+            )
+            # Len limits on sequences/sets.
+            tags = attr.ib(
+                type=set[str],
+                validator=validators.max_len(50),
+            )
+        
+
+        actual = ItemAdapter.get_json_schema(ItemClass)
+        expected = {
+            "additionalProperties": False,
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 10,
+                    "pattern": "^[A-Za-z]+$"
+                },
+                "age": {
+                    "type": "integer",
+                    "minimum": 18,
+                    "maximum": 99,
+                    "exclusiveMinimum": 17,
+                    "exclusiveMaximum": 100
+                },
+                "color": {
+                    "enum": ["red", "green", "blue"]
+                },
+                "year": {
+                    "type": "string",
+                },
+                "tags": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "maxItems": 50,
+                    "items": {
+                        "type": "string",
+                    },
+                },
+            },
+            "required": ["name", "age", "color", "year", "tags"]
+        }
+        self.assertEqual(expected, actual)
+
+
+class PydanticV1ModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
+    item_class = PydanticV1Model
+    item_class_nested = PydanticV1ModelNested
+    item_class_subclassed = PydanticV1ModelSubclassed
+    item_class_empty = PydanticV1ModelEmpty
+    item_class_json_schema = PydanticV1ModelJsonSchema
+    expected_json_schema = {
+        **{
+            k: v 
+            for k, v in CustomItemClassTestMixin.expected_json_schema.items()
+            if k not in {'additionalProperties', 'properties'}
+        },
+        'definitions': {
+            'Color': {
+                'enum': CustomItemClassTestMixin.expected_json_schema['properties']['color']['enum'],
+                'title': 'Color',
+                'description': 'An enumeration.',
+            },
+            'PydanticV1ModelJsonSchemaNested': {
+                'title': 'PydanticV1ModelJsonSchemaNested',
+                'type': 'object',
+                'properties': {
+                    'is_nested': {
+                        **CustomItemClassTestMixin.expected_json_schema['properties']['nested']['properties']['is_nested'],
+                        'title': 'Is Nested',
+                    },
+                },
+            },
+        },
+        'properties': {
+            **{
+                k: {**v, 'title': k.capitalize()}
+                for k, v in CustomItemClassTestMixin.expected_json_schema['properties'].items()
+                if k not in {'color', 'value', 'answer', 'nested'}
+            },
+            'color': {'$ref': '#/definitions/Color'},
+            'nested': {'$ref': '#/definitions/PydanticV1ModelJsonSchemaNested'},
+            'value': {'title': 'Value'},
+            'answer': {
+                'title': 'Answer',
+                'anyOf': [
+                    {'type': 'string'},
+                    {'type': 'number'},
+                    {'type': 'integer'},
+                ],
+            },
+        },
+        'required': [
+            k 
+            for k in CustomItemClassTestMixin.expected_json_schema['required'] 
+            if k not in {'answer', 'value'}
+        ],
+        'title': 'PydanticV1ModelJsonSchema',
+    }
+
+
+class PydanticModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
+    item_class = PydanticModel
+    item_class_nested = PydanticModelNested
+    item_class_subclassed = PydanticModelSubclassed
+    item_class_empty = PydanticModelEmpty
+    item_class_json_schema = PydanticModelJsonSchema
+    expected_json_schema = {
+        **{
+            k: v 
+            for k, v in CustomItemClassTestMixin.expected_json_schema.items() 
+            if k not in {'additionalProperties', 'properties'}
+        },
+        '$defs': {
+            'Color': {
+                **CustomItemClassTestMixin.expected_json_schema['properties']['color'],
+                'title': 'Color',
+            },
+            'PydanticModelJsonSchemaNested': {
+                'title': 'PydanticModelJsonSchemaNested',
+                'type': 'object',
+                'properties': {
+                    'is_nested': {
+                        **CustomItemClassTestMixin.expected_json_schema['properties']['nested']['properties']['is_nested'],
+                        'title': 'Is Nested',
+                    },
+                },
+            },
+        },
+        'properties': {
+            **{
+                k: {**v, 'title': k.capitalize()}
+                for k, v in CustomItemClassTestMixin.expected_json_schema['properties'].items()
+                if k not in {'color', 'answer', 'nested'}
+            },
+            'color': {'$ref': '#/$defs/Color'},
+            'nested': {'$ref': '#/$defs/PydanticModelJsonSchemaNested'},
+            'answer': {
+                'title': 'Answer',
+                'anyOf': [
+                    {'type': 'string'},
+                    {'type': 'number'},
+                    {'type': 'integer'},
+                    {'type': 'null'},
+                ]
+            },
+        },
+        'title': 'PydanticModelJsonSchema',
+    }
+
+    def test_get_field_meta_defined_fields(self):
+        adapter = ItemAdapter(self.item_class())
+        self.assertEqual(adapter.get_field_meta("name")["json_schema_extra"], MappingProxyType({"serializer": str}))
+        self.assertEqual(adapter.get_field_meta("value")["json_schema_extra"], MappingProxyType({"serializer": int}))
+
+
+class ScrapySubclassedItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
     item_class = ScrapySubclassedItem
     item_class_nested = ScrapySubclassedItemNested
     item_class_subclassed = ScrapySubclassedItemSubclassed
     item_class_empty = ScrapySubclassedItemEmpty
+    item_class_json_schema = ScrapySubclassedItemJsonSchema
+    expected_json_schema = {
+        **{
+            k: v 
+            for k, v in CustomItemClassTestMixin.expected_json_schema.items() 
+            if k not in {'properties'}
+        },
+        'properties': {
+            **{
+                k: v
+                for k, v in CustomItemClassTestMixin.expected_json_schema['properties'].items()
+                if k != 'produced'
+            },
+            # No type, since none was specified in json_schema_extra.
+            'produced': {},
+        },
+        # Scrapy items seem to sort fields alphabetically. produced is required 
+        # because there is no default factory support in Scrapy.
+        'required': sorted(CustomItemClassTestMixin.expected_json_schema['required'] + ['produced']),
+        'llmHint': 'Hi model!',
+    }
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
@@ -267,22 +557,244 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
             adapter["name"]
 
 
-class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
-    item_class = PydanticV1Model
-    item_class_nested = PydanticV1ModelNested
-    item_class_subclassed = PydanticV1ModelSubclassed
-    item_class_empty = PydanticV1ModelEmpty
+class CrossNestingTestCase(unittest.TestCase):
+    """Test item nesting across different item types, with all supported types
+    acting as parent or child in one test."""
+    maxDiff = None
+
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    def test_dataclass_pydantic1(self):
+
+        @dataclass
+        class DataClassItemNested:
+            nested: PydanticV1ModelJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(DataClassItemNested)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "title": "PydanticV1ModelJsonSchemaNested",
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True, "title": "Is Nested"},
+                    },
+                }
+            },
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    def test_attrs_pydantic2(self):
+
+        import attrs
+
+        @attrs.define
+        class AttrsItemNested:
+            nested: PydanticModelJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(AttrsItemNested)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "title": "PydanticModelJsonSchemaNested",
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True, "title": "Is Nested"},
+                    },
+                }
+            },
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    def test_scrapy_attrs(self):
+        from scrapy.item import Item, Field
+
+        class ScrapySubclassedItemNested(Item):
+            nested: AttrsItemJsonSchemaNested = Field()
+
+        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemNested)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                    "additionalProperties": False,
+                }
+            },
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_pydantic1_scrapy(self):
+        # TODO: Mention in the PR that the following code, when added to the
+        # main get_json_schema method, got things working on Pydantic V1.
+        # However, the cleanest user-facing API I could think of was to have a
+        # `pydantic_v1_nested_item_classes` parameter in get_json_schema, which
+        # feels rather hacky, and maybe not worth the trouble.
+        # 
+        # from scrapy.item import Item
+        #
+        # def modify_schema(cls, schema: dict, state=_state):
+        #     _update_prop_from_type(schema, cls, state)
+        #
+        # Item.__modify_schema__ = classmethod(modify_schema)
+
+        from . import pydantic_v1
+
+        class PydanticV1ModelNested(pydantic_v1.BaseModel):
+            nested: ScrapySubclassedItemJsonSchemaNested
+
+            class Config:
+                arbitrary_types_allowed = True
+
+        actual = ItemAdapter.get_json_schema(PydanticV1ModelNested)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                    "additionalProperties": False,
+                    "title": "Nested",
+                }
+            },
+            "required": ["nested"],
+            "title": "PydanticV1ModelNested",
+        }
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_pydantic_dataclass(self):
+        # Note: Works due to built-in dataclass support in Pydantic.
+        from . import pydantic
+
+        class PydanticModelNested(pydantic.BaseModel):
+            nested: DataClassItemJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(PydanticModelNested)
+        expected = {
+            "$defs": {
+                "DataClassItemJsonSchemaNested": {
+                    "title": "DataClassItemJsonSchemaNested",
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True, "title": "Is Nested"},
+                    },
+                }
+            },
+            "type": "object",
+            "properties": {
+                "nested": {'$ref': '#/$defs/DataClassItemJsonSchemaNested'},
+            },
+            "required": ["nested"],
+            "title": "PydanticModelNested",
+        }
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_pydantic_scrapy(self):
+        from . import pydantic
+
+        class PydanticModelNested(pydantic.BaseModel):
+            nested: ScrapySubclassedItemJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(PydanticModelNested)
+        expected = {
+            "$defs": {
+                "DataClassItemJsonSchemaNested": {
+                    "title": "DataClassItemJsonSchemaNested",
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True, "title": "Is Nested"},
+                    },
+                }
+            },
+            "type": "object",
+            "properties": {
+                "nested": {'$ref': '#/$defs/DataClassItemJsonSchemaNested'},
+            },
+            "required": ["nested"],
+            "title": "PydanticModelNested",
+        }
+        self.assertEqual(actual, expected)
 
 
-class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
-    item_class = DataClassItem
-    item_class_nested = DataClassItemNested
-    item_class_subclassed = DataClassItemSubclassed
-    item_class_empty = DataClassItemEmpty
+class JsonSchemaTestCase(unittest.TestCase):
+    maxDiff = None
 
+    def test_attrs_pydantic_enum(self):
+        import attrs
+        from . import pydantic
 
-class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
-    item_class = AttrsItem
-    item_class_nested = AttrsItemNested
-    item_class_subclassed = AttrsItemSubclassed
-    item_class_empty = AttrsItemEmpty
+        class TestEnum(Enum):
+            foo = "foo"
+
+        class TestPydanticModel(pydantic.BaseModel):
+            enum: TestEnum
+
+        @attrs.define
+        class TestAttrsItem:
+            pydantic: TestPydanticModel 
+
+        actual = ItemAdapter.get_json_schema(TestAttrsItem)
+        expected = {
+            "$defs": {
+                "TestEnum": {"enum": ["foo"], "title": "TestEnum", "type": "string"},
+            },
+            "type": "object",
+            "properties": {
+                "pydantic": {
+                    "type": "object",
+                    "properties": {
+                        "enum": {'$ref': '#/$defs/TestEnum'}
+                    },
+                    "required": ["enum"],
+                    "additionalProperties": False,
+                    "title": "Pydantic"
+                }
+            },
+            "required": ["pydantic"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(actual, expected)
+
+# TODO:
+# Add progressively complex tests for get_json_schema:
+# - Reimplement pydantic JSON Schema generation to not rely on their own implementation, and instead follow an approach similar to that of other types, but supporting native pydantic approaches to JSON schema extension. Then get the xfail tests passing, as well as all other tests involving Pydantic (expectations may need to change, become more similar to those of dataclasses or attrs)
+# - Fix expectations of test_attrs_pydantic_enum passing. Leave a comment about why the test exists: if we ever move to let Pydantic handle its own JSON schema generation, scenarios like that may become an issue, as Pydantic aggressively uses $defs, and that alternative implementation may require us to fetch $defs from nested Pydantic schemas and move them to the schema root.
+# - Support sequences (list/set/tuple) of items.
+# - Support mappings of items.
+# - Support arbitrary type levels (e.g. list of dicts of items).
+# - Support type recursion with $defs
+# - Implement switch to $defs for types that appear more than once.
+# - Generate JSON Schema files for all item classes in zyte-common-items, and have a quick look at them to see if they look good.
+# 
+# After every change, test:
+# - tox -e pydantic -- tests tests/test_adapter.py::PydanticModelTestCase::test_json_schema -vv
+# - tox -e pydantic1 -- tests tests/test_adapter.py::PydanticV1ModelTestCase::test_json_schema -vv
+# - tox -e scrapy -- tests tests/test_adapter.py::ScrapySubclassedItemTestCase::test_json_schema -vv
+# - tox -e attrs -- tests tests/test_adapter.py::AttrsItemTestCase::test_json_schema -vv
+# - tox -e py -- tests tests/test_adapter.py::DataClassItemTestCase::test_json_schema -vv
+# 
+# Once everything is implemented, try running the tox commands above 
+# but with min- versions of those tox environments

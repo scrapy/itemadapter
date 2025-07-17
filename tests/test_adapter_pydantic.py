@@ -16,6 +16,8 @@ from tests import (
 
 
 class PydanticTestCase(unittest.TestCase):
+    maxDiff = None
+
     def test_false(self):
         from itemadapter.adapter import PydanticAdapter
 

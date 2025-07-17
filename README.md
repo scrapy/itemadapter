@@ -221,6 +221,69 @@ The returned value is taken from the following sources, depending on the item ty
 Return a list with the names of all the fields defined for the item class.
 If an item class doesn't support defining fields upfront, None is returned.
 
+#### class method `get_json_schema(item_class: type) -> dict[str, Any]`
+
+Return a dict with a [JSON Schema](https://json-schema.org/) representation of
+the item class.
+
+Dict items are not supported.
+
+For Pydantic items, it works like calling 
+[`model_json_schema`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema).
+
+For dataclasses, attrs and `scrapy.items.Item`, itemadapter makes a best effort
+to generate a JSON Schema:
+
+-   `required` is set to a list of fields that do not have a known default 
+    value or default value factory.
+
+-   Default values are mapped as `default`. Default value factories are not.
+
+-   Type hints or library-specific type definitions are mapped as `type` where 
+    possible.
+
+-   Attribute docstrings are mapped as `description`. For example:
+
+    ```python
+    >>> import attrs
+    >>> from itemadapter import ItemAdapter
+    >>> @attrs.define
+    ... class MyItem:
+    ...     name: str
+    ...     """Display name"""
+    ...
+    >>> ItemAdapter.get_json_schema(MyItem)
+    {"additionalProperties": True, "properties": {"name": {"type": "string", "description": "Display name"}}, "type": "object"}
+    ```
+
+-   Set `json_schema_extra` in field metadata to extend or override the JSON 
+    Schema data for that field. For example:
+
+    ```python
+    >>> from scrapy.item import Item, Field
+    >>> from itemadapter import ItemAdapter
+    >>> class MyItem(Item):
+    ...     name = Field(json_schema_extra={"type": "string"})
+    ...
+    >>> ItemAdapter.get_json_schema(MyItem)
+    {"additionalProperties": False, "properties": {"name": {"type": "string"}}, "type": "object"}
+    ```
+
+-   Define a `__metadata__` class attribute dict and `json_schema_extra` inside
+    to extend or override JSON Schema data for the entire class. For example:
+
+    ```python
+    >>> from dataclasses import dataclass
+    >>> from itemadapter import ItemAdapter
+    >>> @dataclass
+    ... class MyItem:
+    ...     __metadata__ = {"json_schema_extra": {"additionalProperties": True}}
+    ...     name: str
+    ...
+    >>> ItemAdapter.get_json_schema(MyItem)
+    {"additionalProperties": True, "properties": {"name": {"type": "string"}}, "type": "object"}
+    ```
+
 #### `get_field_meta(field_name: str) -> MappingProxyType`
 
 Return metadata for the given field, if available. Unless overriden in a custom adapter class, by default
