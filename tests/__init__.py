@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from enum import Enum
 import importlib
-from importlib import metadata
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from itemadapter import ItemAdapter
@@ -75,9 +74,11 @@ class DataClassItemSubclassed(DataClassItem):
 class DataClassItemEmpty:
     pass
 
+
 @dataclass
 class DataClassItemJsonSchemaNested:
     is_nested: bool = True
+
 
 @dataclass
 class DataClassItemJsonSchema:
@@ -208,10 +209,10 @@ else:
 
     class PydanticV1ModelEmpty(pydantic_v1.BaseModel):
         pass
-    
+
     class PydanticV1ModelJsonSchemaNested(pydantic_v1.BaseModel):
         is_nested: bool = True
-    
+
     class PydanticV1ModelJsonSchema(pydantic_v1.BaseModel):
         name: str = pydantic_v1.Field(description="Display name", title="Name")
         value: Any = None
@@ -279,10 +280,10 @@ else:
 
     class PydanticModelEmpty(pydantic.BaseModel):
         pass
-    
+
     class PydanticModelJsonSchemaNested(pydantic.BaseModel):
         is_nested: bool = True
-    
+
     class PydanticModelJsonSchema(pydantic.BaseModel):
         name: str = pydantic.Field(description="Display name", title="Name")
         value: Any = None
@@ -311,6 +312,7 @@ except ImportError:
     ScrapySubclassedItemEmpty = None
     ScrapySubclassedItemJsonSchema = None
     ScrapySubclassedItemJsonSchemaNested = None
+    ScrapySubclassedItemCrossNested = None
 else:
 
     class ScrapySubclassedItem(ScrapyItem):
@@ -331,7 +333,7 @@ else:
 
     class ScrapySubclassedItemEmpty(ScrapyItem):
         pass
-    
+
     class ScrapySubclassedItemJsonSchemaNested(ScrapyItem):
         is_nested: bool = Field(
             json_schema_extra={
@@ -364,3 +366,6 @@ else:
         numbers: list[float] = Field()
         aliases: dict[str, str] = Field()
         nested: ScrapySubclassedItemJsonSchemaNested = Field()
+
+    class ScrapySubclassedItemCrossNested(ScrapyItem):
+        nested: AttrsItemJsonSchemaNested = Field()

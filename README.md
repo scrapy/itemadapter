@@ -28,7 +28,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   implementation
 * [`scrapy`](https://scrapy.org/) 2.2+: optional, needed to interact with
   `scrapy` items
-* [`attrs`](https://pypi.org/project/attrs/) 18.1.0+: optional, needed to
+* [`attrs`](https://pypi.org/project/attrs/) 20.1.0+: optional, needed to
   interact with `attrs`-based items
 * [`pydantic`](https://pypi.org/project/pydantic/) 1.8+: optional, needed to
   interact with `pydantic`-based items
@@ -228,38 +228,45 @@ the item class.
 
 Dict items are not supported, everything else is.
 
-Note that, for Pydantic items, itemadapter does not use 
+Note that, for Pydantic items, itemadapter does not use
 [`model_json_schema()`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema)
-and instead uses its own implementation. This makes it possible to generate 
-JSON Schemas for Pydantic models that have nested non-Pydantic item classes 
-as fields. The downside is that JSON Schema support in itemadapter may not be
-as advanced as Pydantic‘s.
+and instead uses its own implementation. That way, the output JSON Schema is
+consistent across different item types. It also makes it possible to generate
+JSON Schemas for Pydantic models that have nested non-Pydantic item classes as
+fields. The downside is that JSON Schema support in itemadapter may not be as
+advanced as Pydantic‘s.
 
 The output JSON Schema is generated on a best-effort basis:
 
--   `required` is set to a list of fields that do not have a known default 
+-   `required` is set to a list of fields that do not have a known default
     value or default value factory.
 
 -   Default values are mapped as `default`. Default value factories are not.
 
--   Type hints or library-specific type definitions are mapped as `type` where 
+-   Type hints or library-specific type definitions are mapped as `type` where
     possible.
 
--   Attribute docstrings are mapped as `description`. For example:
+-   Attribute docstrings, i.e. docstrings placed *after* a class attribute
+    definition, are mapped as `description`. For example, “Display name” below
+    is used as a description:
 
     ```python
-    >>> import attrs
-    >>> from itemadapter import ItemAdapter
-    >>> @attrs.define
-    ... class MyItem:
-    ...     name: str
-    ...     """Display name"""
-    ...
-    >>> ItemAdapter.get_json_schema(MyItem)
-    {"additionalProperties": True, "properties": {"name": {"type": "string", "description": "Display name"}}, "type": "object"}
+    import attrs
+    from itemadapter import ItemAdapter
+
+    @attrs.define
+    class MyItem:
+        name: str
+        """Display name"""
     ```
 
--   Set `json_schema_extra` in field metadata to extend or override the JSON 
+    Note, however, that such descriptions are read with
+    [`inspect.getsource()`](https://docs.python.org/3/library/inspect.html#inspect.getsource),
+    and hence cannot be extracted e.g. if classes are defined within methods or
+    in the Python shell. For such cases, define `description` within
+    `json_schema_extra` instead (see below).
+
+-   Set `json_schema_extra` in field metadata to extend or override the JSON
     Schema data for that field. For example:
 
     ```python
@@ -269,7 +276,8 @@ The output JSON Schema is generated on a best-effort basis:
     ...     name = Field(json_schema_extra={"type": "string"})
     ...
     >>> ItemAdapter.get_json_schema(MyItem)
-    {"additionalProperties": False, "properties": {"name": {"type": "string"}}, "type": "object"}
+    {'type': 'object', 'additionalProperties': False, 'properties': {'name': {'type': 'string'}}, 'required': ['name']}
+
     ```
 
 -   Define a `__metadata__` class attribute dict and `json_schema_extra` inside
@@ -284,7 +292,8 @@ The output JSON Schema is generated on a best-effort basis:
     ...     name: str
     ...
     >>> ItemAdapter.get_json_schema(MyItem)
-    {"additionalProperties": True, "properties": {"name": {"type": "string"}}, "type": "object"}
+    {'additionalProperties': True, 'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name']}
+
     ```
 
 #### `get_field_meta(field_name: str) -> MappingProxyType`
@@ -384,14 +393,14 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 ```python
 >>> from pydantic import BaseModel, Field
 >>> class InventoryItem(BaseModel):
-...     name: str = Field(serializer=str)
-...     value: int = Field(serializer=int, limit=100)
+...     name: str = Field(json_schema_extra={"serializer": str})
+...     value: int = Field(json_schema_extra={"serializer": int, "limit": 100})
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")
-mappingproxy({'default': PydanticUndefined, 'json_schema_extra': {'serializer': <class 'str'>}, 'repr': True})
+mappingproxy({'annotation': <class 'str'>, 'json_schema_extra': {'serializer': <class 'str'>}, 'repr': True})
 >>> adapter.get_field_meta("value")
-mappingproxy({'default': PydanticUndefined, 'json_schema_extra': {'serializer': <class 'int'>, 'limit': 100}, 'repr': True})
+mappingproxy({'annotation': <class 'int'>, 'json_schema_extra': {'serializer': <class 'int'>, 'limit': 100}, 'repr': True})
 >>>
 ```
 

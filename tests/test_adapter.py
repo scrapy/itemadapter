@@ -1,18 +1,19 @@
-from dataclasses import dataclass
-from enum import Enum
+import importlib.metadata
 import sys
 import unittest
 from collections.abc import KeysView
+from dataclasses import dataclass
+from enum import Enum
 from types import MappingProxyType
 
 import pytest
+from packaging.version import Version
 
 from itemadapter.adapter import ItemAdapter
 from tests import (
     AttrsItem,
     AttrsItemEmpty,
     AttrsItemJsonSchema,
-    AttrsItemJsonSchemaNested,
     AttrsItemNested,
     AttrsItemSubclassed,
     AttrsItemWithoutInit,
@@ -36,6 +37,7 @@ from tests import (
     PydanticV1ModelNested,
     PydanticV1ModelSubclassed,
     ScrapySubclassedItem,
+    ScrapySubclassedItemCrossNested,
     ScrapySubclassedItemEmpty,
     ScrapySubclassedItemJsonSchema,
     ScrapySubclassedItemJsonSchemaNested,
@@ -44,6 +46,10 @@ from tests import (
 )
 
 PYTHON_VERSION = sys.version_info[:2]
+try:
+    ATTRS_VERSION = Version(importlib.metadata.version("attrs"))
+except importlib.metadata.PackageNotFoundError:
+    ATTRS_VERSION = None
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
@@ -195,44 +201,48 @@ class CustomItemClassTestMixin(BaseTestMixin):
     item_class_subclassed = None
     item_class_empty = None
     expected_json_schema = {
-        'additionalProperties': False,
-        'properties': {
-            'name': {
-                'type': 'string',
-                'title': 'Name',
-                'description': 'Display name',
+        "additionalProperties": False,
+        "properties": {
+            "name": {
+                "type": "string",
+                "title": "Name",
+                "description": "Display name",
             },
-            'value': {
-                'default': None,
+            "value": {
+                "default": None,
             },
-            'color': {
-                'type': 'string',
-                'enum': ['red', 'green', 'blue'],
+            "color": {
+                "type": "string",
+                "enum": ["red", "green", "blue"],
             },
-            'produced': {'type': 'boolean'},
-            'answer': {
-                'type': (
-                    ['string', 'number', 'null']
-                    if PYTHON_VERSION > (3, 9) 
-                    else ['string', 'null', 'number']
+            "produced": {"type": "boolean"},
+            "answer": {
+                "type": (
+                    ["string", "number", "null"]
+                    if PYTHON_VERSION > (3, 11)
+                    else ["number", "string", "null"]
+                    if PYTHON_VERSION > (3, 10)
+                    else ["null", "number", "string"]
+                    if PYTHON_VERSION > (3, 9)
+                    else ["string", "null", "number"]
                 ),
             },
-            'numbers': {'type': 'array', 'items': {'type': 'number'}},
-            'aliases': {
-                'type': 'object',
-                'additionalProperties': {'type': 'string'},
+            "numbers": {"type": "array", "items": {"type": "number"}},
+            "aliases": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
             },
-            'nested': {
-                'type': 'object',
-                'properties': {
-                    'is_nested': {'type': 'boolean', 'default': True},
+            "nested": {
+                "type": "object",
+                "properties": {
+                    "is_nested": {"type": "boolean", "default": True},
                 },
-                'additionalProperties': False,
+                "additionalProperties": False,
             },
         },
-        'required': ['name', 'color', 'answer', 'numbers', 'aliases', 'nested'],
-        'type': 'object',
-        'llmHint': 'Hi model!',
+        "required": ["name", "color", "answer", "numbers", "aliases", "nested"],
+        "type": "object",
+        "llmHint": "Hi model!",
     }
 
     def test_set_value_keyerror(self):
@@ -350,8 +360,16 @@ class AttrsItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
             name = attr.ib(
                 type=str,
                 validator=[
-                    validators.min_len(3),
-                    validators.max_len(10),
+                    *(
+                        validators.min_len(3)
+                        for _ in range(1)
+                        if Version("22.1.0") <= ATTRS_VERSION
+                    ),
+                    *(
+                        validators.max_len(10)
+                        for _ in range(1)
+                        if Version("21.3.0") <= ATTRS_VERSION
+                    ),
                     validators.matches_re(r"^[A-Za-z]+$"),
                 ],
             )
@@ -363,12 +381,12 @@ class AttrsItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
                     validators.le(99),
                     validators.gt(17),
                     validators.lt(100),
-                ],
+                ]
+                if Version("21.3.0") <= ATTRS_VERSION
+                else [],
             )
             # Enum (membership)
-            color = attr.ib(
-                validator=validators.in_(["red", "green", "blue"])
-            )
+            color = attr.ib(validator=validators.in_(["red", "green", "blue"]))
             # Unsupported pattern [(?i)]
             year = attr.ib(
                 type=str,
@@ -379,9 +397,8 @@ class AttrsItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
             # Len limits on sequences/sets.
             tags = attr.ib(
                 type=set[str],
-                validator=validators.max_len(50),
+                validator=validators.max_len(50) if Version("21.3.0") <= ATTRS_VERSION else [],
             )
-        
 
         actual = ItemAdapter.get_json_schema(ItemClass)
         expected = {
@@ -390,33 +407,37 @@ class AttrsItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
             "properties": {
                 "name": {
                     "type": "string",
-                    "minLength": 3,
-                    "maxLength": 10,
-                    "pattern": "^[A-Za-z]+$"
+                    **({"minLength": 3} if Version("22.1.0") <= ATTRS_VERSION else {}),
+                    **({"maxLength": 10} if Version("21.3.0") <= ATTRS_VERSION else {}),
+                    "pattern": "^[A-Za-z]+$",
                 },
                 "age": {
                     "type": "integer",
-                    "minimum": 18,
-                    "maximum": 99,
-                    "exclusiveMinimum": 17,
-                    "exclusiveMaximum": 100
+                    **(
+                        {
+                            "minimum": 18,
+                            "maximum": 99,
+                            "exclusiveMinimum": 17,
+                            "exclusiveMaximum": 100,
+                        }
+                        if Version("21.3.0") <= ATTRS_VERSION
+                        else {}
+                    ),
                 },
-                "color": {
-                    "enum": ["red", "green", "blue"]
-                },
+                "color": {"enum": ["red", "green", "blue"]},
                 "year": {
                     "type": "string",
                 },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
-                    "maxItems": 50,
+                    **({"maxItems": 50} if Version("21.3.0") <= ATTRS_VERSION else {}),
                     "items": {
                         "type": "string",
                     },
                 },
             },
-            "required": ["name", "age", "color", "year", "tags"]
+            "required": ["name", "age", "color", "year", "tags"],
         }
         self.assertEqual(expected, actual)
 
@@ -429,30 +450,87 @@ class PydanticV1ModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
     item_class_json_schema = PydanticV1ModelJsonSchema
     expected_json_schema = {
         **{
-            k: v 
-            for k, v in CustomItemClassTestMixin.expected_json_schema.items() 
-            if k not in {'additionalProperties', 'properties'}
+            k: v
+            for k, v in CustomItemClassTestMixin.expected_json_schema.items()
+            if k not in {"additionalProperties", "properties"}
         },
-        'properties': {
+        "properties": {
             **{
                 k: v
-                for k, v in CustomItemClassTestMixin.expected_json_schema['properties'].items()
-                if k != 'nested'
+                for k, v in CustomItemClassTestMixin.expected_json_schema["properties"].items()
+                if k != "nested"
             },
-            'nested': {
+            "nested": {
                 **{
                     k: v
-                    for k, v in CustomItemClassTestMixin.expected_json_schema['properties']['nested'].items()
-                    if k != 'additionalProperties'
+                    for k, v in CustomItemClassTestMixin.expected_json_schema["properties"][
+                        "nested"
+                    ].items()
+                    if k != "additionalProperties"
                 },
             },
         },
-        'required': (
-            CustomItemClassTestMixin.expected_json_schema['required'][:2]
-            + ['produced']
-            + CustomItemClassTestMixin.expected_json_schema['required'][2:]
-        ),
+        "required": [
+            *CustomItemClassTestMixin.expected_json_schema["required"][:2],
+            "produced",
+            *CustomItemClassTestMixin.expected_json_schema["required"][2:],
+        ],
     }
+
+    def test_json_schema_validators(self):
+        from itemadapter._imports import pydantic_v1
+
+        class Model(pydantic_v1.BaseModel):
+            # String with min/max length and regex pattern
+            name: str = pydantic_v1.Field(
+                min_length=3,
+                max_length=10,
+                pattern=r"^[A-Za-z]+$",
+            )
+            # Integer with minimum, maximum, exclusive minimum, exclusive maximum
+            age1: int = pydantic_v1.Field(
+                gt=17,
+                lt=100,
+            )
+            age2: int = pydantic_v1.Field(
+                ge=18,
+                le=99,
+            )
+            # Sequence with max_items
+            tags: set[str] = pydantic_v1.Field(max_length=50)
+
+        actual = ItemAdapter.get_json_schema(Model)
+        expected = {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 10,
+                    "pattern": "^[A-Za-z]+$",
+                },
+                "age1": {
+                    "type": "integer",
+                    "exclusiveMinimum": 17,
+                    "exclusiveMaximum": 100,
+                },
+                "age2": {
+                    "type": "integer",
+                    "minimum": 18,
+                    "maximum": 99,
+                },
+                "tags": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "maxItems": 50,
+                    "items": {
+                        "type": "string",
+                    },
+                },
+            },
+            "required": ["name", "age1", "age2", "tags"],
+        }
+        self.assertEqual(expected, actual)
 
 
 class PydanticModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
@@ -463,21 +541,23 @@ class PydanticModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
     item_class_json_schema = PydanticModelJsonSchema
     expected_json_schema = {
         **{
-            k: v 
-            for k, v in CustomItemClassTestMixin.expected_json_schema.items() 
-            if k not in {'additionalProperties', 'properties'}
+            k: v
+            for k, v in CustomItemClassTestMixin.expected_json_schema.items()
+            if k not in {"additionalProperties", "properties"}
         },
-        'properties': {
+        "properties": {
             **{
                 k: v
-                for k, v in CustomItemClassTestMixin.expected_json_schema['properties'].items()
-                if k != 'nested'
+                for k, v in CustomItemClassTestMixin.expected_json_schema["properties"].items()
+                if k != "nested"
             },
-            'nested': {
+            "nested": {
                 **{
                     k: v
-                    for k, v in CustomItemClassTestMixin.expected_json_schema['properties']['nested'].items()
-                    if k != 'additionalProperties'
+                    for k, v in CustomItemClassTestMixin.expected_json_schema["properties"][
+                        "nested"
+                    ].items()
+                    if k != "additionalProperties"
                 },
             },
         },
@@ -485,8 +565,64 @@ class PydanticModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
 
     def test_get_field_meta_defined_fields(self):
         adapter = ItemAdapter(self.item_class())
-        self.assertEqual(adapter.get_field_meta("name")["json_schema_extra"], MappingProxyType({"serializer": str}))
-        self.assertEqual(adapter.get_field_meta("value")["json_schema_extra"], MappingProxyType({"serializer": int}))
+        self.assertEqual(
+            adapter.get_field_meta("name")["json_schema_extra"],
+            MappingProxyType({"serializer": str}),
+        )
+        self.assertEqual(
+            adapter.get_field_meta("value")["json_schema_extra"],
+            MappingProxyType({"serializer": int}),
+        )
+
+    def test_json_schema_validators(self):
+        from itemadapter._imports import pydantic
+
+        class Model(pydantic.BaseModel):
+            # String with min/max length and regex pattern
+            name: str = pydantic.Field(
+                min_length=3,
+                max_length=10,
+                pattern=r"^[A-Za-z]+$",
+            )
+            # Integer with minimum, maximum, exclusive minimum, exclusive maximum
+            age: int = pydantic.Field(
+                ge=18,
+                le=99,
+                gt=17,
+                lt=100,
+            )
+            # Sequence with max_items
+            tags: set[str] = pydantic.Field(max_length=50)
+
+        actual = ItemAdapter.get_json_schema(Model)
+        expected = {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 10,
+                    "pattern": "^[A-Za-z]+$",
+                },
+                "age": {
+                    "type": "integer",
+                    "minimum": 18,
+                    "maximum": 99,
+                    "exclusiveMinimum": 17,
+                    "exclusiveMaximum": 100,
+                },
+                "tags": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "maxItems": 50,
+                    "items": {
+                        "type": "string",
+                    },
+                },
+            },
+            "required": ["name", "age", "tags"],
+        }
+        self.assertEqual(expected, actual)
 
 
 class ScrapySubclassedItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
@@ -497,23 +633,25 @@ class ScrapySubclassedItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
     item_class_json_schema = ScrapySubclassedItemJsonSchema
     expected_json_schema = {
         **{
-            k: v 
-            for k, v in CustomItemClassTestMixin.expected_json_schema.items() 
-            if k not in {'properties'}
+            k: v
+            for k, v in CustomItemClassTestMixin.expected_json_schema.items()
+            if k not in {"properties"}
         },
-        'properties': {
+        "properties": {
             **{
                 k: v
-                for k, v in CustomItemClassTestMixin.expected_json_schema['properties'].items()
-                if k != 'produced'
+                for k, v in CustomItemClassTestMixin.expected_json_schema["properties"].items()
+                if k != "produced"
             },
             # No type, since none was specified in json_schema_extra.
-            'produced': {},
+            "produced": {},
         },
-        # Scrapy items seem to sort fields alphabetically. produced is required 
+        # Scrapy items seem to sort fields alphabetically. produced is required
         # because there is no default factory support in Scrapy.
-        'required': sorted(CustomItemClassTestMixin.expected_json_schema['required'] + ['produced']),
-        'llmHint': 'Hi model!',
+        "required": sorted(
+            CustomItemClassTestMixin.expected_json_schema["required"] + ["produced"]
+        ),
+        "llmHint": "Hi model!",
     }
 
     def test_get_value_keyerror_item_dict(self):
@@ -526,16 +664,16 @@ class ScrapySubclassedItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
 class CrossNestingTestCase(unittest.TestCase):
     """Test item nesting across different item types, with all supported types
     acting as parent or child in one test."""
+
     maxDiff = None
 
     @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_dataclass_pydantic1(self):
-
         @dataclass
-        class DataClassItemNested:
+        class TestItem:
             nested: PydanticV1ModelJsonSchemaNested
 
-        actual = ItemAdapter.get_json_schema(DataClassItemNested)
+        actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
             "properties": {
@@ -554,22 +692,20 @@ class CrossNestingTestCase(unittest.TestCase):
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_attrs_pydantic2(self):
-
         import attrs
 
         @attrs.define
-        class AttrsItemNested:
+        class TestItem:
             nested: PydanticModelJsonSchemaNested
 
-        actual = ItemAdapter.get_json_schema(AttrsItemNested)
+        actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
             "properties": {
                 "nested": {
-                    "title": "PydanticModelJsonSchemaNested",
                     "type": "object",
                     "properties": {
-                        "is_nested": {"type": "boolean", "default": True, "title": "Is Nested"},
+                        "is_nested": {"type": "boolean", "default": True},
                     },
                 }
             },
@@ -581,12 +717,7 @@ class CrossNestingTestCase(unittest.TestCase):
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_scrapy_attrs(self):
-        from scrapy.item import Item, Field
-
-        class ScrapySubclassedItemNested(Item):
-            nested: AttrsItemJsonSchemaNested = Field()
-
-        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemNested)
+        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)
         expected = {
             "type": "object",
             "properties": {
@@ -608,13 +739,13 @@ class CrossNestingTestCase(unittest.TestCase):
     def test_pydantic1_scrapy(self):
         from . import pydantic_v1
 
-        class PydanticV1ModelNested(pydantic_v1.BaseModel):
+        class TestItem(pydantic_v1.BaseModel):
             nested: ScrapySubclassedItemJsonSchemaNested
 
             class Config:
                 arbitrary_types_allowed = True
 
-        actual = ItemAdapter.get_json_schema(PydanticV1ModelNested)
+        actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
             "properties": {
@@ -626,7 +757,7 @@ class CrossNestingTestCase(unittest.TestCase):
                     "additionalProperties": False,
                 }
             },
-            'required': ["nested"],
+            "required": ["nested"],
         }
         self.assertEqual(expected, actual)
 
@@ -635,10 +766,10 @@ class CrossNestingTestCase(unittest.TestCase):
         # Note: Works due to built-in dataclass support in Pydantic.
         from . import pydantic
 
-        class PydanticModelNested(pydantic.BaseModel):
+        class TestItem(pydantic.BaseModel):
             nested: DataClassItemJsonSchemaNested
 
-        actual = ItemAdapter.get_json_schema(PydanticModelNested)
+        actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
             "properties": {
@@ -659,14 +790,14 @@ class CrossNestingTestCase(unittest.TestCase):
     def test_pydantic_scrapy(self):
         from . import pydantic
 
-        class PydanticModelNested(pydantic.BaseModel):
+        class TestItem(pydantic.BaseModel):
             nested: ScrapySubclassedItemJsonSchemaNested
 
             model_config = {
                 "arbitrary_types_allowed": True,
             }
 
-        actual = ItemAdapter.get_json_schema(PydanticModelNested)
+        actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
             "properties": {
@@ -689,7 +820,12 @@ class JsonSchemaTestCase(unittest.TestCase):
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_attrs_pydantic_enum(self):
+        """This test exists to ensure that we do not let the JSON Schema
+        generation of Pydantic item classes generated nested $defs (which we
+        don’t since we do not run Pydantic’s JSON Schema generation but our
+        own)."""
         import attrs
+
         from . import pydantic
 
         class TestEnum(Enum):
@@ -700,23 +836,18 @@ class JsonSchemaTestCase(unittest.TestCase):
 
         @attrs.define
         class TestAttrsItem:
-            pydantic: TestPydanticModel 
+            pydantic: TestPydanticModel
 
         actual = ItemAdapter.get_json_schema(TestAttrsItem)
         expected = {
-            "$defs": {
-                "TestEnum": {"enum": ["foo"], "title": "TestEnum", "type": "string"},
-            },
             "type": "object",
             "properties": {
                 "pydantic": {
                     "type": "object",
                     "properties": {
-                        "enum": {'$ref': '#/$defs/TestEnum'}
+                        "enum": {"enum": ["foo"], "type": "string"},
                     },
                     "required": ["enum"],
-                    "additionalProperties": False,
-                    "title": "Pydantic"
                 }
             },
             "required": ["pydantic"],
@@ -724,24 +855,56 @@ class JsonSchemaTestCase(unittest.TestCase):
         }
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @unittest.skipIf(
+        PYTHON_VERSION >= (3, 13), "It seems inspect can get the class code in Python 3.13+"
+    )
+    def test_unreachable_source(self):
+        """Using inspect to get the item class source and find attribute
+        docstrings is not always a possibility, e.g. when the item class is
+        defined within a (test) method. In those cases, only the extraction of
+        those docstrings should fail."""
+        from scrapy.item import Field, Item
+
+        class ScrapySubclassedItemUnreachable(Item):
+            name: str = Field(json_schema_extra={"example": "Foo"})
+            """Display name"""
+
+        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
+        expected = {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Foo",
+                }
+            },
+            "required": ["name"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+
 # TODO:
 # Add progressively complex tests for get_json_schema:
-# - As well as all other tests involving Pydantic (expectations may need to change, become more similar to those of dataclasses or attrs)
-# - Implement a test_json_schema_validators for Pydantic V2 and V1.
-# - Fix expectations of test_attrs_pydantic_enum passing. Leave a comment about why the test exists: if we ever move to let Pydantic handle its own JSON schema generation, scenarios like that may become an issue, as Pydantic aggressively uses $defs, and that alternative implementation may require us to fetch $defs from nested Pydantic schemas and move them to the schema root.
+# - Get a clean CI run.
+#
+# pylint
+#
 # - Support sequences (list/set/tuple) of items.
 # - Support mappings of items.
 # - Support arbitrary type levels (e.g. list of dicts of items).
-# - Support type recursion with $defs
-# - Implement switch to $defs for types that appear more than once.
+# - Raise NotImplementedError on type recursion
+# - Create a issue to eventually implement support for $refs and use them to solve recursion and simplify output schemas when a type is used more than once.
+# - Try to address pylint’s R issues by refactoring the changes to make things more readable.
 # - Generate JSON Schema files for all item classes in zyte-common-items, and have a quick look at them to see if they look good.
-# 
+#
 # After every change, test:
 # - tox -e pydantic -- tests tests/test_adapter.py::PydanticModelTestCase::test_json_schema -vv
 # - tox -e pydantic1 -- tests tests/test_adapter.py::PydanticV1ModelTestCase::test_json_schema -vv
 # - tox -e scrapy -- tests tests/test_adapter.py::ScrapySubclassedItemTestCase::test_json_schema -vv
 # - tox -e attrs -- tests tests/test_adapter.py::AttrsItemTestCase::test_json_schema -vv
 # - tox -e py -- tests tests/test_adapter.py::DataClassItemTestCase::test_json_schema -vv
-# 
-# Once everything is implemented, try running the tox commands above 
+#
+# Once everything is implemented, try running the tox commands above
 # but with min- versions of those tox environments

@@ -1,9 +1,9 @@
 import unittest
 from types import MappingProxyType
+from typing import Optional
 from unittest import mock
 
 from itemadapter.utils import get_field_meta_from_class
-from itemadapter._imports import PydanticUndefined
 from tests import (
     AttrsItem,
     DataClassItem,
@@ -82,7 +82,7 @@ class PydanticTestCase(unittest.TestCase):
             mapping_proxy_type,
             MappingProxyType(
                 {
-                    "default": PydanticUndefined,
+                    "annotation": Optional[str],
                     "default_factory": mapping_proxy_type["default_factory"],
                     "json_schema_extra": {"serializer": str},
                     "repr": True,
@@ -94,7 +94,7 @@ class PydanticTestCase(unittest.TestCase):
             get_field_meta_from_class(PydanticModel, "value"),
             MappingProxyType(
                 {
-                    "default": PydanticUndefined,
+                    "annotation": Optional[int],
                     "default_factory": mapping_proxy_type["default_factory"],
                     "json_schema_extra": {"serializer": int},
                     "repr": True,
@@ -106,7 +106,7 @@ class PydanticTestCase(unittest.TestCase):
             mapping_proxy_type,
             MappingProxyType(
                 {
-                    "default": PydanticUndefined,
+                    "annotation": Optional[int],
                     "default_factory": mapping_proxy_type["default_factory"],
                     "alias": "special_cases",
                     "alias_priority": 2,

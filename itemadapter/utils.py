@@ -3,7 +3,13 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Any
 
-from itemadapter._imports import attr, pydantic, pydantic_v1, PydanticUndefined, PydanticV1Undefined
+from itemadapter._imports import (
+    PydanticUndefined,
+    PydanticV1Undefined,
+    attr,
+    pydantic,
+    pydantic_v1,
+)
 
 __all__ = ["get_field_meta_from_class", "is_item"]
 
@@ -72,6 +78,7 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
 
     for attribute, default_value in [
         ("default", PydanticUndefined),
+        ("metadata", []),
     ]:
         if hasattr(field, attribute) and (value := getattr(field, attribute)) != default_value:
             metadata[attribute] = value
@@ -103,8 +110,8 @@ def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> Mapping
         if value is not None:
             metadata[attribute] = value
 
-    if (value := getattr("default", attribute)) in (PydanticV1Undefined, Ellipsis):
-        metadata[attribute] = value
+    if (value := field.default) not in (PydanticV1Undefined, Ellipsis):
+        metadata["default"] = value
 
     if not field.allow_mutation:
         metadata["allow_mutation"] = field.allow_mutation

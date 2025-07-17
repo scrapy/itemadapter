@@ -1,28 +1,26 @@
 from __future__ import annotations
 
 import ast
-from copy import copy
 import dataclasses
-from abc import ABCMeta, abstractmethod
-from collections import deque
-from collections.abc import Iterable, Iterator, KeysView, MutableMapping, Sequence, Set
-from enum import Enum
-from functools import partial
 import inspect
 import operator
-import typing
-import collections.abc
+from abc import ABCMeta, abstractmethod
+from collections import deque
+from collections.abc import Iterable, Iterator, KeysView, Mapping, MutableMapping, Sequence
+from collections.abc import Set as AbstractSet
+from copy import copy
+from enum import Enum
 from textwrap import dedent
 from types import MappingProxyType
-from typing import Any, Mapping, Union, get_args, get_origin, get_type_hints
+from typing import Any, Union, get_args, get_origin, get_type_hints
 
 try:
-    from types import NoneType, UnionType
+    from types import NoneType, UnionType  # pylint: disable=ungrouped-imports
 except ImportError:  # Python < 3.10
-    NoneType = type(None)
-    UnionType = type(Union)
+    NoneType = type(None)  # type: ignore[misc]
+    UnionType = type(Union)  # type: ignore[assignment,misc]
 
-from itemadapter._imports import _scrapy_item_classes, attr, PydanticUndefined, PydanticV1Undefined
+from itemadapter._imports import PydanticUndefined, PydanticV1Undefined, _scrapy_item_classes, attr
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
     _get_pydantic_v1_model_metadata,
@@ -50,27 +48,24 @@ _JSON_SCHEMA_SIMPLE_TYPE_MAPPING = {
 }
 
 
-# TODO: Support converting Python regex patterns to JSON Schema patterns where 
-# possible, instead of ignoring any incompatible pattern however easy it would
-# be to convert it.
 def _is_json_schema_pattern(pattern: str) -> bool:
     # https://ecma-international.org/publications-and-standards/standards/ecma-262/
-    # 
+    #
     # Note: We allow word boundaries (\b, \B) in patterns even thought there is
-    # a difference in behavior: in Python, they work with Unicode; in JSON 
+    # a difference in behavior: in Python, they work with Unicode; in JSON
     # Schema, they only work with ASCII.
     unsupported = [
-        '(?P<',   # named groups
-        '(?<=',   # lookbehind
-        '(?<!',   # negative lookbehind
-        '(?>',    # atomic group
-        '\\A',    # start of string
-        '\\Z',    # end of string
-        '(?i)',   # inline flags (case-insensitive, etc.)
-        '(?m)',   # multiline
-        '(?s)',   # dotall
-        '(?x)',   # verbose
-        '(?#',    # comments
+        "(?P<",  # named groups
+        "(?<=",  # lookbehind
+        "(?<!",  # negative lookbehind
+        "(?>",  # atomic group
+        "\\A",  # start of string
+        "\\Z",  # end of string
+        "(?i)",  # inline flags (case-insensitive, etc.)
+        "(?m)",  # multiline
+        "(?s)",  # dotall
+        "(?x)",  # verbose
+        "(?#",  # comments
     ]
     return not any(sub in pattern for sub in unsupported)
 
@@ -93,10 +88,6 @@ def _type_hint_to_json_schema_type(type_hint: Any) -> str | list[str] | None:
     return None
 
 
-from typing import get_args, get_origin
-import collections.abc
-
-
 def _get_array_item_type(type_hint):
     args = get_args(type_hint)
     if not args:
@@ -109,13 +100,11 @@ def _get_array_item_type(type_hint):
     return Union[unique_args]
 
 
-def _update_prop_from_type(
-    prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState
-) -> None:
+def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     if (origin := get_origin(prop_type)) not in (None, Union):
-        if issubclass(origin, (Sequence, Set)):
+        if issubclass(origin, (Sequence, AbstractSet)):
             prop.setdefault("type", "array")
-            if issubclass(origin, Set):
+            if issubclass(origin, AbstractSet):
                 prop.setdefault("uniqueItems", True)
             items = prop.setdefault("items", {})
             item_type = _get_array_item_type(prop_type)
@@ -136,16 +125,16 @@ def _update_prop_from_type(
                 return
             state.seen_item_types.add(prop_type)
             subschema = state.adapter.get_json_schema(
-                prop_type, 
+                prop_type,
                 _state=state,
             )
             for k, v in subschema.items():
                 prop.setdefault(k, v)
             return
-        if issubclass(prop_type, (Sequence, Set)) and not issubclass(prop_type, str):
+        if issubclass(prop_type, (Sequence, AbstractSet)) and not issubclass(prop_type, str):
             prop.setdefault("type", "array")
             items = prop.setdefault("items", {})
-            if issubclass(prop_type, Set):
+            if issubclass(prop_type, AbstractSet):
                 prop.setdefault("uniqueItems", True)
             return
         if issubclass(prop_type, Mapping):
@@ -154,11 +143,8 @@ def _update_prop_from_type(
         if issubclass(prop_type, Enum):
             values = [item.value for item in prop_type]
             prop.setdefault("enum", values)
-            value_types = tuple(set(type(v) for v in values))
-            if len(value_types) == 1:
-                prop_type = value_types[0]
-            else:
-                prop_type = Union[value_types]
+            value_types = tuple({type(v) for v in values})
+            prop_type = value_types[0] if len(value_types) == 1 else Union[value_types]
             _update_prop_from_type(prop, prop_type, state)
             return
     json_schema_type = _type_hint_to_json_schema_type(prop_type)
@@ -178,27 +164,25 @@ def _setdefault_attribute_types_on_schema(
         _update_prop_from_type(prop, prop_type, state)
 
 
-def _setdefault_attribute_docstrings_on_schema(
-    schema: dict[str, Any], item_class: type
-) -> None:
+def _setdefault_attribute_docstrings_on_schema(schema: dict[str, Any], item_class: type) -> None:
     props = schema.get("properties", {})
     attribute_names = set(props)
     if not attribute_names:
         return
-    source = inspect.getsource(item_class)
+    try:
+        source = inspect.getsource(item_class)
+    except OSError:
+        return
     tree = ast.parse(dedent(source))
-    class_node = tree.body[0]
+    try:
+        class_node = tree.body[0]
+    except IndexError:
+        return
     assert isinstance(class_node, ast.ClassDef)
     for node in ast.iter_child_nodes(class_node):
-        if (
-            isinstance(node, ast.Assign) 
-            and isinstance(node.targets[0], ast.Name)
-        ):
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
             attr_name = node.targets[0].id
-        elif (
-            isinstance(node, ast.AnnAssign) 
-            and isinstance(node.target, ast.Name)
-        ):
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             attr_name = node.target.id
         else:
             continue
@@ -209,8 +193,8 @@ def _setdefault_attribute_docstrings_on_schema(
             continue
         next_node = class_node.body[next_idx]
         if (
-            isinstance(next_node, ast.Expr) 
-            and isinstance(next_node.value, ast.Constant) 
+            isinstance(next_node, ast.Expr)
+            and isinstance(next_node.value, ast.Constant)
             and isinstance(next_node.value.value, str)
         ):
             props[attr_name].setdefault("description", next_node.value.value)
@@ -247,15 +231,15 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         """Return a list of fields defined for ``item_class``.
         If a class doesn't support fields, None is returned."""
         return None
-    
+
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         item_class_meta = getattr(item_class, "__metadata__", {})
         schema = copy(item_class_meta.get("json_schema_extra", {}))
-        schema.setdefault('type', 'object')
-        schema.setdefault('additionalProperties', False)
+        schema.setdefault("type", "object")
+        schema.setdefault("additionalProperties", False)
         fields_meta = {
-            field_name: cls.get_field_meta_from_class(item_class, field_name) 
+            field_name: cls.get_field_meta_from_class(item_class, field_name)
             for field_name in cls.get_field_names_from_class(item_class) or ()
         }
         if not fields_meta:
@@ -265,8 +249,8 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
             for field_name, field_meta in fields_meta.items()
         }
         required = [
-            field_name 
-            for field_name, field_data in schema["properties"].items() 
+            field_name
+            for field_name, field_data in schema["properties"].items()
             if "default" not in field_data
         ]
         if required:
@@ -352,23 +336,23 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         if attr is None:
             raise RuntimeError("attr module is not available")
         return [a.name for a in attr.fields(item_class)]
-    
+
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         item_class_meta = getattr(item_class, "__metadata__", {})
         schema = copy(item_class_meta.get("json_schema_extra", {}))
-        schema.setdefault('type', 'object')
-        schema.setdefault('additionalProperties', False)
+        schema.setdefault("type", "object")
+        schema.setdefault("additionalProperties", False)
         fields = attr.fields(item_class)
         if not fields:
             return schema
-        
-        from attrs import resolve_types
+
+        from attr import resolve_types
+
         resolve_types(item_class)  # Ensure field.type annotations are resolved
 
         schema["properties"] = {
-            field.name: copy(field.metadata.get("json_schema_extra", {}))
-            for field in fields
+            field.name: copy(field.metadata.get("json_schema_extra", {})) for field in fields
         }
         default_factory_fields = set()
         for field in fields:
@@ -406,16 +390,14 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
                         key = "maxLength" if field.type is str else "maxItems"
                         prop.setdefault(key, validator.max_length)
                     elif validator_type_name == "_MatchesReValidator":
-                        pattern = validator.pattern.pattern
+                        pattern_obj = getattr(validator, "pattern", None) or validator.regex
+                        pattern = pattern_obj.pattern
                         if _is_json_schema_pattern(pattern):
                             prop.setdefault("pattern", pattern)
         required = [
-            field_name 
-            for field_name, data in schema["properties"].items() 
-            if (
-                "default" not in data 
-                and field_name not in default_factory_fields
-            )
+            field_name
+            for field_name, data in schema["properties"].items()
+            if ("default" not in data and field_name not in default_factory_fields)
         ]
         if required:
             schema["required"] = required
@@ -447,20 +429,19 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         return [a.name for a in dataclasses.fields(item_class)]
-    
+
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         item_class_meta = getattr(item_class, "__metadata__", {})
         schema = copy(item_class_meta.get("json_schema_extra", {}))
-        schema.setdefault('type', 'object')
-        schema.setdefault('additionalProperties', False)
+        schema.setdefault("type", "object")
+        schema.setdefault("additionalProperties", False)
         fields = dataclasses.fields(item_class)
         resolved_field_types = get_type_hints(item_class)
         default_factory_fields = set()
         if fields:
             schema["properties"] = {
-                field.name: copy(field.metadata.get("json_schema_extra", {}))
-                for field in fields
+                field.name: copy(field.metadata.get("json_schema_extra", {})) for field in fields
             }
             for field in fields:
                 prop = schema["properties"][field.name]
@@ -472,12 +453,9 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
                 if field_type is not None:
                     _update_prop_from_type(prop, field_type, _state)
             required = [
-                field_name 
-                for field_name, data in schema["properties"].items() 
-                if (
-                    "default" not in data
-                    and field_name not in default_factory_fields
-                )
+                field_name
+                for field_name, data in schema["properties"].items()
+                if ("default" not in data and field_name not in default_factory_fields)
             ]
             if required:
                 schema["required"] = required
@@ -508,18 +486,22 @@ class PydanticAdapter(AdapterInterface):
             return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
         except AttributeError:
             return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
-    
+
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         try:
-            schema = copy(item_class.model_config.get("json_schema_extra", {}))
-            extra = item_class.model_config.get("extra")
+            schema = copy(
+                item_class.model_config.get("json_schema_extra", {})  # type: ignore[attr-defined]
+            )
+            extra = item_class.model_config.get("extra")  # type: ignore[attr-defined]
         except AttributeError:  # Pydantic V1
-            schema = copy(getattr(item_class.Config, "schema_extra", {}))
-            extra = getattr(item_class.Config, "extra", None)
-        schema.setdefault('type', 'object')
+            schema = copy(
+                getattr(item_class.Config, "schema_extra", {})  # type: ignore[attr-defined]
+            )
+            extra = getattr(item_class.Config, "extra", None)  # type: ignore[attr-defined]
+        schema.setdefault("type", "object")
         if extra == "forbid":
-            schema.setdefault('additionalProperties', False)
+            schema.setdefault("additionalProperties", False)
         fields = {
             name: cls.get_field_meta_from_class(item_class, name)
             for name in cls.get_field_names_from_class(item_class) or ()
@@ -527,8 +509,7 @@ class PydanticAdapter(AdapterInterface):
         if not fields:
             return schema
         schema["properties"] = {
-            name: copy(metadata.get("json_schema_extra", {}))
-            for name, metadata in fields.items()
+            name: copy(metadata.get("json_schema_extra", {})) for name, metadata in fields.items()
         }
         default_factory_fields = set()
         field_type_hints = get_type_hints(item_class)
@@ -536,52 +517,81 @@ class PydanticAdapter(AdapterInterface):
             prop = schema["properties"][name]
             if "default_factory" in metadata:
                 default_factory_fields.add(name)
-            elif (
-                "default" in metadata 
-                and metadata["default"] not in (Ellipsis, PydanticUndefined, PydanticV1Undefined)
+            elif "default" in metadata and metadata["default"] not in (
+                Ellipsis,
+                PydanticUndefined,
+                PydanticV1Undefined,
             ):
                 prop.setdefault("default", metadata["default"])
             if "annotation" in metadata:
-                _update_prop_from_type(prop, metadata["annotation"], _state)
+                field_type = metadata["annotation"]
             else:
                 try:
                     field_type = field_type_hints[name]
                 except KeyError:
-                    pass
-                else:
-                    _update_prop_from_type(prop, field_type, _state)
+                    field_type = None
+            if field_type is not None:
+                _update_prop_from_type(prop, field_type, _state)
+            if "metadata" in metadata:
+                metadata_items = metadata["metadata"]
+                for metadata_item in metadata_items:
+                    metadata_item_type = type(metadata_item).__name__
+                    if metadata_item_type == "_PydanticGeneralMetadata":
+                        if "pattern" in metadata_item.__dict__:
+                            pattern = metadata_item.__dict__["pattern"]
+                            if _is_json_schema_pattern(pattern):
+                                prop.setdefault("pattern", pattern)
+                    elif metadata_item_type == "MinLen":
+                        key = "minLength" if field_type is str else "minItems"
+                        prop.setdefault(key, metadata_item.min_length)
+                    elif metadata_item_type == "MaxLen":
+                        key = "maxLength" if field_type is str else "maxItems"
+                        prop.setdefault(key, metadata_item.max_length)
+                    else:
+                        for metadata_key, json_schema_field in (
+                            ("ge", "minimum"),
+                            ("gt", "exclusiveMinimum"),
+                            ("le", "maximum"),
+                            ("lt", "exclusiveMaximum"),
+                        ):
+                            if metadata_item_type == metadata_key.capitalize():
+                                prop.setdefault(
+                                    json_schema_field, getattr(metadata_item, metadata_key)
+                                )
+            else:
+                for metadata_key, json_schema_field in (
+                    ("ge", "minimum"),
+                    ("gt", "exclusiveMinimum"),
+                    ("le", "maximum"),
+                    ("lt", "exclusiveMaximum"),
+                ):
+                    if metadata_key in metadata:
+                        prop.setdefault(json_schema_field, metadata[metadata_key])
+                for prefix in ("min", "max"):
+                    if f"{prefix}_length" in metadata:
+                        key = f"{prefix}Length" if field_type is str else f"{prefix}Items"
+                        prop.setdefault(key, metadata[f"{prefix}_length"])
+                    elif f"{prefix}_items" in metadata:
+                        prop.setdefault(f"{prefix}Items", metadata[f"{prefix}_items"])
+                for metadata_key in ("pattern", "regex"):
+                    if metadata_key in metadata:
+                        pattern = metadata[metadata_key]
+                        if _is_json_schema_pattern(pattern):
+                            prop.setdefault("pattern", pattern)
+                        break
             for metadata_key, json_schema_field in (
-                ("ge", "minimum"),
-                ("gt", "exclusiveMinimum"),
-                ("le", "maximum"),
-                ("lt", "exclusiveMaximum"),
                 ("description", "description"),
                 ("examples", "examples"),
                 ("title", "title"),
             ):
                 if metadata_key in metadata:
                     prop.setdefault(json_schema_field, metadata[metadata_key])
-            for prefix in ("min", "max"):
-                if f"{prefix}_length" in metadata:
-                    key = f"{prefix}Length" if metadata["annotation"] is str else f"{prefix}Items"
-                    prop.setdefault(key, metadata[f"{prefix}_length"])
-                elif f"{prefix}_items" in metadata:
-                    prop.setdefault(f"{prefix}Items", metadata[f"{prefix}_items"])
-            for metadata_key in ("pattern", "regex"):
-                if metadata_key in metadata:
-                    pattern = metadata[metadata_key]
-                    if _is_json_schema_pattern(pattern):
-                        prop.setdefault("pattern", pattern)
-                    break
             if "deprecated" in metadata:
                 prop.setdefault("deprecated", bool(metadata["deprecated"]))
         required = [
-            field_name 
-            for field_name, data in schema["properties"].items() 
-            if (
-                "default" not in data 
-                and field_name not in default_factory_fields
-            )
+            field_name
+            for field_name, data in schema["properties"].items()
+            if ("default" not in data and field_name not in default_factory_fields)
         ]
         if required:
             schema["required"] = required
@@ -590,37 +600,37 @@ class PydanticAdapter(AdapterInterface):
 
     def field_names(self) -> KeysView:
         try:
-            return KeysView(self.item.model_fields)
+            return KeysView(self.item.__class__.model_fields)
         except AttributeError:
             return KeysView(self.item.__fields__)
 
     def __getitem__(self, field_name: str) -> Any:
         try:
-            self.item.model_fields  # noqa: B018
+            self.item.__class__.model_fields  # noqa: B018
         except AttributeError:
             if field_name in self.item.__fields__:
                 return getattr(self.item, field_name)
         else:
-            if field_name in self.item.model_fields:
+            if field_name in self.item.__class__.model_fields:
                 return getattr(self.item, field_name)
         raise KeyError(field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
         try:
-            self.item.model_fields  # noqa: B018
+            self.item.__class__.model_fields  # noqa: B018
         except AttributeError:
             if field_name in self.item.__fields__:
                 setattr(self.item, field_name, value)
                 return
         else:
-            if field_name in self.item.model_fields:
+            if field_name in self.item.__class__.model_fields:
                 setattr(self.item, field_name, value)
                 return
         raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
     def __delitem__(self, field_name: str) -> None:
         try:
-            self.item.model_fields  # noqa: B018
+            self.item.__class__.model_fields  # noqa: B018
         except AttributeError as ex:
             if field_name in self.item.__fields__:
                 try:
@@ -631,7 +641,7 @@ class PydanticAdapter(AdapterInterface):
                 except AttributeError as ex2:
                     raise KeyError(field_name) from ex2
         else:
-            if field_name in self.item.model_fields:
+            if field_name in self.item.__class__.model_fields:
                 try:
                     if hasattr(self.item, field_name):
                         delattr(self.item, field_name)
@@ -643,7 +653,9 @@ class PydanticAdapter(AdapterInterface):
 
     def __iter__(self) -> Iterator:
         try:
-            return iter(attr for attr in self.item.model_fields if hasattr(self.item, attr))
+            return iter(
+                attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr)
+            )
         except AttributeError:
             return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
 
@@ -679,7 +691,7 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, dict)
-    
+
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         raise ValueError(
@@ -707,7 +719,7 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         return list(item_class.fields.keys())  # type: ignore[attr-defined]
-    
+
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
         schema = super().get_json_schema(item_class, _state=_state)
@@ -777,10 +789,7 @@ class ItemAdapter(MutableMapping):
 
     @classmethod
     def get_json_schema(
-        cls, 
-        item_class: type, 
-        *,
-        _state: _JsonSchemaState | None = None
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
         _state = _state or _JsonSchemaState(adapter=cls)
         adapter_class = cls._get_adapter_class(item_class)
