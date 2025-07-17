@@ -197,6 +197,14 @@ class BaseTestMixin:
         self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
 
 
+class SetList(list):
+    def __eq__(self, other):
+        return set(self) == set(other)
+
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
 class CustomItemClassTestMixin(BaseTestMixin):
     item_class_subclassed = None
     item_class_empty = None
@@ -217,15 +225,7 @@ class CustomItemClassTestMixin(BaseTestMixin):
             },
             "produced": {"type": "boolean"},
             "answer": {
-                "type": (
-                    ["string", "number", "null"]
-                    if PYTHON_VERSION > (3, 11)
-                    else ["number", "string", "null"]
-                    if PYTHON_VERSION > (3, 10)
-                    else ["null", "number", "string"]
-                    if PYTHON_VERSION > (3, 9)
-                    else ["string", "null", "number"]
-                ),
+                "type": SetList(["string", "null", "number"]),
             },
             "numbers": {"type": "array", "items": {"type": "number"}},
             "aliases": {
