@@ -72,7 +72,12 @@ def _update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSc
         any_of.append(complex_prop)
 
 
-_UnionType = type(Union)
+try:
+    from types import UnionType
+except ImportError:  # Python < 3.10
+    UNION_TYPES: set[Any] = {Union}
+else:
+    UNION_TYPES = {Union, UnionType}
 
 
 @runtime_checkable
@@ -156,7 +161,7 @@ def _update_prop_from_origin(
                 props = prop.setdefault("additionalProperties", {})
                 _update_prop_from_type(props, value_type, state)
             return
-    if origin in (_UnionType, Union):
+    if origin in UNION_TYPES:
         _update_prop_from_union(prop, prop_type, state)
 
 

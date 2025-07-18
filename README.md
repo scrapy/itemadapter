@@ -226,50 +226,58 @@ If an item class doesn't support defining fields upfront, None is returned.
 Return a dict with a [JSON Schema](https://json-schema.org/) representation of
 the item class.
 
-Note that, for Pydantic items, itemadapter does not use
-[`model_json_schema()`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema)
-and instead uses its own implementation. That way, the output JSON Schema is
-consistent across different item types. It also makes it possible to generate
-JSON Schemas for Pydantic models that have nested non-Pydantic item classes as
-fields. The downside is that JSON Schema support in itemadapter may not be as
-advanced as Pydantic‘s.
+The generated JSON Schema reflects field type hints, attribute docstrings and
+class and field metadata of any supported item class. It also supports using
+item classes in field types of other item classes.
 
-The output JSON Schema is generated on a best-effort basis:
+For example, given:
 
--   `required` is set to a list of fields that do not have a known default
-    value or default value factory.
+```python
+from dataclasses import dataclass
 
--   Default values are mapped as `default`. Default value factories are not.
+import attrs
 
--   Type hints or library-specific type definitions are mapped as `type` where
-    possible.
 
--   String pattern contraints are silently ignored if they are not compatible
-    with JSON Schema. No effort is made to make them compatible.
+@dataclass
+class Brand:
+    name: str
 
--   Recursion is silently ignored: if you have an item class that has an
-    attribute with that same item class as a type or as part of its type, a
-    simple `{"type": "object"}` is used to map the nested instances of that
-    item class.
+@attrs.define
+class Product:
+    name: str
+    """Product name"""
 
--   Attribute docstrings, i.e. docstrings placed *after* a class attribute
-    definition, are mapped as `description`. For example, “Display name” below
-    is used as a description for the `name` field:
+    brand: Brand | None
+    in_stock: bool = True
+```
 
-    ```python
-    import attrs
-    from itemadapter import ItemAdapter
+`ItemAdapter.get_json_schema(Product)` returns:
 
-    @attrs.define
-    class MyItem:
-        name: str
-        """Display name"""
-    ```
+```python
+{
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "name": {"type": "string", "description": "Product name"},
+        "brand": {
+            "anyOf": [
+                {"type": "null"},
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"name": {"type": "string"}},
+                    "required": ["name"],
+                },
+            ]
+        },
+        "in_stock": {"default": True, "type": "boolean"},
+    },
+    "required": ["name", "brand"],
+}
+```
 
-    Note, however, that such descriptions are read with
-    [`inspect.getsource()`](https://docs.python.org/3/library/inspect.html#inspect.getsource),
-    and may not be readable at run time in some cases. For such cases, define
-    `description` within `json_schema_extra` instead (see below).
+You can also extend or override JSON Schema data at the item class or field
+level:
 
 -   Set `json_schema_extra` in field metadata to extend or override the JSON
     Schema data for that field. For example:
@@ -300,6 +308,30 @@ The output JSON Schema is generated on a best-effort basis:
     {'additionalProperties': True, 'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name']}
 
     ```
+
+Note that, for Pydantic items, itemadapter does not use
+[`model_json_schema()`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema)
+and instead uses its own implementation. That way, the output JSON Schema is
+consistent across different item types. It also makes it possible to generate
+JSON Schemas for Pydantic models that have nested non-Pydantic item classes as
+fields. The downside is that JSON Schema support in itemadapter may not be as
+advanced as Pydantic‘s.
+
+The following are some known limitations of JSON Schema generation in
+itemadapter:
+
+-   Attribute docstrings are read with
+    [`inspect.getsource()`](https://docs.python.org/3/library/inspect.html#inspect.getsource),
+    and may not be readable at run time in some cases. For such cases, define
+    `description` within `json_schema_extra` instead (see below).
+
+-   String pattern contraints are silently ignored if they are not compatible
+    with JSON Schema. No effort is made to make them compatible.
+
+-   Recursion is silently ignored: if you have an item class that has an
+    attribute with that same item class as a type or as part of its type, a
+    simple `{"type": "object"}` is used to map the nested instances of that
+    item class.
 
 #### `get_field_meta(field_name: str) -> MappingProxyType`
 

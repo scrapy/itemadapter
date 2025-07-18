@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import importlib.metadata
 import unittest
 from collections.abc import KeysView
@@ -45,6 +46,7 @@ from tests import (
     ScrapySubclassedItemSubclassed,
     SetList,
 )
+from tests.test_json_schema import PYTHON_VERSION
 
 try:
     ATTRS_VERSION = Version(importlib.metadata.version("attrs"))
@@ -729,6 +731,11 @@ class ScrapySubclassedItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
             adapter["name"]
 
 
+@dataclasses.dataclass
+class Brand:
+    name: str = dataclasses.field()
+
+
 class CrossNestingTestCase(unittest.TestCase):
     """Test item nesting across different item types, with all supported types
     acting as parent or child in one test."""
@@ -969,5 +976,41 @@ class CrossNestingTestCase(unittest.TestCase):
                 },
             },
             "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @unittest.skipIf(PYTHON_VERSION < (3, 10), "Modern optional annotations require Python 3.10+")
+    def test_modern_optional_annotations(self):
+        import attr
+
+        @attr.define
+        class Product:
+            name: str
+            """Product name"""
+
+            brand: Brand | None
+            in_stock: bool = True
+
+        actual = ItemAdapter.get_json_schema(Product)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "name": {"type": "string", "description": "Product name"},
+                "brand": {
+                    "anyOf": [
+                        {"type": "null"},
+                        {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {"name": {"type": "string"}},
+                            "required": ["name"],
+                        },
+                    ]
+                },
+                "in_stock": {"default": True, "type": "boolean"},
+            },
+            "required": ["name", "brand"],
         }
         self.assertEqual(expected, actual)
