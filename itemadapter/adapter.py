@@ -142,6 +142,7 @@ def _update_prop_from_origin(
 def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     if (origin := get_origin(prop_type)) is not None:
         _update_prop_from_origin(prop, origin, prop_type, state)
+        return
     if isinstance(prop_type, type):
         if state.adapter.is_item_class(prop_type):
             if prop_type in state.containers:
