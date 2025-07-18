@@ -12,6 +12,7 @@ from tests import (
     PydanticEnumModel,
     PydanticModel,
     ScrapySubclassedItem,
+    SetList,
 )
 
 PYTHON_VERSION = sys.version_info[:2]
@@ -273,7 +274,7 @@ class JsonSchemaTestCase(unittest.TestCase):
             "properties": {
                 "foo": {
                     "type": "array",
-                    "items": {"type": ["string", "integer"]},
+                    "items": {"type": SetList(["string", "integer"])},
                 },
             },
             "required": ["foo"],

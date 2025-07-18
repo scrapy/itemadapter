@@ -42,6 +42,14 @@ class Color(Enum):
     BLUE = "blue"
 
 
+class SetList(list):
+    def __eq__(self, other):
+        return set(self) == set(other)
+
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
 @dataclass
 class DataClassItem:
     name: str = field(default_factory=lambda: None, metadata={"serializer": str})

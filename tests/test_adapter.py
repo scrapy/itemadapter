@@ -42,6 +42,7 @@ from tests import (
     ScrapySubclassedItemJsonSchemaNested,
     ScrapySubclassedItemNested,
     ScrapySubclassedItemSubclassed,
+    SetList,
 )
 
 try:
@@ -193,14 +194,6 @@ class BaseTestMixin:
         adapter = ItemAdapter(item)
         self.assertIsInstance(adapter.field_names(), KeysView)
         self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
-
-
-class SetList(list):
-    def __eq__(self, other):
-        return set(self) == set(other)
-
-    def __hash__(self):
-        return hash(frozenset(self))
 
 
 _NESTED_JSON_SCHEMA = {
