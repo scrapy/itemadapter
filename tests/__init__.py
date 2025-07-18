@@ -246,6 +246,7 @@ if pydantic is None:
     PydanticModelEmpty = None
     PydanticModelJsonSchema = None
     PydanticModelJsonSchemaNested = None
+    PydanticEnumModel = None
 else:
 
     class PydanticModel(pydantic.BaseModel):
@@ -311,6 +312,12 @@ else:
                 "llmHint": "Hi model!",
             },
         }
+
+    class SimpleEnum(Enum):
+        foo = "foo"
+
+    class PydanticEnumModel(pydantic.BaseModel):
+        enum: SimpleEnum
 
 
 try:
