@@ -254,7 +254,7 @@ The output JSON Schema is generated on a best-effort basis:
 
 -   Attribute docstrings, i.e. docstrings placed *after* a class attribute
     definition, are mapped as `description`. For example, “Display name” below
-    is used as a description:
+    is used as a description for the `name` field:
 
     ```python
     import attrs
@@ -268,9 +268,8 @@ The output JSON Schema is generated on a best-effort basis:
 
     Note, however, that such descriptions are read with
     [`inspect.getsource()`](https://docs.python.org/3/library/inspect.html#inspect.getsource),
-    and hence cannot be extracted e.g. if classes are defined in the Python
-    shell. For such cases, define `description` within `json_schema_extra`
-    instead (see below).
+    and may not be readable at run time in some cases. For such cases, define
+    `description` within `json_schema_extra` instead (see below).
 
 -   Set `json_schema_extra` in field metadata to extend or override the JSON
     Schema data for that field. For example:
@@ -279,10 +278,10 @@ The output JSON Schema is generated on a best-effort basis:
     >>> from scrapy.item import Item, Field
     >>> from itemadapter import ItemAdapter
     >>> class MyItem(Item):
-    ...     name = Field(json_schema_extra={"type": "string"})
+    ...     name: str = Field(json_schema_extra={"minLength": 1})
     ...
     >>> ItemAdapter.get_json_schema(MyItem)
-    {'type': 'object', 'additionalProperties': False, 'properties': {'name': {'type': 'string'}}, 'required': ['name']}
+    {'type': 'object', 'additionalProperties': False, 'properties': {'name': {'minLength': 1, 'type': 'string'}}, 'required': ['name']}
 
     ```
 
