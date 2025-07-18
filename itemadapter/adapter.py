@@ -73,18 +73,6 @@ def _is_json_schema_pattern(pattern: str) -> bool:
 def _type_hint_to_json_schema_type(type_hint: Any) -> str | list[str] | None:
     if type_hint in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING:
         return _JSON_SCHEMA_SIMPLE_TYPE_MAPPING[type_hint]
-    if get_origin(type_hint) in (UnionType, Union):
-        united_types = get_args(type_hint)
-        if len(united_types) == 1:
-            return _type_hint_to_json_schema_type(united_types[0])
-        unique_types = tuple(set(united_types))
-        if all(t in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING for t in unique_types):
-            json_schema_types = [_JSON_SCHEMA_SIMPLE_TYPE_MAPPING[t] for t in unique_types]
-            if "integer" in json_schema_types and "number" in json_schema_types:
-                del json_schema_types[json_schema_types.index("integer")]
-            if len(json_schema_types) == 1:
-                return json_schema_types[0]
-            return json_schema_types
     return None
 
 
@@ -101,23 +89,48 @@ def _get_array_item_type(type_hint):
 
 
 def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
-    if (origin := get_origin(prop_type)) not in (None, Union):
-        if issubclass(origin, (Sequence, AbstractSet)):
-            prop.setdefault("type", "array")
-            if issubclass(origin, AbstractSet):
-                prop.setdefault("uniqueItems", True)
-            items = prop.setdefault("items", {})
-            item_type = _get_array_item_type(prop_type)
-            _update_prop_from_type(items, item_type, state)
-            return
-        if issubclass(origin, Mapping):
-            prop.setdefault("type", "object")
-            args = get_args(prop_type)
-            assert len(args) == 2
-            value_type = args[1]
-            props = prop.setdefault("additionalProperties", {})
-            _update_prop_from_type(props, value_type, state)
-            return
+    if (origin := get_origin(prop_type)) is not None:
+        if isinstance(origin, type):
+            if issubclass(origin, (Sequence, AbstractSet)):
+                prop.setdefault("type", "array")
+                if issubclass(origin, AbstractSet):
+                    prop.setdefault("uniqueItems", True)
+                items = prop.setdefault("items", {})
+                item_type = _get_array_item_type(prop_type)
+                _update_prop_from_type(items, item_type, state)
+                return
+            if issubclass(origin, Mapping):
+                prop.setdefault("type", "object")
+                args = get_args(prop_type)
+                assert len(args) == 2
+                value_type = args[1]
+                props = prop.setdefault("additionalProperties", {})
+                _update_prop_from_type(props, value_type, state)
+                return
+        if origin in (UnionType, Union):
+            prop_types = set(get_args(prop_type))
+            if int in prop_types and float in prop_types:
+                prop_types.remove(int)
+            if len(prop_types) == 1:
+                _update_prop_from_type(prop, next(iter(prop_types)), state)
+                return
+            simple_types = [
+                _JSON_SCHEMA_SIMPLE_TYPE_MAPPING[t]
+                for t in prop_types
+                if t in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING
+            ]
+            complex_types = [t for t in prop_types if t not in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING]
+            if not complex_types:
+                prop.setdefault("type", simple_types)
+                return
+            any_of = prop.setdefault("anyOf", [])
+            if any_of:
+                return
+            any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
+            for complex_type in complex_types:
+                complex_prop = {}
+                _update_prop_from_type(complex_prop, complex_type, state)
+                any_of.append(complex_prop)
     if isinstance(prop_type, type):
         if state.adapter.is_item_class(prop_type):
             if prop_type in state.containers:

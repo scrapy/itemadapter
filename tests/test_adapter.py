@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib.metadata
 import sys
 import unittest
@@ -5,6 +7,7 @@ from collections.abc import KeysView
 from dataclasses import dataclass
 from enum import Enum
 from types import MappingProxyType
+from typing import Optional
 
 from packaging.version import Version
 
@@ -863,14 +866,14 @@ class CrossNestingTestCase(unittest.TestCase):
 
 @dataclass
 class RecursionNestedItem:
-    parent: "RecursionItem"
-    sibling: "RecursionNestedItem"
+    parent: RecursionItem
+    sibling: RecursionNestedItem
 
 
 @dataclass
 class RecursionItem:
     child: RecursionNestedItem
-    sibling: "RecursionItem"
+    sibling: RecursionItem
 
 
 class JsonSchemaTestCase(unittest.TestCase):
@@ -984,6 +987,49 @@ class JsonSchemaTestCase(unittest.TestCase):
                 },
             },
             "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_optional_item_list(self):
+        @dataclass
+        class NestedItem:
+            is_nested: bool = True
+
+        @dataclass
+        class TestItem:
+            foo: list[NestedItem] | None = None
+            bar: Optional[list[NestedItem]] = None
+
+        expected_nested_json_schema = {
+            "anyOf": [
+                {
+                    "type": "null",
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "is_nested": {
+                                "type": "boolean",
+                                "default": True,
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                },
+            ],
+            "default": None,
+        }
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": expected_nested_json_schema,
+                "bar": expected_nested_json_schema,
+            },
             "additionalProperties": False,
         }
         self.assertEqual(expected, actual)
