@@ -5,12 +5,10 @@ from abc import ABCMeta, abstractmethod
 from collections import deque
 from collections.abc import Iterable, Iterator, KeysView, MutableMapping
 from types import MappingProxyType
-from typing import (
-    Any,
-)
+from typing import Any
 
-from ._imports import _scrapy_item_classes, attr
-from ._json_schema import (
+from itemadapter._imports import _scrapy_item_classes, attr
+from itemadapter._json_schema import (
     _json_schema_from_attrs,
     _json_schema_from_dataclass,
     _json_schema_from_item_class,
@@ -19,7 +17,7 @@ from ._json_schema import (
     _setdefault_attribute_docstrings_on_json_schema,
     _setdefault_attribute_types_on_json_schema,
 )
-from .utils import (
+from itemadapter.utils import (
     _get_pydantic_model_metadata,
     _get_pydantic_v1_model_metadata,
     _is_attrs_class,

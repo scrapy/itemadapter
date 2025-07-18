@@ -21,9 +21,7 @@ from typing import (
 )
 
 from ._imports import PydanticUndefined, PydanticV1Undefined, attr
-from .utils import (
-    _is_pydantic_model,
-)
+from .utils import _is_pydantic_model
 
 if TYPE_CHECKING:
     from types import MappingProxyType
@@ -40,19 +38,22 @@ SIMPLE_TYPES = {
 }
 
 
-def _type_hint_to_json_schema_type(type_hint: Any) -> str | list[str] | None:
-    if type_hint in SIMPLE_TYPES:
-        return SIMPLE_TYPES[type_hint]
-    return None
-
-
 @dataclasses.dataclass
 class _JsonSchemaState:
     adapter: type[ItemAdapter | AdapterInterface]
+    """ItemAdapter class or AdapterInterface implementation used on the initial
+    get_json_schema() call.
+
+    On types for which adapter.is_item_class() returns True,
+    adapter.get_json_schema() is used to get the corresponding, nested JSON
+    Schema.
+    """
     containers: set[type] = dataclasses.field(default_factory=set)
+    """Used to keep track of item classes that are being processed, to avoid
+    recursion."""
 
 
-def _update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
+def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     prop_types = set(get_args(prop_type))
     if int in prop_types and float in prop_types:
         prop_types.remove(int)
@@ -68,16 +69,8 @@ def _update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSc
     any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
     for complex_type in complex_types:
         complex_prop: dict[str, Any] = {}
-        _update_prop_from_type(complex_prop, complex_type, state)
+        update_prop_from_type(complex_prop, complex_type, state)
         any_of.append(complex_prop)
-
-
-try:
-    from types import UnionType
-except ImportError:  # Python < 3.10
-    UNION_TYPES: set[Any] = {Union}
-else:
-    UNION_TYPES = {Union, UnionType}
 
 
 @runtime_checkable
@@ -101,29 +94,34 @@ class ObjectProtocol(Protocol):  # noqa: PLW1641
     def __ne__(self, other): ...
 
 
-def _is_json_schema_pattern(pattern: str) -> bool:
+INVALID_PATTERN_SUBSTRINGS = [
+    "(?P<",  # named groups
+    "(?<=",  # lookbehind
+    "(?<!",  # negative lookbehind
+    "(?>",  # atomic group
+    "\\A",  # start of string
+    "\\Z",  # end of string
+    "(?i)",  # inline flags (case-insensitive, etc.)
+    "(?m)",  # multiline
+    "(?s)",  # dotall
+    "(?x)",  # verbose
+    "(?#",  # comments
+]
+
+
+def is_valid_pattern(pattern: str) -> bool:
     # https://ecma-international.org/publications-and-standards/standards/ecma-262/
     #
     # Note: We allow word boundaries (\b, \B) in patterns even thought there is
     # a difference in behavior: in Python, they work with Unicode; in JSON
     # Schema, they only work with ASCII.
-    unsupported = [
-        "(?P<",  # named groups
-        "(?<=",  # lookbehind
-        "(?<!",  # negative lookbehind
-        "(?>",  # atomic group
-        "\\A",  # start of string
-        "\\Z",  # end of string
-        "(?i)",  # inline flags (case-insensitive, etc.)
-        "(?m)",  # multiline
-        "(?s)",  # dotall
-        "(?x)",  # verbose
-        "(?#",  # comments
-    ]
-    return not any(sub in pattern for sub in unsupported)
+    return not any(sub in pattern for sub in INVALID_PATTERN_SUBSTRINGS)
 
 
-def _get_array_item_type(type_hint):
+def array_type(type_hint):
+    """Given the type hint of a Python type that maps to a JSON Schema array,
+    such as a list, a tuple or a set, return the type of the items in that
+    array."""
     args = get_args(type_hint)
     if not args:
         return Any
@@ -135,12 +133,20 @@ def _get_array_item_type(type_hint):
     return Union[tuple(unique_args)]
 
 
-def _update_prop_from_pattern(prop: dict[str, Any], pattern: str) -> None:
-    if _is_json_schema_pattern(pattern):
+def update_prop_from_pattern(prop: dict[str, Any], pattern: str) -> None:
+    if is_valid_pattern(pattern):
         prop.setdefault("pattern", pattern)
 
 
-def _update_prop_from_origin(
+try:
+    from types import UnionType
+except ImportError:  # Python < 3.10
+    UNION_TYPES: set[Any] = {Union}
+else:
+    UNION_TYPES = {Union, UnionType}
+
+
+def update_prop_from_origin(
     prop: dict[str, Any], origin: Any, prop_type: Any, state: _JsonSchemaState
 ) -> None:
     if isinstance(origin, type):
@@ -149,8 +155,8 @@ def _update_prop_from_origin(
             if issubclass(origin, AbstractSet):
                 prop.setdefault("uniqueItems", True)
             items = prop.setdefault("items", {})
-            item_type = _get_array_item_type(prop_type)
-            _update_prop_from_type(items, item_type, state)
+            item_type = array_type(prop_type)
+            update_prop_from_type(items, item_type, state)
             return
         if issubclass(origin, Mapping):
             prop.setdefault("type", "object")
@@ -159,15 +165,15 @@ def _update_prop_from_origin(
                 assert len(args) == 2
                 value_type = args[1]
                 props = prop.setdefault("additionalProperties", {})
-                _update_prop_from_type(props, value_type, state)
+                update_prop_from_type(props, value_type, state)
             return
     if origin in UNION_TYPES:
-        _update_prop_from_union(prop, prop_type, state)
+        update_prop_from_union(prop, prop_type, state)
 
 
-def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
+def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     if (origin := get_origin(prop_type)) is not None:
-        _update_prop_from_origin(prop, origin, prop_type, state)
+        update_prop_from_origin(prop, origin, prop_type, state)
         return
     if isinstance(prop_type, type):
         if state.adapter.is_item_class(prop_type):
@@ -188,7 +194,7 @@ def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSch
             prop.setdefault("enum", values)
             value_types = tuple({type(v) for v in values})
             prop_type = value_types[0] if len(value_types) == 1 else Union[value_types]
-            _update_prop_from_type(prop, prop_type, state)
+            update_prop_from_type(prop, prop_type, state)
             return
         if not issubclass(prop_type, str):
             if isinstance(prop_type, ObjectProtocol):
@@ -200,7 +206,7 @@ def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSch
                 if issubclass(prop_type, AbstractSet):
                     prop.setdefault("uniqueItems", True)
                 return
-    json_schema_type = _type_hint_to_json_schema_type(prop_type)
+    json_schema_type = SIMPLE_TYPES.get(prop_type)
     if json_schema_type is not None:
         prop.setdefault("type", json_schema_type)
 
@@ -208,18 +214,24 @@ def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSch
 def _setdefault_attribute_types_on_json_schema(
     schema: dict[str, Any], item_class: type, state: _JsonSchemaState
 ) -> None:
+    """Inspect the type hints of the class attributes of the item class and,
+    for any matching JSON Schema property that has no type set, set the type
+    based on the type hint."""
     props = schema.get("properties", {})
     attribute_type_hints = get_type_hints(item_class)
     for prop_name, prop in props.items():
         if prop_name not in attribute_type_hints:
             continue
         prop_type = attribute_type_hints[prop_name]
-        _update_prop_from_type(prop, prop_type, state)
+        update_prop_from_type(prop, prop_type, state)
 
 
 def _setdefault_attribute_docstrings_on_json_schema(
     schema: dict[str, Any], item_class: type
 ) -> None:
+    """Inspect the docstrings after each class attribute of the item class and,
+    for any matching JSON Schema property that has no description set, set the
+    description to the contents of the docstring."""
     props = schema.get("properties", {})
     attribute_names = set(props)
     if not attribute_names:
@@ -326,7 +338,7 @@ def _update_attrs_prop(
         default_factory_fields.add(field.name)
     elif field.default is not attr.NOTHING:
         prop.setdefault("default", field.default)
-    _update_prop_from_type(prop, field.type, state)
+    update_prop_from_type(prop, field.type, state)
     _update_attrs_prop_validation(prop, field)
 
 
@@ -365,7 +377,7 @@ def _update_attrs_prop_validation(
             prop.setdefault(key, validator.max_length)
         elif validator_type_name == "_MatchesReValidator":
             pattern_obj = getattr(validator, "pattern", None) or validator.regex
-            _update_prop_from_pattern(prop, pattern_obj.pattern)
+            update_prop_from_pattern(prop, pattern_obj.pattern)
 
 
 def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
@@ -388,7 +400,7 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
                 prop.setdefault("default", field.default)
             field_type = resolved_field_types.get(field.name)
             if field_type is not None:
-                _update_prop_from_type(prop, field_type, state)
+                update_prop_from_type(prop, field_type, state)
         required = [
             field_name
             for field_name, data in schema["properties"].items()
@@ -451,7 +463,7 @@ def _update_pydantic_prop(
     if "annotation" in metadata:
         field_type = metadata["annotation"]
         if field_type is not None:
-            _update_prop_from_type(prop, field_type, _state)
+            update_prop_from_type(prop, field_type, _state)
     if "metadata" in metadata:
         _update_pydantic_prop_validation(prop, metadata["metadata"], field_type)
     for metadata_key, json_schema_field in (
@@ -475,7 +487,7 @@ def _update_pydantic_prop_validation(
         if metadata_item_type == "_PydanticGeneralMetadata":
             if "pattern" in metadata_item.__dict__:
                 pattern = metadata_item.__dict__["pattern"]
-                _update_prop_from_pattern(prop, pattern)
+                update_prop_from_pattern(prop, pattern)
         elif metadata_item_type == "MinLen":
             key = "minLength" if field_type is str else "minItems"
             prop.setdefault(key, metadata_item.min_length)
@@ -547,7 +559,7 @@ def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,t
         prop.setdefault("default", metadata["default"])
     field_type = field_type_hints[name]
     if field_type is not None:
-        _update_prop_from_type(prop, field_type, state)
+        update_prop_from_type(prop, field_type, state)
     for metadata_key, json_schema_field in (
         ("ge", "minimum"),
         ("gt", "exclusiveMinimum"),
@@ -568,7 +580,7 @@ def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,t
     for metadata_key in ("pattern", "regex"):
         if metadata_key in metadata:
             pattern = metadata[metadata_key]
-            _update_prop_from_pattern(prop, pattern)
+            update_prop_from_pattern(prop, pattern)
             break
     if "deprecated" in metadata:
         prop.setdefault("deprecated", bool(metadata["deprecated"]))
