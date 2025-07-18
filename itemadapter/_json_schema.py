@@ -297,6 +297,21 @@ def _json_schema_from_item_class(
     return schema
 
 
+def update_required_fields(
+    schema: dict[str, Any], optional_fields: set[str] | None = None
+) -> None:
+    optional_fields = optional_fields or set()
+    if "required" in schema:
+        return
+    required = [
+        field
+        for field, metadata in schema["properties"].items()
+        if field not in optional_fields and "default" not in metadata
+    ]
+    if required:
+        schema["required"] = required
+
+
 def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
     item_class_meta = getattr(item_class, "__metadata__", {})
     schema = copy(item_class_meta.get("json_schema_extra", {}))
@@ -317,13 +332,7 @@ def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[s
     for field in fields:
         prop = schema["properties"][field.name]
         _update_attrs_prop(prop, field, state, default_factory_fields)
-    required = [
-        field_name
-        for field_name, data in schema["properties"].items()
-        if ("default" not in data and field_name not in default_factory_fields)
-    ]
-    if required:
-        schema["required"] = required
+    update_required_fields(schema, default_factory_fields)
     _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
     return schema
 
@@ -401,13 +410,7 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
             field_type = resolved_field_types.get(field.name)
             if field_type is not None:
                 update_prop_from_type(prop, field_type, state)
-        required = [
-            field_name
-            for field_name, data in schema["properties"].items()
-            if ("default" not in data and field_name not in default_factory_fields)
-        ]
-        if required:
-            schema["required"] = required
+        update_required_fields(schema, default_factory_fields)
     _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
     return schema
 
@@ -438,13 +441,7 @@ def _json_schema_from_pydantic(
     for name, metadata in fields.items():
         prop = schema["properties"][name]
         _update_pydantic_prop(prop, name, metadata, state, default_factory_fields)
-    required = [
-        field_name
-        for field_name, data in schema["properties"].items()
-        if ("default" not in data and field_name not in default_factory_fields)
-    ]
-    if required:
-        schema["required"] = required
+    update_required_fields(schema, default_factory_fields)
     _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
     return schema
 
@@ -531,13 +528,7 @@ def _json_schema_from_pydantic_v1(
         _update_pydantic_v1_prop(
             prop, name, metadata, field_type_hints, default_factory_fields, state
         )
-    required = [
-        field_name
-        for field_name, data in schema["properties"].items()
-        if ("default" not in data and field_name not in default_factory_fields)
-    ]
-    if required:
-        schema["required"] = required
+    update_required_fields(schema, default_factory_fields)
     _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
     return schema
 
