@@ -234,8 +234,8 @@ def _setdefault_attribute_docstrings_on_schema(schema: dict[str, Any], item_clas
         return
     tree = ast.parse(dedent(source))
     try:
-        class_node = tree.body[0]  # pragma: no cover
-    except IndexError:
+        class_node = tree.body[0]
+    except IndexError:  # pragma: no cover
         # This can be reproduced with the doctests of the README, but the
         # coverage data does not seem to include those.
         return
