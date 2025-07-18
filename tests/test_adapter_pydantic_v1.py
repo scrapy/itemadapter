@@ -158,3 +158,20 @@ class PydanticTestCase(unittest.TestCase):
         }
 
         self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    def test_json_schema_field_default_factory(self):
+        from itemadapter._imports import pydantic_v1
+
+        class Item(pydantic_v1.BaseModel):
+            foo: str = pydantic_v1.Field(default_factory=lambda: "bar")
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string"},
+            },
+        }
+
+        self.assertEqual(expected, actual)

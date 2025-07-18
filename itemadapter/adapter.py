@@ -234,8 +234,10 @@ def _setdefault_attribute_docstrings_on_schema(schema: dict[str, Any], item_clas
         return
     tree = ast.parse(dedent(source))
     try:
-        class_node = tree.body[0]
+        class_node = tree.body[0]  # pragma: no cover
     except IndexError:
+        # This can be reproduced with the doctests of the README, but the
+        # coverage data does not seem to include those.
         return
     assert isinstance(class_node, ast.ClassDef)
     for node in ast.iter_child_nodes(class_node):

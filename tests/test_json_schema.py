@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import typing
 import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field
@@ -373,5 +374,24 @@ class JsonSchemaTestCase(unittest.TestCase):
         expected = {
             "type": "object",
             "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_typing_sequence_untyped(self):
+        @dataclass
+        class TestItem:
+            foo: typing.Sequence
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "array",
+                    "items": {},
+                },
+            },
+            "additionalProperties": False,
+            "required": ["foo"],
         }
         self.assertEqual(expected, actual)
