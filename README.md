@@ -226,8 +226,6 @@ If an item class doesn't support defining fields upfront, None is returned.
 Return a dict with a [JSON Schema](https://json-schema.org/) representation of
 the item class.
 
-Dict items are not supported, everything else is.
-
 Note that, for Pydantic items, itemadapter does not use
 [`model_json_schema()`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_json_schema)
 and instead uses its own implementation. That way, the output JSON Schema is

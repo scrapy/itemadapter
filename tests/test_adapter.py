@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from enum import Enum
 from types import MappingProxyType
 
-import pytest
 from packaging.version import Version
 
 from itemadapter.adapter import ItemAdapter
@@ -359,8 +358,9 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
         assert ItemAdapter.get_field_names_from_class(dict) is None
 
     def test_json_schema(self):
-        with pytest.raises(ValueError):
-            ItemAdapter.get_json_schema(dict)
+        actual = ItemAdapter.get_json_schema(dict)
+        expected = {"type": "object"}
+        self.assertEqual(expected, actual)
 
 
 class DataClassItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
@@ -966,6 +966,24 @@ class JsonSchemaTestCase(unittest.TestCase):
                 },
             },
             "required": ["child", "sibling"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_nested_dict(self):
+        @dataclass
+        class TestItem:
+            foo: dict
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "object",
+                },
+            },
+            "required": ["foo"],
             "additionalProperties": False,
         }
         self.assertEqual(expected, actual)

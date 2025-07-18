@@ -695,10 +695,7 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
     @classmethod
     def get_json_schema(cls, item_class: type, *, _state: _JsonSchemaState) -> dict[str, Any]:
-        raise ValueError(
-            "Cannot generate a JSON schema for a dict class or subclass. Use "
-            "a richer item class for JSON Schema support."
-        )
+        return {"type": "object"}
 
     def field_names(self) -> KeysView:
         return KeysView(self.item)
