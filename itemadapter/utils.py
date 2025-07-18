@@ -88,7 +88,15 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
 
 def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
     metadata = {}
-    field = item_model.__fields__[field_name].field_info
+    field = item_model.__fields__[field_name]
+    field_info = field.field_info
+
+    for attribute in [
+        "default_factory",
+    ]:
+        value = getattr(field, attribute)
+        if value is not None:
+            metadata[attribute] = value
 
     for attribute in [
         "alias",
@@ -106,16 +114,16 @@ def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> Mapping
         "regex",
         "title",
     ]:
-        value = getattr(field, attribute)
+        value = getattr(field_info, attribute)
         if value is not None:
             metadata[attribute] = value
 
-    if (value := field.default) not in (PydanticV1Undefined, Ellipsis):
+    if (value := field_info.default) not in (PydanticV1Undefined, Ellipsis):
         metadata["default"] = value
 
-    if not field.allow_mutation:
-        metadata["allow_mutation"] = field.allow_mutation
-    metadata.update(field.extra)
+    if not field_info.allow_mutation:
+        metadata["allow_mutation"] = field_info.allow_mutation
+    metadata.update(field_info.extra)
 
     return MappingProxyType(metadata)
 

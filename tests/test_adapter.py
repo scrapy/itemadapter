@@ -8,7 +8,7 @@ from types import MappingProxyType
 
 from packaging.version import Version
 
-from itemadapter.adapter import ItemAdapter
+from itemadapter.adapter import ItemAdapter, PydanticAdapter
 from tests import (
     AttrsItem,
     AttrsItemEmpty,
@@ -330,6 +330,13 @@ class CustomItemClassTestMixin(BaseTestMixin):
         actual = ItemAdapter.get_json_schema(item_class)
         self.assertEqual(self.expected_json_schema, actual)
 
+    def test_json_schema_empty(self):
+        actual = ItemAdapter.get_json_schema(self.item_class_empty)
+        expected = {"type": "object"}
+        if not PydanticAdapter.is_item_class(self.item_class_empty):
+            expected["additionalProperties"] = False
+        self.assertEqual(expected, actual)
+
 
 class DictTestCase(unittest.TestCase, BaseTestMixin):
     item_class = dict
@@ -516,6 +523,27 @@ class PydanticV1ModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
         ],
     }
 
+    def test_get_field_meta_defined_fields(self):
+        adapter = ItemAdapter(self.item_class())
+
+        name_actual = adapter.get_field_meta("name")
+        name_expected = MappingProxyType(
+            {
+                "serializer": str,
+                "default_factory": name_actual["default_factory"],
+            }
+        )
+        self.assertEqual(name_expected, name_actual)
+
+        value_actual = adapter.get_field_meta("value")
+        value_expected = MappingProxyType(
+            {
+                "serializer": int,
+                "default_factory": value_actual["default_factory"],
+            }
+        )
+        self.assertEqual(value_expected, value_actual)
+
     def test_json_schema_validators(self):
         from itemadapter._imports import pydantic_v1
 
@@ -536,7 +564,7 @@ class PydanticV1ModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
                 le=99,
             )
             # Sequence with max_items
-            tags: set[str] = pydantic_v1.Field(max_length=50)
+            tags: set[str] = pydantic_v1.Field(max_items=50)
 
         actual = ItemAdapter.get_json_schema(Model)
         expected = {

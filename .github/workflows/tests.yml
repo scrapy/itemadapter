@@ -55,6 +55,9 @@ jobs:
         - python-version: "3.13"
           env:
             TOXENV: extra-pydantic1
+        - python-version: 3.13
+          env:
+            TOXENV: docs
         - python-version: "pypy3.10"
           env:
             TOXENV: py

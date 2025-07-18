@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import sys
 import unittest
-from dataclasses import dataclass
-from typing import Optional
+from collections.abc import Mapping, Sequence  # noqa: TC003
+from dataclasses import dataclass, field
+from typing import Any, Optional, Union
 
 from itemadapter.adapter import ItemAdapter
 from tests import (
@@ -36,6 +37,53 @@ class OptionalItemListNestedItem:
 @dataclass
 class OptionalItemListItem:
     foo: Optional[list[OptionalItemListNestedItem]] = None
+
+
+@dataclass
+class SimpleItem:
+    foo: str
+
+
+class CustomMapping:  # noqa: PLW1641
+    def __init__(self, data):
+        self._data = dict(data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __contains__(self, key):
+        return key in self._data
+
+    def keys(self):
+        return self._data.keys()
+
+    def items(self):
+        return self._data.items()
+
+    def values(self):
+        return self._data.values()
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def __eq__(self, other):
+        if isinstance(other, CustomMapping):
+            return self._data == other._data
+        if isinstance(other, dict):
+            return self._data == other
+        return NotImplemented
+
+    def __ne__(self, other):
+        eq = self.__eq__(other)
+        if eq is NotImplemented:
+            return NotImplemented
+        return not eq
 
 
 class JsonSchemaTestCase(unittest.TestCase):
@@ -172,6 +220,157 @@ class JsonSchemaTestCase(unittest.TestCase):
                     "default": None,
                 },
             },
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_sequence_untyped(self):
+        @dataclass
+        class TestItem:
+            foo: Sequence
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "array",
+                    "items": {},
+                },
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_tuple_ellipsis(self):
+        @dataclass
+        class TestItem:
+            foo: tuple[Any, ...]
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "array",
+                    "items": {},
+                },
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_tuple_multiple_types(self):
+        @dataclass
+        class TestItem:
+            foo: tuple[str, int, int]
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "array",
+                    "items": {"type": ["string", "integer"]},
+                },
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_union_single(self):
+        @dataclass
+        class TestItem:
+            foo: Union[str]
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string"},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_custom_any_of(self):
+        @dataclass
+        class TestItem:
+            foo: Union[str, SimpleItem] = field(
+                metadata={"json_schema_extra": {"anyOf": []}},
+            )
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"anyOf": []},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_set_untyped(self):
+        @dataclass
+        class TestItem:
+            foo: set
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "array", "items": {}, "uniqueItems": True},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_mapping_untyped(self):
+        @dataclass
+        class TestItem:
+            foo: Mapping
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "object"},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_custom_mapping(self):
+        @dataclass
+        class TestItem:
+            foo: CustomMapping
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "object"},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    def test_item_without_attributes(self):
+        @dataclass
+        class TestItem:
+            pass
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
             "additionalProperties": False,
         }
         self.assertEqual(expected, actual)

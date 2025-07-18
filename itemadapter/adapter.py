@@ -12,7 +12,15 @@ from copy import copy
 from enum import Enum
 from textwrap import dedent
 from types import MappingProxyType
-from typing import Any, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Any,
+    Protocol,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+    runtime_checkable,
+)
 
 try:
     from types import NoneType, UnionType  # pylint: disable=ungrouped-imports
@@ -46,6 +54,27 @@ _JSON_SCHEMA_SIMPLE_TYPE_MAPPING = {
     NoneType: "null",
     str: "string",
 }
+
+
+@runtime_checkable
+class ArrayProtocol(Protocol):
+    def __iter__(self) -> Iterator[Any]: ...
+    def __len__(self) -> int: ...
+    def __contains__(self, item: Any) -> bool: ...
+
+
+@runtime_checkable
+class ObjectProtocol(Protocol):  # noqa: PLW1641
+    def __getitem__(self, key: str) -> Any: ...
+    def __iter__(self) -> Iterator[str]: ...
+    def __len__(self) -> int: ...
+    def __contains__(self, key: str) -> bool: ...
+    def keys(self): ...
+    def items(self): ...
+    def values(self): ...
+    def get(self, key: str, default: Any = ...): ...
+    def __eq__(self, other): ...
+    def __ne__(self, other): ...
 
 
 def _is_json_schema_pattern(pattern: str) -> bool:
@@ -85,12 +114,36 @@ def _get_array_item_type(type_hint):
     unique_args = set(args)
     if len(unique_args) == 1:
         return next(iter(unique_args))
-    return Union[unique_args]
+    return Union[tuple(unique_args)]
 
 
 def _update_prop_from_pattern(prop: dict[str, Any], pattern: str) -> None:
     if _is_json_schema_pattern(pattern):
         prop.setdefault("pattern", pattern)
+
+
+def _update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
+    prop_types = set(get_args(prop_type))
+    if int in prop_types and float in prop_types:
+        prop_types.remove(int)
+    simple_types = [
+        _JSON_SCHEMA_SIMPLE_TYPE_MAPPING[t]
+        for t in prop_types
+        if t in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING
+    ]
+    complex_types = [t for t in prop_types if t not in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING]
+    if not complex_types:
+        prop.setdefault("type", simple_types)
+        return
+    new_any_of: list[dict[str, Any]] = []
+    any_of = prop.setdefault("anyOf", new_any_of)
+    if any_of is not new_any_of:
+        return
+    any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
+    for complex_type in complex_types:
+        complex_prop: dict[str, Any] = {}
+        _update_prop_from_type(complex_prop, complex_type, state)
+        any_of.append(complex_prop)
 
 
 def _update_prop_from_origin(
@@ -108,35 +161,14 @@ def _update_prop_from_origin(
         if issubclass(origin, Mapping):
             prop.setdefault("type", "object")
             args = get_args(prop_type)
-            assert len(args) == 2
-            value_type = args[1]
-            props = prop.setdefault("additionalProperties", {})
-            _update_prop_from_type(props, value_type, state)
+            if args:
+                assert len(args) == 2
+                value_type = args[1]
+                props = prop.setdefault("additionalProperties", {})
+                _update_prop_from_type(props, value_type, state)
             return
     if origin in (UnionType, Union):
-        prop_types = set(get_args(prop_type))
-        if int in prop_types and float in prop_types:
-            prop_types.remove(int)
-        if len(prop_types) == 1:
-            _update_prop_from_type(prop, next(iter(prop_types)), state)
-            return
-        simple_types = [
-            _JSON_SCHEMA_SIMPLE_TYPE_MAPPING[t]
-            for t in prop_types
-            if t in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING
-        ]
-        complex_types = [t for t in prop_types if t not in _JSON_SCHEMA_SIMPLE_TYPE_MAPPING]
-        if not complex_types:
-            prop.setdefault("type", simple_types)
-            return
-        any_of = prop.setdefault("anyOf", [])
-        if any_of:
-            return
-        any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
-        for complex_type in complex_types:
-            complex_prop: dict[str, Any] = {}
-            _update_prop_from_type(complex_prop, complex_type, state)
-            any_of.append(complex_prop)
+        _update_prop_from_union(prop, prop_type, state)
 
 
 def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
@@ -157,15 +189,6 @@ def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSch
             for k, v in subschema.items():
                 prop.setdefault(k, v)
             return
-        if issubclass(prop_type, (Sequence, AbstractSet)) and not issubclass(prop_type, str):
-            prop.setdefault("type", "array")
-            prop.setdefault("items", {})
-            if issubclass(prop_type, AbstractSet):
-                prop.setdefault("uniqueItems", True)
-            return
-        if issubclass(prop_type, Mapping):
-            prop.setdefault("type", "object")
-            return
         if issubclass(prop_type, Enum):
             values = [item.value for item in prop_type]
             prop.setdefault("enum", values)
@@ -173,6 +196,16 @@ def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSch
             prop_type = value_types[0] if len(value_types) == 1 else Union[value_types]
             _update_prop_from_type(prop, prop_type, state)
             return
+        if not issubclass(prop_type, str):
+            if isinstance(prop_type, ObjectProtocol):
+                prop.setdefault("type", "object")
+                return
+            if isinstance(prop_type, ArrayProtocol):
+                prop.setdefault("type", "array")
+                prop.setdefault("items", {})
+                if issubclass(prop_type, AbstractSet):
+                    prop.setdefault("uniqueItems", True)
+                return
     json_schema_type = _type_hint_to_json_schema_type(prop_type)
     if json_schema_type is not None:
         prop.setdefault("type", json_schema_type)
@@ -432,7 +465,7 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
             validator_type_name = type(validator).__name__
             if validator_type_name == "_NumberValidator":
                 key = cls._NUMBER_VALIDATORS.get(validator.compare_func)
-                if not key:
+                if not key:  # pragma: no cover
                     continue
                 prop.setdefault(key, validator.bound)
             elif validator_type_name == "_InValidator":
@@ -678,10 +711,7 @@ class PydanticAdapter(AdapterInterface):
             PydanticV1Undefined,
         ):
             prop.setdefault("default", metadata["default"])
-        try:
-            field_type = field_type_hints[name]
-        except KeyError:
-            field_type = None
+        field_type = field_type_hints[name]
         if field_type is not None:
             _update_prop_from_type(prop, field_type, state)
         for metadata_key, json_schema_field in (

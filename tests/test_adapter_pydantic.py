@@ -3,6 +3,7 @@ from types import MappingProxyType
 from typing import Optional
 from unittest import mock
 
+from itemadapter.adapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class
 from tests import (
     AttrsItem,
@@ -107,9 +108,9 @@ class PydanticTestCase(unittest.TestCase):
             MappingProxyType(
                 {
                     "annotation": Optional[int],
-                    "default_factory": mapping_proxy_type["default_factory"],
                     "alias": "special_cases",
                     "alias_priority": 2,
+                    "default_factory": mapping_proxy_type["default_factory"],
                     "validation_alias": "special_cases",
                     "serialization_alias": "special_cases",
                     "frozen": True,
@@ -119,3 +120,62 @@ class PydanticTestCase(unittest.TestCase):
         )
         with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_forbid(self):
+        from itemadapter._imports import pydantic
+
+        class Item(pydantic.BaseModel):
+            foo: str
+
+            model_config = {
+                "extra": "forbid",
+            }
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string"},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_field_deprecated_bool(self):
+        from itemadapter._imports import pydantic
+
+        class Item(pydantic.BaseModel):
+            foo: str = pydantic.Field(deprecated=True)
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string", "deprecated": True},
+            },
+            "required": ["foo"],
+        }
+
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_field_deprecated_str(self):
+        from itemadapter._imports import pydantic
+
+        class Item(pydantic.BaseModel):
+            foo: str = pydantic.Field(deprecated="Use something else")
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string", "deprecated": True},
+            },
+            "required": ["foo"],
+        }
+
+        self.assertEqual(expected, actual)
