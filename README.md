@@ -246,6 +246,14 @@ The output JSON Schema is generated on a best-effort basis:
 -   Type hints or library-specific type definitions are mapped as `type` where
     possible.
 
+-   String pattern contraints are silently ignored if they are not compatible
+    with JSON Schema. No effort is made to make them compatible.
+
+-   Recursion is silently ignored: if you have an item class that has an
+    attribute with that same item class as a type or as part of its type, a
+    simple `{"type": "object"}` is used to map the nested instances of that
+    item class.
+
 -   Attribute docstrings, i.e. docstrings placed *after* a class attribute
     definition, are mapped as `description`. For example, “Display name” below
     is used as a description:
@@ -262,9 +270,9 @@ The output JSON Schema is generated on a best-effort basis:
 
     Note, however, that such descriptions are read with
     [`inspect.getsource()`](https://docs.python.org/3/library/inspect.html#inspect.getsource),
-    and hence cannot be extracted e.g. if classes are defined within methods or
-    in the Python shell. For such cases, define `description` within
-    `json_schema_extra` instead (see below).
+    and hence cannot be extracted e.g. if classes are defined in the Python
+    shell. For such cases, define `description` within `json_schema_extra`
+    instead (see below).
 
 -   Set `json_schema_extra` in field metadata to extend or override the JSON
     Schema data for that field. For example:

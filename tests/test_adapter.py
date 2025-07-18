@@ -205,6 +205,15 @@ class SetList(list):
         return hash(frozenset(self))
 
 
+_NESTED_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "is_nested": {"type": "boolean", "default": True},
+    },
+    "additionalProperties": False,
+}
+
+
 class CustomItemClassTestMixin(BaseTestMixin):
     item_class_subclassed = None
     item_class_empty = None
@@ -232,15 +241,34 @@ class CustomItemClassTestMixin(BaseTestMixin):
                 "type": "object",
                 "additionalProperties": {"type": "string"},
             },
-            "nested": {
+            "nested": _NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
                 "type": "object",
-                "properties": {
-                    "is_nested": {"type": "boolean", "default": True},
+                "additionalProperties": _NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _NESTED_JSON_SCHEMA,
                 },
-                "additionalProperties": False,
             },
         },
-        "required": ["name", "color", "answer", "numbers", "aliases", "nested"],
+        "required": [
+            "name",
+            "color",
+            "answer",
+            "numbers",
+            "aliases",
+            "nested",
+            "nested_list",
+            "nested_dict",
+            "nested_dict_list",
+        ],
         "type": "object",
         "llmHint": "Hi model!",
     }
@@ -442,6 +470,11 @@ class AttrsItemTestCase(CustomItemClassTestMixin, unittest.TestCase):
         self.assertEqual(expected, actual)
 
 
+_PYDANTIC_NESTED_JSON_SCHEMA = {
+    k: v for k, v in _NESTED_JSON_SCHEMA.items() if k != "additionalProperties"
+}
+
+
 class PydanticV1ModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
     item_class = PydanticV1Model
     item_class_nested = PydanticV1ModelNested
@@ -458,15 +491,22 @@ class PydanticV1ModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
             **{
                 k: v
                 for k, v in CustomItemClassTestMixin.expected_json_schema["properties"].items()
-                if k != "nested"
+                if k not in {"nested", "nested_list", "nested_dict", "nested_dict_list"}
             },
-            "nested": {
-                **{
-                    k: v
-                    for k, v in CustomItemClassTestMixin.expected_json_schema["properties"][
-                        "nested"
-                    ].items()
-                    if k != "additionalProperties"
+            "nested": _PYDANTIC_NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
+                "type": "object",
+                "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
                 },
             },
         },
@@ -549,15 +589,22 @@ class PydanticModelTestCase(CustomItemClassTestMixin, unittest.TestCase):
             **{
                 k: v
                 for k, v in CustomItemClassTestMixin.expected_json_schema["properties"].items()
-                if k != "nested"
+                if k not in {"nested", "nested_list", "nested_dict", "nested_dict_list"}
             },
-            "nested": {
-                **{
-                    k: v
-                    for k, v in CustomItemClassTestMixin.expected_json_schema["properties"][
-                        "nested"
-                    ].items()
-                    if k != "additionalProperties"
+            "nested": _PYDANTIC_NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
+                "type": "object",
+                "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
                 },
             },
         },
@@ -814,6 +861,18 @@ class CrossNestingTestCase(unittest.TestCase):
         self.assertEqual(expected, actual)
 
 
+@dataclass
+class RecursionNestedItem:
+    parent: "RecursionItem"
+    sibling: "RecursionNestedItem"
+
+
+@dataclass
+class RecursionItem:
+    child: RecursionNestedItem
+    sibling: "RecursionItem"
+
+
 class JsonSchemaTestCase(unittest.TestCase):
     maxDiff = None
 
@@ -884,27 +943,29 @@ class JsonSchemaTestCase(unittest.TestCase):
         }
         self.assertEqual(expected, actual)
 
-
-# TODO:
-# Add progressively complex tests for get_json_schema:
-# - Get a clean CI run.
-#
-# pylint
-#
-# - Support sequences (list/set/tuple) of items.
-# - Support mappings of items.
-# - Support arbitrary type levels (e.g. list of dicts of items).
-# - Raise NotImplementedError on type recursion
-# - Create a issue to eventually implement support for $refs and use them to solve recursion and simplify output schemas when a type is used more than once.
-# - Try to address pylint’s R issues by refactoring the changes to make things more readable.
-# - Generate JSON Schema files for all item classes in zyte-common-items, and have a quick look at them to see if they look good.
-#
-# After every change, test:
-# - tox -e pydantic -- tests tests/test_adapter.py::PydanticModelTestCase::test_json_schema -vv
-# - tox -e pydantic1 -- tests tests/test_adapter.py::PydanticV1ModelTestCase::test_json_schema -vv
-# - tox -e scrapy -- tests tests/test_adapter.py::ScrapySubclassedItemTestCase::test_json_schema -vv
-# - tox -e attrs -- tests tests/test_adapter.py::AttrsItemTestCase::test_json_schema -vv
-# - tox -e py -- tests tests/test_adapter.py::DataClassItemTestCase::test_json_schema -vv
-#
-# Once everything is implemented, try running the tox commands above
-# but with min- versions of those tox environments
+    def test_recursion(self):
+        actual = ItemAdapter.get_json_schema(RecursionItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "child": {
+                    "type": "object",
+                    "properties": {
+                        "parent": {
+                            "type": "object",
+                        },
+                        "sibling": {
+                            "type": "object",
+                        },
+                    },
+                    "required": ["parent", "sibling"],
+                    "additionalProperties": False,
+                },
+                "sibling": {
+                    "type": "object",
+                },
+            },
+            "required": ["child", "sibling"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)

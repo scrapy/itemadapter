@@ -94,6 +94,9 @@ class DataClassItemJsonSchema:
     numbers: list[float]
     aliases: dict[str, str]
     nested: DataClassItemJsonSchemaNested
+    nested_list: list[DataClassItemJsonSchemaNested]
+    nested_dict: dict[str, DataClassItemJsonSchemaNested]
+    nested_dict_list: list[dict[str, DataClassItemJsonSchemaNested]]
     value: Any = None
     produced: bool = field(default_factory=lambda: True)
 
@@ -156,6 +159,9 @@ else:
         numbers: list[float] = attr.ib()
         aliases: dict[str, str] = attr.ib()
         nested: AttrsItemJsonSchemaNested = attr.ib()
+        nested_list: list[AttrsItemJsonSchemaNested] = attr.ib()
+        nested_dict: dict[str, AttrsItemJsonSchemaNested] = attr.ib()
+        nested_dict_list: list[dict[str, AttrsItemJsonSchemaNested]] = attr.ib()
         value: Any = attr.ib(default=None)
         produced: bool = attr.ib(factory=lambda: True)
 
@@ -222,6 +228,9 @@ else:
         numbers: list[float]
         aliases: dict[str, str]
         nested: PydanticV1ModelJsonSchemaNested
+        nested_list: list[PydanticV1ModelJsonSchemaNested]
+        nested_dict: dict[str, PydanticV1ModelJsonSchemaNested]
+        nested_dict_list: list[dict[str, PydanticV1ModelJsonSchemaNested]]
 
         class Config:
             schema_extra = {
@@ -293,6 +302,9 @@ else:
         numbers: list[float]
         aliases: dict[str, str]
         nested: PydanticModelJsonSchemaNested
+        nested_list: list[PydanticModelJsonSchemaNested]
+        nested_dict: dict[str, PydanticModelJsonSchemaNested]
+        nested_dict_list: list[dict[str, PydanticModelJsonSchemaNested]]
 
         model_config = {
             "json_schema_extra": {
@@ -366,6 +378,9 @@ else:
         numbers: list[float] = Field()
         aliases: dict[str, str] = Field()
         nested: ScrapySubclassedItemJsonSchemaNested = Field()
+        nested_list: list[ScrapySubclassedItemJsonSchemaNested] = Field()
+        nested_dict: dict[str, ScrapySubclassedItemJsonSchemaNested] = Field()
+        nested_dict_list: list[dict[str, ScrapySubclassedItemJsonSchemaNested]] = Field()
 
     class ScrapySubclassedItemCrossNested(ScrapyItem):
         nested: AttrsItemJsonSchemaNested = Field()

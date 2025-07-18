@@ -120,14 +120,15 @@ def _update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSch
             return
     if isinstance(prop_type, type):
         if state.adapter.is_item_class(prop_type):
-            if prop_type in state.seen_item_types:
+            if prop_type in state.containers:
                 prop.setdefault("type", "object")
                 return
-            state.seen_item_types.add(prop_type)
+            state.containers.add(prop_type)
             subschema = state.adapter.get_json_schema(
                 prop_type,
                 _state=state,
             )
+            state.containers.remove(prop_type)
             for k, v in subschema.items():
                 prop.setdefault(k, v)
             return
@@ -734,7 +735,7 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 @dataclasses.dataclass
 class _JsonSchemaState:
     adapter: type[ItemAdapter]
-    seen_item_types: set[Any] = dataclasses.field(default_factory=set)
+    containers: set[type] = dataclasses.field(default_factory=set)
 
 
 class ItemAdapter(MutableMapping):
@@ -791,7 +792,7 @@ class ItemAdapter(MutableMapping):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
-        _state = _state or _JsonSchemaState(adapter=cls)
+        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
         adapter_class = cls._get_adapter_class(item_class)
         return adapter_class.get_json_schema(item_class, _state=_state)
 
