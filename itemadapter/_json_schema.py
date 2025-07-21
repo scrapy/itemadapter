@@ -154,9 +154,12 @@ def update_prop_from_origin(
             prop.setdefault("type", "array")
             if issubclass(origin, AbstractSet):
                 prop.setdefault("uniqueItems", True)
+            had_items = "items" in prop
             items = prop.setdefault("items", {})
             item_type = array_type(prop_type)
             update_prop_from_type(items, item_type, state)
+            if not items and not had_items:
+                del prop["items"]
             return
         if issubclass(origin, Mapping):
             prop.setdefault("type", "object")
@@ -202,7 +205,6 @@ def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSche
                 return
             if isinstance(prop_type, ArrayProtocol):
                 prop.setdefault("type", "array")
-                prop.setdefault("items", {})
                 if issubclass(prop_type, AbstractSet):
                     prop.setdefault("uniqueItems", True)
                 return

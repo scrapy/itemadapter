@@ -268,7 +268,6 @@ class JsonSchemaTestCase(unittest.TestCase):
             "properties": {
                 "foo": {
                     "type": "array",
-                    "items": {},
                 },
             },
             "required": ["foo"],
@@ -287,7 +286,6 @@ class JsonSchemaTestCase(unittest.TestCase):
             "properties": {
                 "foo": {
                     "type": "array",
-                    "items": {},
                 },
             },
             "required": ["foo"],
@@ -357,7 +355,7 @@ class JsonSchemaTestCase(unittest.TestCase):
         expected = {
             "type": "object",
             "properties": {
-                "foo": {"type": "array", "items": {}, "uniqueItems": True},
+                "foo": {"type": "array", "uniqueItems": True},
             },
             "required": ["foo"],
             "additionalProperties": False,
@@ -412,6 +410,24 @@ class JsonSchemaTestCase(unittest.TestCase):
         @dataclass
         class TestItem:
             foo: typing.Sequence
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {
+                    "type": "array",
+                },
+            },
+            "additionalProperties": False,
+            "required": ["foo"],
+        }
+        self.assertEqual(expected, actual)
+
+    def test_custom_items(self):
+        @dataclass
+        class TestItem:
+            foo: typing.Sequence = field(metadata={"json_schema_extra": {"items": {}}})
 
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
