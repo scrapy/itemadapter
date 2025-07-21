@@ -613,8 +613,6 @@ class CrossNestingTestCase(unittest.TestCase):
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_pydantic_dataclass(self):
-        # Note: Works due to built-in dataclass support in Pydantic.
-
         class TestItem(pydantic.BaseModel):
             nested: DataClassItemJsonSchemaNested
 
