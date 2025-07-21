@@ -175,3 +175,59 @@ class PydanticTestCase(unittest.TestCase):
         }
 
         self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    def test_json_schema_validators(self):
+        from itemadapter._imports import pydantic_v1
+
+        class Model(pydantic_v1.BaseModel):
+            # String with min/max length and regex pattern
+            name: str = pydantic_v1.Field(
+                min_length=3,
+                max_length=10,
+                pattern=r"^[A-Za-z]+$",
+            )
+            # Integer with minimum, maximum, exclusive minimum, exclusive maximum
+            age1: int = pydantic_v1.Field(
+                gt=17,
+                lt=100,
+            )
+            age2: int = pydantic_v1.Field(
+                ge=18,
+                le=99,
+            )
+            # Sequence with max_items
+            tags: set[str] = pydantic_v1.Field(max_items=50)
+
+        actual = ItemAdapter.get_json_schema(Model)
+        expected = {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 10,
+                    "pattern": "^[A-Za-z]+$",
+                },
+                "age1": {
+                    "type": "integer",
+                    "exclusiveMinimum": 17,
+                    "exclusiveMaximum": 100,
+                },
+                "age2": {
+                    "type": "integer",
+                    "minimum": 18,
+                    "maximum": 99,
+                },
+                "tags": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "maxItems": 50,
+                    "items": {
+                        "type": "string",
+                    },
+                },
+            },
+            "required": ["name", "age1", "age2", "tags"],
+        }
+        self.assertEqual(expected, actual)

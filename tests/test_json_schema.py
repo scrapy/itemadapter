@@ -5,30 +5,40 @@ import typing
 import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Optional, Union
 
-from itemadapter.adapter import ItemAdapter
+import pytest
+
+from itemadapter._imports import pydantic
+from itemadapter.adapter import AttrsAdapter, ItemAdapter, PydanticAdapter, ScrapyItemAdapter
 from tests import (
     AttrsItem,
-    PydanticEnumModel,
+    AttrsItemJsonSchemaNested,
+    DataClassItemJsonSchemaNested,
     PydanticModel,
+    PydanticModelJsonSchemaNested,
+    PydanticV1Model,
+    PydanticV1ModelJsonSchemaNested,
     ScrapySubclassedItem,
+    ScrapySubclassedItemJsonSchemaNested,
     SetList,
 )
 
 PYTHON_VERSION = sys.version_info[:2]
 
 
-@dataclass
-class RecursionNestedItem:
-    parent: RecursionItem
-    sibling: RecursionNestedItem
+if ScrapySubclassedItem and AttrsItem:
+    from scrapy import Field as ScrapyField
+    from scrapy import Item as ScrapyItem
+
+    class ScrapySubclassedItemCrossNested(ScrapyItem):
+        nested: AttrsItemJsonSchemaNested = ScrapyField()
 
 
 @dataclass
-class RecursionItem:
-    child: RecursionNestedItem
-    sibling: RecursionItem
+class Brand:
+    name: str
 
 
 @dataclass
@@ -39,6 +49,18 @@ class OptionalItemListNestedItem:
 @dataclass
 class OptionalItemListItem:
     foo: Optional[list[OptionalItemListNestedItem]] = None
+
+
+@dataclass
+class RecursionItem:
+    child: RecursionNestedItem
+    sibling: RecursionItem
+
+
+@dataclass
+class RecursionNestedItem:
+    parent: RecursionItem
+    sibling: RecursionNestedItem
 
 
 @dataclass
@@ -88,6 +110,16 @@ class CustomMapping:  # noqa: PLW1641
         return not eq
 
 
+class SimpleEnum(Enum):
+    foo = "foo"
+
+
+if PydanticModel:
+
+    class PydanticEnumModel(pydantic.BaseModel):
+        enum: SimpleEnum
+
+
 class JsonSchemaTestCase(unittest.TestCase):
     maxDiff = None
 
@@ -130,10 +162,9 @@ class JsonSchemaTestCase(unittest.TestCase):
         docstrings is not always a possibility, e.g. when the item class is
         defined within a (test) method. In those cases, only the extraction of
         those docstrings should fail."""
-        from scrapy.item import Field, Item
 
-        class ScrapySubclassedItemUnreachable(Item):
-            name: str = Field(json_schema_extra={"example": "Foo"})
+        class ScrapySubclassedItemUnreachable(ScrapyItem):
+            name: str = ScrapyField(json_schema_extra={"example": "Foo"})
             """Display name"""
 
         actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
@@ -393,5 +424,280 @@ class JsonSchemaTestCase(unittest.TestCase):
             },
             "additionalProperties": False,
             "required": ["foo"],
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @unittest.skipIf(PYTHON_VERSION < (3, 10), "Modern optional annotations require Python 3.10+")
+    def test_modern_optional_annotations(self):
+        import attr
+
+        @attr.define
+        class Product:
+            name: str
+            """Product name"""
+
+            brand: Brand | None
+            in_stock: bool = True
+
+        actual = ItemAdapter.get_json_schema(Product)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "name": {"type": "string", "description": "Product name"},
+                "brand": {
+                    "anyOf": [
+                        {"type": "null"},
+                        {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {"name": {"type": "string"}},
+                            "required": ["name"],
+                        },
+                    ]
+                },
+                "in_stock": {"default": True, "type": "boolean"},
+            },
+            "required": ["name", "brand"],
+        }
+        self.assertEqual(expected, actual)
+
+
+class CrossNestingTestCase(unittest.TestCase):
+    """Test item nesting across different item types, with all supported types
+    acting as parent or child in one test."""
+
+    maxDiff = None
+
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    def test_dataclass_pydantic1(self):
+        @dataclass
+        class TestItem:
+            nested: PydanticV1ModelJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                }
+            },
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    def test_attrs_pydantic2(self):
+        import attrs
+
+        @attrs.define
+        class TestItem:
+            nested: PydanticModelJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                }
+            },
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+        actual = AttrsAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {"nested": {}},
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    def test_scrapy_attrs(self):
+        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                    "additionalProperties": False,
+                }
+            },
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+        actual = ScrapyItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)
+        expected = {
+            "type": "object",
+            "properties": {"nested": {}},
+            "required": ["nested"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    def test_pydantic1_scrapy(self):
+        from . import pydantic_v1
+
+        class TestItem(pydantic_v1.BaseModel):
+            nested: ScrapySubclassedItemJsonSchemaNested
+
+            class Config:
+                arbitrary_types_allowed = True
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                    "additionalProperties": False,
+                }
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+        actual = PydanticAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                # Scrapy item classes implement the Mapping interface, so
+                # they are correctly recognized as objects even when there is
+                # no access to ScrapyItemAdapter.
+                "nested": {"type": "object"}
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_pydantic_dataclass(self):
+        # Note: Works due to built-in dataclass support in Pydantic.
+
+        class TestItem(pydantic.BaseModel):
+            nested: DataClassItemJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                    "additionalProperties": False,
+                },
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+        actual = PydanticAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {},
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    def test_pydantic_scrapy(self):
+        class TestItem(pydantic.BaseModel):
+            nested: ScrapySubclassedItemJsonSchemaNested
+
+            model_config = {
+                "arbitrary_types_allowed": True,
+            }
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                    "additionalProperties": False,
+                },
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+        actual = PydanticAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {"type": "object"},
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @pytest.mark.filterwarnings("ignore:Mixing V1 models and V2 models")
+    def test_pydantics(self):
+        class TestItem(pydantic.BaseModel):
+            nested: PydanticV1ModelJsonSchemaNested
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                },
+            },
+            "required": ["nested"],
+        }
+        self.assertEqual(expected, actual)
+
+        # Since PydanticAdapter is not version-specific, it works with both
+        # Pydantic V1 and V2+ models.
+        actual = PydanticAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "nested": {
+                    "type": "object",
+                    "properties": {
+                        "is_nested": {"type": "boolean", "default": True},
+                    },
+                },
+            },
+            "required": ["nested"],
         }
         self.assertEqual(expected, actual)

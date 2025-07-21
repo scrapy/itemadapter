@@ -43,6 +43,12 @@ class Color(Enum):
 
 
 class SetList(list):
+    """List that compares as a set to other lists.
+
+    Used for test expectations, for lists with a expected content but where
+    order is not guaranteed.
+    """
+
     def __eq__(self, other):
         return set(self) == set(other)
 
@@ -254,7 +260,6 @@ if pydantic is None:
     PydanticModelEmpty = None
     PydanticModelJsonSchema = None
     PydanticModelJsonSchemaNested = None
-    PydanticEnumModel = None
 else:
 
     class PydanticModel(pydantic.BaseModel):
@@ -321,12 +326,6 @@ else:
             },
         }
 
-    class SimpleEnum(Enum):
-        foo = "foo"
-
-    class PydanticEnumModel(pydantic.BaseModel):
-        enum: SimpleEnum
-
 
 try:
     from scrapy.item import Field
@@ -339,7 +338,6 @@ except ImportError:
     ScrapySubclassedItemEmpty = None
     ScrapySubclassedItemJsonSchema = None
     ScrapySubclassedItemJsonSchemaNested = None
-    ScrapySubclassedItemCrossNested = None
 else:
 
     class ScrapySubclassedItem(ScrapyItem):
@@ -396,6 +394,3 @@ else:
         nested_list: list[ScrapySubclassedItemJsonSchemaNested] = Field()
         nested_dict: dict[str, ScrapySubclassedItemJsonSchemaNested] = Field()
         nested_dict_list: list[dict[str, ScrapySubclassedItemJsonSchemaNested]] = Field()
-
-    class ScrapySubclassedItemCrossNested(ScrapyItem):
-        nested: AttrsItemJsonSchemaNested = Field()
