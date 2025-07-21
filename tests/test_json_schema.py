@@ -127,7 +127,7 @@ class JsonSchemaTestCase(unittest.TestCase):
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_attrs_pydantic_enum(self):
         """This test exists to ensure that we do not let the JSON Schema
-        generation of Pydantic item classes generated nested $defs (which we
+        generation of Pydantic item classes generate nested $defs (which we
         don’t since we do not run Pydantic’s JSON Schema generation but our
         own)."""
         import attrs
