@@ -92,13 +92,6 @@ def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> Mapping
     field_info = field.field_info
 
     for attribute in [
-        "default_factory",
-    ]:
-        value = getattr(field, attribute)
-        if value is not None:
-            metadata[attribute] = value
-
-    for attribute in [
         "alias",
         "const",
         "description",
@@ -120,6 +113,9 @@ def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> Mapping
 
     if (value := field_info.default) not in (PydanticV1Undefined, Ellipsis):
         metadata["default"] = value
+
+    if value := field.default_factory is not None:
+        metadata["default_factory"] = value
 
     if not field_info.allow_mutation:
         metadata["allow_mutation"] = field_info.allow_mutation
