@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.12.0 (unreleased)
+### 0.12.0 (2025-07-24)
 
 Added support for [PyPy](https://pypy.org/) 3.11
 ([#97](https://github.com/scrapy/itemadapter/pull/97)).
