@@ -29,7 +29,7 @@ else:
 
 attr: Any
 try:
-    import attr  # pylint: disable=W0611 (unused-import)
+    import attr
 except ImportError:
     attr = None
 
@@ -42,7 +42,7 @@ except ImportError:  # No pydantic
     pass
 else:
     try:
-        import pydantic.v1 as pydantic_v1  # pylint: disable=W0611 (unused-import)
+        import pydantic.v1 as pydantic_v1
     except ImportError:  # Pydantic <1.10.17
         pydantic_v1 = pydantic
         pydantic = None
@@ -50,3 +50,17 @@ else:
         if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic <2
             pydantic_v1 = pydantic
             pydantic = None
+
+try:
+    from pydantic.v1.fields import Undefined as PydanticV1Undefined
+    from pydantic_core import PydanticUndefined
+except ImportError:  # < Pydantic 2.0
+    try:
+        from pydantic.fields import (  # type: ignore[attr-defined,no-redef]
+            Undefined as PydanticUndefined,
+        )
+        from pydantic.fields import (  # type: ignore[attr-defined,no-redef]
+            Undefined as PydanticV1Undefined,
+        )
+    except ImportError:
+        PydanticUndefined = PydanticV1Undefined = None  # type: ignore[assignment]

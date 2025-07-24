@@ -8,6 +8,15 @@ from types import MappingProxyType
 from typing import Any
 
 from itemadapter._imports import _scrapy_item_classes, attr
+from itemadapter._json_schema import (
+    _json_schema_from_attrs,
+    _json_schema_from_dataclass,
+    _json_schema_from_item_class,
+    _json_schema_from_pydantic,
+    _JsonSchemaState,
+    _setdefault_attribute_docstrings_on_json_schema,
+    _setdefault_attribute_types_on_json_schema,
+)
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
     _get_pydantic_v1_model_metadata,
@@ -58,6 +67,12 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         """Return a list of fields defined for ``item_class``.
         If a class doesn't support fields, None is returned."""
         return None
+
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        return _json_schema_from_item_class(cls, item_class, _state)
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
         """Return metadata for the given field name, if available."""
@@ -139,6 +154,13 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
             raise RuntimeError("attr module is not available")
         return [a.name for a in attr.fields(item_class)]
 
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        return _json_schema_from_attrs(item_class, _state)
+
 
 class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def __init__(self, item: Any) -> None:
@@ -165,6 +187,13 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         return [a.name for a in dataclasses.fields(item_class)]
 
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        return _json_schema_from_dataclass(item_class, _state)
+
 
 class PydanticAdapter(AdapterInterface):
     item: Any
@@ -190,39 +219,45 @@ class PydanticAdapter(AdapterInterface):
         except AttributeError:
             return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
 
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        return _json_schema_from_pydantic(cls, item_class, _state)
+
     def field_names(self) -> KeysView:
         try:
-            return KeysView(self.item.model_fields)
+            return KeysView(self.item.__class__.model_fields)
         except AttributeError:
             return KeysView(self.item.__fields__)
 
     def __getitem__(self, field_name: str) -> Any:
         try:
-            self.item.model_fields  # noqa: B018
+            self.item.__class__.model_fields  # noqa: B018
         except AttributeError:
             if field_name in self.item.__fields__:
                 return getattr(self.item, field_name)
         else:
-            if field_name in self.item.model_fields:
+            if field_name in self.item.__class__.model_fields:
                 return getattr(self.item, field_name)
         raise KeyError(field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
         try:
-            self.item.model_fields  # noqa: B018
+            self.item.__class__.model_fields  # noqa: B018
         except AttributeError:
             if field_name in self.item.__fields__:
                 setattr(self.item, field_name, value)
                 return
         else:
-            if field_name in self.item.model_fields:
+            if field_name in self.item.__class__.model_fields:
                 setattr(self.item, field_name, value)
                 return
         raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
     def __delitem__(self, field_name: str) -> None:
         try:
-            self.item.model_fields  # noqa: B018
+            self.item.__class__.model_fields  # noqa: B018
         except AttributeError as ex:
             if field_name in self.item.__fields__:
                 try:
@@ -233,7 +268,7 @@ class PydanticAdapter(AdapterInterface):
                 except AttributeError as ex2:
                     raise KeyError(field_name) from ex2
         else:
-            if field_name in self.item.model_fields:
+            if field_name in self.item.__class__.model_fields:
                 try:
                     if hasattr(self.item, field_name):
                         delattr(self.item, field_name)
@@ -245,7 +280,9 @@ class PydanticAdapter(AdapterInterface):
 
     def __iter__(self) -> Iterator:
         try:
-            return iter(attr for attr in self.item.model_fields if hasattr(self.item, attr))
+            return iter(
+                attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr)
+            )
         except AttributeError:
             return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
 
@@ -282,6 +319,12 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     def is_item_class(cls, item_class: type) -> bool:
         return issubclass(item_class, dict)
 
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        return {"type": "object"}
+
     def field_names(self) -> KeysView:
         return KeysView(self.item)
 
@@ -302,6 +345,16 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         return list(item_class.fields.keys())  # type: ignore[attr-defined]
+
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        schema = super().get_json_schema(item_class, _state=_state)
+        _setdefault_attribute_types_on_json_schema(schema, item_class, _state)
+        _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
+        return schema
 
     def field_names(self) -> KeysView:
         return KeysView(self.item.fields)
@@ -356,6 +409,14 @@ class ItemAdapter(MutableMapping):
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         adapter_class = cls._get_adapter_class(item_class)
         return adapter_class.get_field_names_from_class(item_class)
+
+    @classmethod
+    def get_json_schema(
+        cls, item_class: type, *, _state: _JsonSchemaState | None = None
+    ) -> dict[str, Any]:
+        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        adapter_class = cls._get_adapter_class(item_class)
+        return adapter_class.get_json_schema(item_class, _state=_state)
 
     @property
     def item(self) -> Any:

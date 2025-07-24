@@ -34,7 +34,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 attrs = [
-    "attrs>=18.1.0",
+    "attrs>=20.1.0",
 ]
 pydantic = [
     "pydantic>=1.8",
@@ -70,6 +70,10 @@ filename = "itemadapter/__init__.py"
 
 [tool.pylint.MASTER]
 persistent = "no"
+load-plugins=[
+    "pylint_per_file_ignores",
+]
+
 
 [tool.pylint."MESSAGES CONTROL"]
 enable = [
@@ -90,6 +94,10 @@ disable = [
     "too-few-public-methods",
     "too-many-return-statements",
     "unused-argument",
+]
+per-file-ignores = [
+    "/tests/:disallowed-name,too-many-instance-attributes",
+    "/itemadapter/_imports.py:unused-import,ungrouped-imports",
 ]
 
 [tool.pylint.FORMAT]

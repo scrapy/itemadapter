@@ -1,27 +1,39 @@
+from __future__ import annotations
+
 import unittest
 from collections.abc import KeysView
 from types import MappingProxyType
 
-from itemadapter.adapter import ItemAdapter
+from itemadapter.adapter import ItemAdapter, PydanticAdapter
 from tests import (
     AttrsItem,
     AttrsItemEmpty,
+    AttrsItemJsonSchema,
     AttrsItemNested,
     AttrsItemSubclassed,
     AttrsItemWithoutInit,
     DataClassItem,
     DataClassItemEmpty,
+    DataClassItemJsonSchema,
     DataClassItemNested,
     DataClassItemSubclassed,
     DataClassWithoutInit,
+    PydanticModel,
+    PydanticModelEmpty,
+    PydanticModelJsonSchema,
+    PydanticModelNested,
+    PydanticModelSubclassed,
     PydanticV1Model,
     PydanticV1ModelEmpty,
+    PydanticV1ModelJsonSchema,
     PydanticV1ModelNested,
     PydanticV1ModelSubclassed,
     ScrapySubclassedItem,
     ScrapySubclassedItemEmpty,
+    ScrapySubclassedItemJsonSchema,
     ScrapySubclassedItemNested,
     ScrapySubclassedItemSubclassed,
+    SetList,
 )
 
 
@@ -101,8 +113,10 @@ class ItemAdapterInitError(unittest.TestCase):
 
 
 class BaseTestMixin:
+    maxDiff = None
     item_class = None
     item_class_nested = None
+    item_class_json_schema = None
 
     def setUp(self):
         if self.item_class is None:
@@ -168,10 +182,88 @@ class BaseTestMixin:
         self.assertIsInstance(adapter.field_names(), KeysView)
         self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
 
+    def test_json_schema(self):
+        item_class = self.item_class_json_schema
+        actual = ItemAdapter.get_json_schema(item_class)
+        self.assertEqual(self.expected_json_schema, actual)
+
+    def test_json_schema_empty(self):
+        actual = ItemAdapter.get_json_schema(self.item_class_empty)
+        expected = {"type": "object"}
+        if self.item_class_empty is not dict and not PydanticAdapter.is_item_class(
+            self.item_class_empty
+        ):
+            expected["additionalProperties"] = False
+        self.assertEqual(expected, actual)
+
+
+_NESTED_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "is_nested": {"type": "boolean", "default": True},
+    },
+    "additionalProperties": False,
+}
+
 
 class NonDictTestMixin(BaseTestMixin):
     item_class_subclassed = None
     item_class_empty = None
+    expected_json_schema = {
+        "additionalProperties": False,
+        "properties": {
+            "name": {
+                "type": "string",
+                "title": "Name",
+                "description": "Display name",
+            },
+            "value": {
+                "default": None,
+            },
+            "color": {
+                "type": "string",
+                "enum": ["red", "green", "blue"],
+            },
+            "produced": {"type": "boolean"},
+            "answer": {
+                "type": SetList(["string", "null", "number"]),
+            },
+            "numbers": {"type": "array", "items": {"type": "number"}},
+            "aliases": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            },
+            "nested": _NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
+                "type": "object",
+                "additionalProperties": _NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _NESTED_JSON_SCHEMA,
+                },
+            },
+        },
+        "required": [
+            "name",
+            "color",
+            "answer",
+            "numbers",
+            "aliases",
+            "nested",
+            "nested_list",
+            "nested_dict",
+            "nested_dict_list",
+        ],
+        "type": "object",
+        "llmHint": "Hi model!",
+    }
 
     def test_set_value_keyerror(self):
         item = self.item_class()
@@ -231,6 +323,9 @@ class NonDictTestMixin(BaseTestMixin):
 class DictTestCase(unittest.TestCase, BaseTestMixin):
     item_class = dict
     item_class_nested = dict
+    item_class_json_schema = dict
+    item_class_empty = dict
+    expected_json_schema = {"type": "object"}
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
@@ -259,6 +354,27 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_nested = ScrapySubclassedItemNested
     item_class_subclassed = ScrapySubclassedItemSubclassed
     item_class_empty = ScrapySubclassedItemEmpty
+    item_class_json_schema = ScrapySubclassedItemJsonSchema
+    expected_json_schema = {
+        **{
+            k: v
+            for k, v in NonDictTestMixin.expected_json_schema.items()
+            if k not in {"properties"}
+        },
+        "properties": {
+            **{
+                k: v
+                for k, v in NonDictTestMixin.expected_json_schema["properties"].items()
+                if k != "produced"
+            },
+            # No type, since none was specified in json_schema_extra.
+            "produced": {},
+        },
+        # Scrapy items seem to sort fields alphabetically. produced is required
+        # because there is no default factory support in Scrapy.
+        "required": sorted(NonDictTestMixin.expected_json_schema["required"] + ["produced"]),
+        "llmHint": "Hi model!",
+    }
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
@@ -267,11 +383,122 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
             adapter["name"]
 
 
+_PYDANTIC_NESTED_JSON_SCHEMA = {
+    k: v for k, v in _NESTED_JSON_SCHEMA.items() if k != "additionalProperties"
+}
+
+
 class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
     item_class = PydanticV1Model
     item_class_nested = PydanticV1ModelNested
     item_class_subclassed = PydanticV1ModelSubclassed
     item_class_empty = PydanticV1ModelEmpty
+    item_class_json_schema = PydanticV1ModelJsonSchema
+    expected_json_schema = {
+        **{
+            k: v
+            for k, v in NonDictTestMixin.expected_json_schema.items()
+            if k not in {"additionalProperties", "properties"}
+        },
+        "properties": {
+            **{
+                k: v
+                for k, v in NonDictTestMixin.expected_json_schema["properties"].items()
+                if k not in {"nested", "nested_list", "nested_dict", "nested_dict_list"}
+            },
+            "nested": _PYDANTIC_NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
+                "type": "object",
+                "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
+                },
+            },
+        },
+        "required": [
+            *NonDictTestMixin.expected_json_schema["required"][:2],
+            "produced",
+            *NonDictTestMixin.expected_json_schema["required"][2:],
+        ],
+    }
+
+    def test_get_field_meta_defined_fields(self):
+        adapter = ItemAdapter(self.item_class())
+
+        name_actual = adapter.get_field_meta("name")
+        name_expected = MappingProxyType(
+            {
+                "serializer": str,
+                "default_factory": name_actual["default_factory"],
+            }
+        )
+        self.assertEqual(name_expected, name_actual)
+
+        value_actual = adapter.get_field_meta("value")
+        value_expected = MappingProxyType(
+            {
+                "serializer": int,
+                "default_factory": value_actual["default_factory"],
+            }
+        )
+        self.assertEqual(value_expected, value_actual)
+
+
+class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
+    item_class = PydanticModel
+    item_class_nested = PydanticModelNested
+    item_class_subclassed = PydanticModelSubclassed
+    item_class_empty = PydanticModelEmpty
+    item_class_json_schema = PydanticModelJsonSchema
+    expected_json_schema = {
+        **{
+            k: v
+            for k, v in NonDictTestMixin.expected_json_schema.items()
+            if k not in {"additionalProperties", "properties"}
+        },
+        "properties": {
+            **{
+                k: v
+                for k, v in NonDictTestMixin.expected_json_schema["properties"].items()
+                if k not in {"nested", "nested_list", "nested_dict", "nested_dict_list"}
+            },
+            "nested": _PYDANTIC_NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
+                "type": "object",
+                "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _PYDANTIC_NESTED_JSON_SCHEMA,
+                },
+            },
+        },
+    }
+
+    def test_get_field_meta_defined_fields(self):
+        adapter = ItemAdapter(self.item_class())
+        self.assertEqual(
+            adapter.get_field_meta("name")["json_schema_extra"],
+            MappingProxyType({"serializer": str}),
+        )
+        self.assertEqual(
+            adapter.get_field_meta("value")["json_schema_extra"],
+            MappingProxyType({"serializer": int}),
+        )
 
 
 class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
@@ -279,6 +506,7 @@ class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_nested = DataClassItemNested
     item_class_subclassed = DataClassItemSubclassed
     item_class_empty = DataClassItemEmpty
+    item_class_json_schema = DataClassItemJsonSchema
 
 
 class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
@@ -286,3 +514,4 @@ class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_nested = AttrsItemNested
     item_class_subclassed = AttrsItemSubclassed
     item_class_empty = AttrsItemEmpty
+    item_class_json_schema = AttrsItemJsonSchema

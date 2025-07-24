@@ -1,7 +1,9 @@
 import unittest
 from types import MappingProxyType
+from typing import Optional
 from unittest import mock
 
+from itemadapter.adapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class
 from tests import (
     AttrsItem,
@@ -16,6 +18,8 @@ from tests import (
 
 
 class PydanticTestCase(unittest.TestCase):
+    maxDiff = None
+
     def test_false(self):
         from itemadapter.adapter import PydanticAdapter
 
@@ -69,8 +73,6 @@ class PydanticTestCase(unittest.TestCase):
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true(self):
-        from pydantic_core import PydanticUndefined
-
         from itemadapter.adapter import PydanticAdapter
 
         self.assertTrue(PydanticAdapter.is_item(PydanticModel()))
@@ -81,7 +83,7 @@ class PydanticTestCase(unittest.TestCase):
             mapping_proxy_type,
             MappingProxyType(
                 {
-                    "default": PydanticUndefined,
+                    "annotation": Optional[str],
                     "default_factory": mapping_proxy_type["default_factory"],
                     "json_schema_extra": {"serializer": str},
                     "repr": True,
@@ -93,7 +95,7 @@ class PydanticTestCase(unittest.TestCase):
             get_field_meta_from_class(PydanticModel, "value"),
             MappingProxyType(
                 {
-                    "default": PydanticUndefined,
+                    "annotation": Optional[int],
                     "default_factory": mapping_proxy_type["default_factory"],
                     "json_schema_extra": {"serializer": int},
                     "repr": True,
@@ -105,10 +107,10 @@ class PydanticTestCase(unittest.TestCase):
             mapping_proxy_type,
             MappingProxyType(
                 {
-                    "default": PydanticUndefined,
-                    "default_factory": mapping_proxy_type["default_factory"],
+                    "annotation": Optional[int],
                     "alias": "special_cases",
                     "alias_priority": 2,
+                    "default_factory": mapping_proxy_type["default_factory"],
                     "validation_alias": "special_cases",
                     "serialization_alias": "special_cases",
                     "frozen": True,
@@ -118,3 +120,113 @@ class PydanticTestCase(unittest.TestCase):
         )
         with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_forbid(self):
+        from itemadapter._imports import pydantic
+
+        class Item(pydantic.BaseModel):
+            foo: str
+
+            model_config = {
+                "extra": "forbid",
+            }
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string"},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_field_deprecated_bool(self):
+        from itemadapter._imports import pydantic
+
+        class Item(pydantic.BaseModel):
+            foo: str = pydantic.Field(deprecated=True)
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string", "deprecated": True},
+            },
+            "required": ["foo"],
+        }
+
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_field_deprecated_str(self):
+        from itemadapter._imports import pydantic
+
+        class Item(pydantic.BaseModel):
+            foo: str = pydantic.Field(deprecated="Use something else")
+
+        actual = ItemAdapter.get_json_schema(Item)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string", "deprecated": True},
+            },
+            "required": ["foo"],
+        }
+
+        self.assertEqual(expected, actual)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_json_schema_validators(self):
+        from itemadapter._imports import pydantic
+
+        class Model(pydantic.BaseModel):
+            # String with min/max length and regex pattern
+            name: str = pydantic.Field(
+                min_length=3,
+                max_length=10,
+                pattern=r"^[A-Za-z]+$",
+            )
+            # Integer with minimum, maximum, exclusive minimum, exclusive maximum
+            age: int = pydantic.Field(
+                ge=18,
+                le=99,
+                gt=17,
+                lt=100,
+            )
+            # Sequence with max_items
+            tags: set[str] = pydantic.Field(max_length=50)
+
+        actual = ItemAdapter.get_json_schema(Model)
+        expected = {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 10,
+                    "pattern": "^[A-Za-z]+$",
+                },
+                "age": {
+                    "type": "integer",
+                    "minimum": 18,
+                    "maximum": 99,
+                    "exclusiveMinimum": 17,
+                    "exclusiveMaximum": 100,
+                },
+                "tags": {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "maxItems": 50,
+                    "items": {
+                        "type": "string",
+                    },
+                },
+            },
+            "required": ["name", "age", "tags"],
+        }
+        self.assertEqual(expected, actual)
