@@ -228,16 +228,7 @@ def _setdefault_attribute_types_on_json_schema(
         update_prop_from_type(prop, prop_type, state)
 
 
-def _setdefault_attribute_docstrings_on_json_schema(
-    schema: dict[str, Any], item_class: type
-) -> None:
-    """Inspect the docstrings after each class attribute of the item class and,
-    for any matching JSON Schema property that has no description set, set the
-    description to the contents of the docstring."""
-    props = schema.get("properties", {})
-    attribute_names = set(props)
-    if not attribute_names:
-        return
+def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[tuple[str, str]]:
     try:
         source = inspect.getsource(item_class)
     except OSError:
@@ -257,7 +248,7 @@ def _setdefault_attribute_docstrings_on_json_schema(
             attr_name = node.target.id
         else:
             continue
-        if attr_name not in attribute_names:
+        if attr_name not in attr_names:
             continue
         next_idx = class_node.body.index(node) + 1
         if next_idx >= len(class_node.body):
@@ -268,7 +259,21 @@ def _setdefault_attribute_docstrings_on_json_schema(
             and isinstance(next_node.value, ast.Constant)
             and isinstance(next_node.value.value, str)
         ):
-            props[attr_name].setdefault("description", next_node.value.value)
+            yield attr_name, next_node.value.value
+
+
+def _setdefault_attribute_docstrings_on_json_schema(
+    schema: dict[str, Any], item_class: type
+) -> None:
+    """Inspect the docstrings after each class attribute of the item class and,
+    for any matching JSON Schema property that has no description set, set the
+    description to the contents of the docstring."""
+    props = schema.get("properties", {})
+    attr_names = set(props)
+    if not attr_names:
+        return
+    for attr_name, description in iter_docstrings(item_class, attr_names):
+        props.setdefault(attr_name, {}).setdefault("description", description)
 
 
 def base_json_schema_from_item_class(item_class: type) -> dict[str, Any]:
