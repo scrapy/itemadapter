@@ -1,5 +1,20 @@
 # Changelog
 
+### 0.12.0 (unreleased)
+
+Added support for [PyPy](https://pypy.org/) 3.11
+([#97](https://github.com/scrapy/itemadapter/pull/97)).
+
+Added a new `get_json_schema()` class method to `ItemAdapter` and all built-in
+adapters to output a [JSON Schema](https://json-schema.org/) for a given item
+class ([#101](https://github.com/scrapy/itemadapter/pull/101)).
+
+Modernized the code base, now making full use of
+[pyproject.toml](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/)
+and using [ruff](https://docs.astral.sh/ruff/)
+([#96](https://github.com/scrapy/itemadapter/pull/96),
+[#98](https://github.com/scrapy/itemadapter/pull/98)).
+
 ### 0.11.0 (2025-01-29)
 
 Removed functions deprecated in 0.5.0:

@@ -66,6 +66,12 @@ commit = true
 tag = true
 
 [[tool.bumpversion.files]]
+filename = "Changelog.md"
+search = "\\(unreleased\\)$"
+replace = "({now:%Y-%m-%d})"
+regex = true
+
+[[tool.bumpversion.files]]
 filename = "itemadapter/__init__.py"
 
 [tool.pylint.MASTER]
