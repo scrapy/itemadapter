@@ -271,14 +271,19 @@ def _setdefault_attribute_docstrings_on_json_schema(
             props[attr_name].setdefault("description", next_node.value.value)
 
 
+def base_json_schema_from_item_class(item_class: type) -> dict[str, Any]:
+    json_schema_extra = getattr(item_class, "__json_schema_extra__", {})
+    schema = copy(json_schema_extra)
+    schema.setdefault("type", "object")
+    schema.setdefault("additionalProperties", False)
+    return schema
+
+
 def _json_schema_from_item_class(
     adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState | None = None
 ) -> dict[str, Any]:
     state = state or _JsonSchemaState(adapter=adapter, containers={item_class})
-    item_class_meta = getattr(item_class, "__metadata__", {})
-    schema = copy(item_class_meta.get("json_schema_extra", {}))
-    schema.setdefault("type", "object")
-    schema.setdefault("additionalProperties", False)
+    schema = base_json_schema_from_item_class(item_class)
     fields_meta = {
         field_name: adapter.get_field_meta_from_class(item_class, field_name)
         for field_name in adapter.get_field_names_from_class(item_class) or ()
@@ -315,10 +320,7 @@ def update_required_fields(
 
 
 def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
-    item_class_meta = getattr(item_class, "__metadata__", {})
-    schema = copy(item_class_meta.get("json_schema_extra", {}))
-    schema.setdefault("type", "object")
-    schema.setdefault("additionalProperties", False)
+    schema = base_json_schema_from_item_class(item_class)
     fields = attr.fields(item_class)
     if not fields:
         return schema
@@ -392,10 +394,7 @@ def _update_attrs_prop_validation(
 
 
 def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
-    item_class_meta = getattr(item_class, "__metadata__", {})
-    schema = copy(item_class_meta.get("json_schema_extra", {}))
-    schema.setdefault("type", "object")
-    schema.setdefault("additionalProperties", False)
+    schema = base_json_schema_from_item_class(item_class)
     fields = dataclasses.fields(item_class)
     resolved_field_types = get_type_hints(item_class)
     default_factory_fields = set()

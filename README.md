@@ -293,15 +293,15 @@ level:
 
     ```
 
--   Define a `__metadata__` class attribute dict and `json_schema_extra` inside
-    to extend or override JSON Schema data for the entire class. For example:
+-   Define a `__json_schema_extra__` class attribute dict to extend or override
+    JSON Schema data for the entire class. For example:
 
     ```python
     >>> from dataclasses import dataclass
     >>> from itemadapter import ItemAdapter
     >>> @dataclass
     ... class MyItem:
-    ...     __metadata__ = {"json_schema_extra": {"additionalProperties": True}}
+    ...     __json_schema_extra__ = {"additionalProperties": True}
     ...     name: str
     ...
     >>> ItemAdapter.get_json_schema(MyItem)

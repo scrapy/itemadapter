@@ -96,10 +96,8 @@ class DataClassItemJsonSchemaNested:
 
 @dataclass
 class DataClassItemJsonSchema:
-    __metadata__ = {
-        "json_schema_extra": {
-            "llmHint": "Hi model!",
-        },
+    __json_schema_extra__ = {
+        "llmHint": "Hi model!",
     }
     name: str = field(metadata={"json_schema_extra": {"title": "Name"}})
     """Display name"""
@@ -161,10 +159,8 @@ else:
 
     @attr.s
     class AttrsItemJsonSchema:
-        __metadata__ = {
-            "json_schema_extra": {
-                "llmHint": "Hi model!",
-            },
+        __json_schema_extra__ = {
+            "llmHint": "Hi model!",
         }
         name: str = attr.ib(metadata={"json_schema_extra": {"title": "Name"}})
         """Display name"""
@@ -367,10 +363,8 @@ else:
         )
 
     class ScrapySubclassedItemJsonSchema(ScrapyItem):
-        __metadata__ = {
-            "json_schema_extra": {
-                "llmHint": "Hi model!",
-            }
+        __json_schema_extra__ = {
+            "llmHint": "Hi model!",
         }
 
         name: str = Field(
