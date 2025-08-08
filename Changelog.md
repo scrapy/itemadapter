@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.12.1 (unreleased)
+### 0.12.1 (2025-08-08)
 
 `get_json_schema()` now supports inherited field docstrings.
 
