@@ -231,7 +231,7 @@ def _setdefault_attribute_types_on_json_schema(
 def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[tuple[str, str]]:
     try:
         source = inspect.getsource(item_class)
-    except OSError:
+    except (OSError, TypeError):
         return
     tree = ast.parse(dedent(source))
     try:
@@ -262,18 +262,32 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
             yield attr_name, next_node.value.value
 
 
+def get_inherited_attr_docstring(item_class: type, attr_name: str) -> str | None:
+    """Recursively search the MRO for a docstring for the given attribute
+    name."""
+    for cls in item_class.__mro__:
+        for name, doc in iter_docstrings(cls, {attr_name}):
+            if name == attr_name:
+                return doc
+    return None
+
+
 def _setdefault_attribute_docstrings_on_json_schema(
     schema: dict[str, Any], item_class: type
 ) -> None:
-    """Inspect the docstrings after each class attribute of the item class and,
-    for any matching JSON Schema property that has no description set, set the
-    description to the contents of the docstring."""
+    """Inspect the docstrings after each class attribute of the item class and
+    its bases and, for any matching JSON Schema property that has no
+    description set, set the description to the contents of the docstring."""
     props = schema.get("properties", {})
     attr_names = set(props)
     if not attr_names:
         return
-    for attr_name, description in iter_docstrings(item_class, attr_names):
-        props.setdefault(attr_name, {}).setdefault("description", description)
+    for attr_name in attr_names:
+        prop = props.setdefault(attr_name, {})
+        if "description" not in prop:
+            doc = get_inherited_attr_docstring(item_class, attr_name)
+            if doc:
+                prop["description"] = doc
 
 
 def base_json_schema_from_item_class(item_class: type) -> dict[str, Any]:
