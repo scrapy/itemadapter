@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.12.1 (unreleased)
+
+`get_json_schema()` now supports inherited field docstrings.
+
 ### 0.12.0 (2025-07-24)
 
 Added support for [PyPy](https://pypy.org/) 3.11
