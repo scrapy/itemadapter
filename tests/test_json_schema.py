@@ -479,6 +479,29 @@ class JsonSchemaTestCase(unittest.TestCase):
         }
         self.assertEqual(expected, actual)
 
+    def test_field_docstring_inheritance(self):
+        """Test that field docstrings are inherited from parent classes."""
+
+        @dataclass
+        class ParentItem:
+            foo: str
+            """Parent item foo"""
+
+        @dataclass
+        class ChildItem(ParentItem):
+            pass
+
+        actual = ItemAdapter.get_json_schema(ChildItem)
+        expected = {
+            "type": "object",
+            "properties": {
+                "foo": {"type": "string", "description": "Parent item foo"},
+            },
+            "required": ["foo"],
+            "additionalProperties": False,
+        }
+        self.assertEqual(expected, actual)
+
 
 class CrossNestingTestCase(unittest.TestCase):
     """Test item nesting across different item types, with all supported types
