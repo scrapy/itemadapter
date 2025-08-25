@@ -133,9 +133,6 @@ def check_schemas(actual, expected):
     assert json.dumps(actual, indent=2) == json.dumps(expected, indent=2)
 
 
-_PYTHON_KEEPS_TYPE_ORDER = sys.version_info >= (3, 10)
-
-
 class JsonSchemaTestCase(unittest.TestCase):
     maxDiff = None
 
@@ -322,9 +319,7 @@ class JsonSchemaTestCase(unittest.TestCase):
                 "foo": {
                     "type": "array",
                     "items": {
-                        "type": ["string", "integer"]
-                        if _PYTHON_KEEPS_TYPE_ORDER
-                        else ["integer", "string"]
+                        "type": ["integer", "string"],
                     },
                 },
             },

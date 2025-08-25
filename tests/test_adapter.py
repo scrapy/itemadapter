@@ -228,7 +228,7 @@ class NonDictTestMixin(BaseTestMixin):
             },
             "produced": {"type": "boolean"},
             "answer": {
-                "type": ["string", "number", "null"],
+                "type": ["null", "number", "string"],
             },
             "numbers": {"type": "array", "items": {"type": "number"}},
             "aliases": {

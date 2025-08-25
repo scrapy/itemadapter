@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 
 
 SIMPLE_TYPES = {
-    bool: "boolean",
-    float: "number",
-    int: "integer",
     type(None): "null",
+    bool: "boolean",
+    int: "integer",
+    float: "number",
     str: "string",
 }
 
@@ -66,8 +66,8 @@ def dedupe_types(types: Sequence[type]) -> list[type]:
 
 def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     prop_types = dedupe_types(get_args(prop_type))
-    simple_types = [SIMPLE_TYPES[t] for t in prop_types if t in SIMPLE_TYPES]
-    complex_types = [t for t in prop_types if t not in SIMPLE_TYPES]
+    simple_types = [v for k, v in SIMPLE_TYPES.items() if k in prop_types]
+    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])
     if not complex_types:
         prop.setdefault("type", simple_types)
         return
