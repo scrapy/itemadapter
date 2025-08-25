@@ -194,7 +194,7 @@ class BaseTestMixin:
             self.item_class_empty
         ):
             expected["additionalProperties"] = False
-        check_schemas(expected, actual)
+        check_schemas(actual, expected)
 
 
 _NESTED_JSON_SCHEMA = {

@@ -142,7 +142,7 @@ class PydanticTestCase(unittest.TestCase):
             },
             "required": ["foo"],
         }
-        check_schemas(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_json_schema_field_deprecated_bool(self):
@@ -159,7 +159,7 @@ class PydanticTestCase(unittest.TestCase):
             },
             "required": ["foo"],
         }
-        check_schemas(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_json_schema_field_deprecated_str(self):
@@ -176,7 +176,7 @@ class PydanticTestCase(unittest.TestCase):
             },
             "required": ["foo"],
         }
-        check_schemas(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_json_schema_validators(self):
@@ -227,4 +227,4 @@ class PydanticTestCase(unittest.TestCase):
             },
             "required": ["name", "age", "tags"],
         }
-        check_schemas(expected, actual)
+        check_schemas(actual, expected)

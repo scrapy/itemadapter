@@ -182,4 +182,4 @@ class AttrsTestCase(unittest.TestCase):
             },
             "required": ["name", "age", "color", "year", "tags"],
         }
-        check_schemas(expected, actual)
+        check_schemas(actual, expected)
