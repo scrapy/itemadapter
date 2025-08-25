@@ -67,7 +67,7 @@ def dedupe_types(types: Sequence[type]) -> list[type]:
 def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     prop_types = dedupe_types(get_args(prop_type))
     simple_types = [v for k, v in SIMPLE_TYPES.items() if k in prop_types]
-    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])
+    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])  # type: ignore[type-var]
     if not complex_types:
         prop.setdefault("type", simple_types)
         return
