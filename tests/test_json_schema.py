@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import typing
 import unittest
@@ -22,7 +23,6 @@ from tests import (
     PydanticV1ModelJsonSchemaNested,
     ScrapySubclassedItem,
     ScrapySubclassedItemJsonSchemaNested,
-    SetList,
 )
 
 PYTHON_VERSION = sys.version_info[:2]
@@ -120,6 +120,19 @@ if PydanticModel:
         enum: SimpleEnum
 
 
+def check_schemas(actual, expected):
+    """Helper function to check if the actual JSON schema matches the expected
+    one.
+
+    It uses json.dumps() WITHOUT sorting the keys, to ensure key sorting
+    matches in both schemas as well. Maintaining the source order of fields can
+    be important
+
+    The indentation is set for better readability or mismatch output.
+    """
+    assert json.dumps(actual, indent=2) == json.dumps(expected, indent=2)
+
+
 class JsonSchemaTestCase(unittest.TestCase):
     maxDiff = None
 
@@ -139,19 +152,19 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestAttrsItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "pydantic": {
                     "type": "object",
                     "properties": {
-                        "enum": {"enum": ["foo"], "type": "string"},
+                        "enum": {"type": "string", "enum": ["foo"]},
                     },
                     "required": ["enum"],
                 }
             },
             "required": ["pydantic"],
-            "additionalProperties": False,
         }
-        self.assertEqual(actual, expected)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @unittest.skipIf(
@@ -170,6 +183,7 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "name": {
                     "type": "string",
@@ -177,17 +191,18 @@ class JsonSchemaTestCase(unittest.TestCase):
                 }
             },
             "required": ["name"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_recursion(self):
         actual = ItemAdapter.get_json_schema(RecursionItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "child": {
                     "type": "object",
+                    "additionalProperties": False,
                     "properties": {
                         "parent": {
                             "type": "object",
@@ -197,16 +212,14 @@ class JsonSchemaTestCase(unittest.TestCase):
                         },
                     },
                     "required": ["parent", "sibling"],
-                    "additionalProperties": False,
                 },
                 "sibling": {
                     "type": "object",
                 },
             },
             "required": ["child", "sibling"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_nested_dict(self):
         @dataclass
@@ -216,20 +229,21 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
                     "type": "object",
                 },
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_optional_item_list(self):
         actual = ItemAdapter.get_json_schema(OptionalItemListItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
                     "anyOf": [
@@ -240,22 +254,21 @@ class JsonSchemaTestCase(unittest.TestCase):
                             "type": "array",
                             "items": {
                                 "type": "object",
+                                "additionalProperties": False,
                                 "properties": {
                                     "is_nested": {
                                         "type": "boolean",
                                         "default": True,
                                     },
                                 },
-                                "additionalProperties": False,
                             },
                         },
                     ],
                     "default": None,
                 },
             },
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_sequence_untyped(self):
         @dataclass
@@ -265,15 +278,15 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
                     "type": "array",
                 },
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_tuple_ellipsis(self):
         @dataclass
@@ -283,15 +296,15 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
                     "type": "array",
                 },
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_tuple_multiple_types(self):
         @dataclass
@@ -301,16 +314,16 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
                     "type": "array",
-                    "items": {"type": SetList(["string", "integer"])},
+                    "items": {"type": ["string", "integer"]},
                 },
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_union_single(self):
         @dataclass
@@ -320,13 +333,13 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"type": "string"},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_custom_any_of(self):
         @dataclass
@@ -338,13 +351,13 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"anyOf": []},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_set_untyped(self):
         @dataclass
@@ -354,13 +367,13 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"type": "array", "uniqueItems": True},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_mapping_untyped(self):
         @dataclass
@@ -370,13 +383,13 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"type": "object"},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_custom_mapping(self):
         @dataclass
@@ -386,13 +399,13 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"type": "object"},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_item_without_attributes(self):
         @dataclass
@@ -404,7 +417,7 @@ class JsonSchemaTestCase(unittest.TestCase):
             "type": "object",
             "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_typing_sequence_untyped(self):
         @dataclass
@@ -414,15 +427,15 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
                     "type": "array",
                 },
             },
-            "additionalProperties": False,
             "required": ["foo"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_custom_items(self):
         @dataclass
@@ -432,16 +445,16 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {
-                    "type": "array",
                     "items": {},
+                    "type": "array",
                 },
             },
-            "additionalProperties": False,
             "required": ["foo"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     @unittest.skipIf(PYTHON_VERSION < (3, 10), "Modern optional annotations require Python 3.10+")
@@ -473,11 +486,11 @@ class JsonSchemaTestCase(unittest.TestCase):
                         },
                     ]
                 },
-                "in_stock": {"default": True, "type": "boolean"},
+                "in_stock": {"type": "boolean", "default": True},
             },
             "required": ["name", "brand"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     def test_field_docstring_inheritance(self):
         """Test that field docstrings are inherited from parent classes."""
@@ -494,13 +507,13 @@ class JsonSchemaTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(ChildItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"type": "string", "description": "Parent item foo"},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
 
 class CrossNestingTestCase(unittest.TestCase):
@@ -518,6 +531,7 @@ class CrossNestingTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "nested": {
                     "type": "object",
@@ -527,9 +541,8 @@ class CrossNestingTestCase(unittest.TestCase):
                 }
             },
             "required": ["nested"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
@@ -543,6 +556,7 @@ class CrossNestingTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "nested": {
                     "type": "object",
@@ -552,18 +566,17 @@ class CrossNestingTestCase(unittest.TestCase):
                 }
             },
             "required": ["nested"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
         actual = AttrsAdapter.get_json_schema(TestItem)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {"nested": {}},
             "required": ["nested"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
@@ -571,28 +584,28 @@ class CrossNestingTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "nested": {
                     "type": "object",
+                    "additionalProperties": False,
                     "properties": {
                         "is_nested": {"type": "boolean", "default": True},
                     },
-                    "additionalProperties": False,
                 }
             },
             "required": ["nested"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
         actual = ScrapyItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {"nested": {}},
             "required": ["nested"],
-            "additionalProperties": False,
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
@@ -611,15 +624,15 @@ class CrossNestingTestCase(unittest.TestCase):
             "properties": {
                 "nested": {
                     "type": "object",
-                    "properties": {
-                        "is_nested": {"type": "boolean", "default": True},
-                    },
                     "additionalProperties": False,
+                    "properties": {
+                        "is_nested": {"default": True, "type": "boolean"},
+                    },
                 }
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
         actual = PydanticAdapter.get_json_schema(TestItem)
         expected = {
@@ -632,7 +645,7 @@ class CrossNestingTestCase(unittest.TestCase):
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_pydantic_dataclass(self):
@@ -645,15 +658,15 @@ class CrossNestingTestCase(unittest.TestCase):
             "properties": {
                 "nested": {
                     "type": "object",
+                    "additionalProperties": False,
                     "properties": {
                         "is_nested": {"type": "boolean", "default": True},
                     },
-                    "additionalProperties": False,
                 },
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
         actual = PydanticAdapter.get_json_schema(TestItem)
         expected = {
@@ -663,7 +676,7 @@ class CrossNestingTestCase(unittest.TestCase):
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
@@ -681,15 +694,15 @@ class CrossNestingTestCase(unittest.TestCase):
             "properties": {
                 "nested": {
                     "type": "object",
-                    "properties": {
-                        "is_nested": {"type": "boolean", "default": True},
-                    },
                     "additionalProperties": False,
+                    "properties": {
+                        "is_nested": {"default": True, "type": "boolean"},
+                    },
                 },
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
         actual = PydanticAdapter.get_json_schema(TestItem)
         expected = {
@@ -699,7 +712,7 @@ class CrossNestingTestCase(unittest.TestCase):
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @pytest.mark.filterwarnings("ignore:Mixing V1 models and V2 models")
@@ -720,7 +733,7 @@ class CrossNestingTestCase(unittest.TestCase):
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
         # Since PydanticAdapter is not version-specific, it works with both
         # Pydantic V1 and V2+ models.
@@ -737,4 +750,4 @@ class CrossNestingTestCase(unittest.TestCase):
             },
             "required": ["nested"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)

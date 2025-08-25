@@ -53,10 +53,19 @@ class _JsonSchemaState:
     recursion."""
 
 
+def dedupe_types(types: Sequence[type]) -> list[type]:
+    seen = set()
+    result = []
+    for t in types:
+        key = float if t in (int, float) else t
+        if key not in seen:
+            seen.add(key)
+            result.append(t)
+    return result
+
+
 def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
-    prop_types = set(get_args(prop_type))
-    if int in prop_types and float in prop_types:
-        prop_types.remove(int)
+    prop_types = dedupe_types(get_args(prop_type))
     simple_types = [SIMPLE_TYPES[t] for t in prop_types if t in SIMPLE_TYPES]
     complex_types = [t for t in prop_types if t not in SIMPLE_TYPES]
     if not complex_types:
@@ -194,10 +203,10 @@ def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSche
             return
         if issubclass(prop_type, Enum):
             values = [item.value for item in prop_type]
-            prop.setdefault("enum", values)
             value_types = tuple({type(v) for v in values})
             prop_type = value_types[0] if len(value_types) == 1 else Union[value_types]
             update_prop_from_type(prop, prop_type, state)
+            prop.setdefault("enum", values)
             return
         if not issubclass(prop_type, str):
             if isinstance(prop_type, ObjectProtocol):
@@ -366,11 +375,11 @@ def _update_attrs_prop(
     state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
+    update_prop_from_type(prop, field.type, state)
     if isinstance(field.default, attr.Factory):
         default_factory_fields.add(field.name)
     elif field.default is not attr.NOTHING:
         prop.setdefault("default", field.default)
-    update_prop_from_type(prop, field.type, state)
     _update_attrs_prop_validation(prop, field)
 
 
@@ -423,13 +432,13 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
         }
         for field in fields:
             prop = schema["properties"][field.name]
+            field_type = resolved_field_types.get(field.name)
+            if field_type is not None:
+                update_prop_from_type(prop, field_type, state)
             if field.default_factory is not dataclasses.MISSING:
                 default_factory_fields.add(field.name)
             elif field.default is not dataclasses.MISSING:
                 prop.setdefault("default", field.default)
-            field_type = resolved_field_types.get(field.name)
-            if field_type is not None:
-                update_prop_from_type(prop, field_type, state)
         update_required_fields(schema, default_factory_fields)
     _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
     return schema
@@ -473,20 +482,20 @@ def _update_pydantic_prop(
     _state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
-    if "default_factory" in metadata:
-        default_factory_fields.add(name)
-    elif "default" in metadata and metadata["default"] is not PydanticUndefined:
-        prop.setdefault("default", metadata["default"])
     if "annotation" in metadata:
         field_type = metadata["annotation"]
         if field_type is not None:
             update_prop_from_type(prop, field_type, _state)
+    if "default_factory" in metadata:
+        default_factory_fields.add(name)
+    elif "default" in metadata and metadata["default"] is not PydanticUndefined:
+        prop.setdefault("default", metadata["default"])
     if "metadata" in metadata:
         _update_pydantic_prop_validation(prop, metadata["metadata"], field_type)
     for metadata_key, json_schema_field in (
+        ("title", "title"),
         ("description", "description"),
         ("examples", "examples"),
-        ("title", "title"),
     ):
         if metadata_key in metadata:
             prop.setdefault(json_schema_field, metadata[metadata_key])
@@ -561,6 +570,9 @@ def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,t
     default_factory_fields: set[str],
     state: _JsonSchemaState,
 ) -> None:
+    field_type = field_type_hints[name]
+    if field_type is not None:
+        update_prop_from_type(prop, field_type, state)
     if "default_factory" in metadata:
         default_factory_fields.add(name)
     elif "default" in metadata and metadata["default"] not in (
@@ -568,17 +580,14 @@ def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,t
         PydanticV1Undefined,
     ):
         prop.setdefault("default", metadata["default"])
-    field_type = field_type_hints[name]
-    if field_type is not None:
-        update_prop_from_type(prop, field_type, state)
     for metadata_key, json_schema_field in (
+        ("title", "title"),
+        ("description", "description"),
+        ("examples", "examples"),
         ("ge", "minimum"),
         ("gt", "exclusiveMinimum"),
         ("le", "maximum"),
         ("lt", "exclusiveMaximum"),
-        ("description", "description"),
-        ("examples", "examples"),
-        ("title", "title"),
     ):
         if metadata_key in metadata:
             prop.setdefault(json_schema_field, metadata[metadata_key])
