@@ -18,6 +18,7 @@ from tests import (
     clear_itemadapter_imports,
     make_mock_import,
 )
+from tests.test_json_schema import check_schemas
 
 
 class AttrsTestCase(unittest.TestCase):
@@ -144,8 +145,8 @@ class AttrsTestCase(unittest.TestCase):
 
         actual = ItemAdapter.get_json_schema(ItemClass)
         expected = {
-            "additionalProperties": False,
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "name": {
                     "type": "string",
@@ -166,19 +167,19 @@ class AttrsTestCase(unittest.TestCase):
                         else {}
                     ),
                 },
-                "color": {"enum": ["red", "green", "blue"], "type": "string"},
+                "color": {"type": "string", "enum": ["red", "green", "blue"]},
                 "year": {
                     "type": "string",
                 },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
-                    **({"maxItems": 50} if Version("21.3.0") <= ATTRS_VERSION else {}),
                     "items": {
                         "type": "string",
                     },
+                    **({"maxItems": 50} if Version("21.3.0") <= ATTRS_VERSION else {}),
                 },
             },
             "required": ["name", "age", "color", "year", "tags"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)

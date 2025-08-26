@@ -15,6 +15,7 @@ from tests import (
     clear_itemadapter_imports,
     make_mock_import,
 )
+from tests.test_json_schema import check_schemas
 
 
 class PydanticTestCase(unittest.TestCase):
@@ -135,14 +136,13 @@ class PydanticTestCase(unittest.TestCase):
         actual = ItemAdapter.get_json_schema(Item)
         expected = {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "foo": {"type": "string"},
             },
             "required": ["foo"],
-            "additionalProperties": False,
         }
-
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_json_schema_field_deprecated_bool(self):
@@ -159,8 +159,7 @@ class PydanticTestCase(unittest.TestCase):
             },
             "required": ["foo"],
         }
-
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_json_schema_field_deprecated_str(self):
@@ -177,8 +176,7 @@ class PydanticTestCase(unittest.TestCase):
             },
             "required": ["foo"],
         }
-
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_json_schema_validators(self):
@@ -213,20 +211,20 @@ class PydanticTestCase(unittest.TestCase):
                 },
                 "age": {
                     "type": "integer",
-                    "minimum": 18,
-                    "maximum": 99,
                     "exclusiveMinimum": 17,
+                    "minimum": 18,
                     "exclusiveMaximum": 100,
+                    "maximum": 99,
                 },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
-                    "maxItems": 50,
                     "items": {
                         "type": "string",
                     },
+                    "maxItems": 50,
                 },
             },
             "required": ["name", "age", "tags"],
         }
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)

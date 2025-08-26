@@ -42,20 +42,6 @@ class Color(Enum):
     BLUE = "blue"
 
 
-class SetList(list):
-    """List that compares as a set to other lists.
-
-    Used for test expectations, for lists with a expected content but where
-    order is not guaranteed.
-    """
-
-    def __eq__(self, other):
-        return set(self) == set(other)
-
-    def __hash__(self):
-        return hash(frozenset(self))
-
-
 @dataclass
 class DataClassItem:
     name: str = field(default_factory=lambda: None, metadata={"serializer": str})
@@ -230,7 +216,7 @@ else:
         is_nested: bool = True
 
     class PydanticV1ModelJsonSchema(pydantic_v1.BaseModel):
-        name: str = pydantic_v1.Field(description="Display name", title="Name")
+        name: str = pydantic_v1.Field(title="Name", description="Display name")
         value: Any = None
         color: Color
         produced: bool

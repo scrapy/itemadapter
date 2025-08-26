@@ -33,8 +33,8 @@ from tests import (
     ScrapySubclassedItemJsonSchema,
     ScrapySubclassedItemNested,
     ScrapySubclassedItemSubclassed,
-    SetList,
 )
+from tests.test_json_schema import check_schemas
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
@@ -185,7 +185,7 @@ class BaseTestMixin:
     def test_json_schema(self):
         item_class = self.item_class_json_schema
         actual = ItemAdapter.get_json_schema(item_class)
-        self.assertEqual(self.expected_json_schema, actual)
+        check_schemas(self.expected_json_schema, actual)
 
     def test_json_schema_empty(self):
         actual = ItemAdapter.get_json_schema(self.item_class_empty)
@@ -194,15 +194,15 @@ class BaseTestMixin:
             self.item_class_empty
         ):
             expected["additionalProperties"] = False
-        self.assertEqual(expected, actual)
+        check_schemas(actual, expected)
 
 
 _NESTED_JSON_SCHEMA = {
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "is_nested": {"type": "boolean", "default": True},
     },
-    "additionalProperties": False,
 }
 
 
@@ -210,6 +210,8 @@ class NonDictTestMixin(BaseTestMixin):
     item_class_subclassed = None
     item_class_empty = None
     expected_json_schema = {
+        "llmHint": "Hi model!",
+        "type": "object",
         "additionalProperties": False,
         "properties": {
             "name": {
@@ -226,7 +228,7 @@ class NonDictTestMixin(BaseTestMixin):
             },
             "produced": {"type": "boolean"},
             "answer": {
-                "type": SetList(["string", "null", "number"]),
+                "type": ["null", "number", "string"],
             },
             "numbers": {"type": "array", "items": {"type": "number"}},
             "aliases": {
@@ -261,8 +263,6 @@ class NonDictTestMixin(BaseTestMixin):
             "nested_dict",
             "nested_dict_list",
         ],
-        "type": "object",
-        "llmHint": "Hi model!",
     }
 
     def test_set_value_keyerror(self):
@@ -349,6 +349,15 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
         assert ItemAdapter.get_field_names_from_class(dict) is None
 
 
+_SCRAPY_NESTED_JSON_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "is_nested": {"default": True, "type": "boolean"},
+    },
+}
+
+
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class = ScrapySubclassedItem
     item_class_nested = ScrapySubclassedItemNested
@@ -356,24 +365,46 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_empty = ScrapySubclassedItemEmpty
     item_class_json_schema = ScrapySubclassedItemJsonSchema
     expected_json_schema = {
-        **{
-            k: v
-            for k, v in NonDictTestMixin.expected_json_schema.items()
-            if k not in {"properties"}
-        },
+        "llmHint": "Hi model!",
+        "type": "object",
+        "additionalProperties": False,
         "properties": {
             **{
-                k: v
-                for k, v in NonDictTestMixin.expected_json_schema["properties"].items()
-                if k != "produced"
+                k: NonDictTestMixin.expected_json_schema["properties"][k]
+                for k in sorted(NonDictTestMixin.expected_json_schema["properties"])
+            },
+            # Different order since stuff defined in json_schema_extra comes
+            # first.
+            "name": {
+                "title": "Name",
+                "type": "string",
+                "description": "Display name",
+            },
+            "nested": _SCRAPY_NESTED_JSON_SCHEMA,
+            "nested_list": {
+                "type": "array",
+                "items": _SCRAPY_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict": {
+                "type": "object",
+                "additionalProperties": _SCRAPY_NESTED_JSON_SCHEMA,
+            },
+            "nested_dict_list": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": _SCRAPY_NESTED_JSON_SCHEMA,
+                },
             },
             # No type, since none was specified in json_schema_extra.
             "produced": {},
+            # value comes last due to Scrapy items sorting fields
+            # alphabetically. https://github.com/scrapy/scrapy/issues/7015
+            "value": NonDictTestMixin.expected_json_schema["properties"]["value"],
         },
         # Scrapy items seem to sort fields alphabetically. produced is required
         # because there is no default factory support in Scrapy.
         "required": sorted(NonDictTestMixin.expected_json_schema["required"] + ["produced"]),
-        "llmHint": "Hi model!",
     }
 
     def test_get_value_keyerror_item_dict(self):
@@ -398,7 +429,7 @@ class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
         **{
             k: v
             for k, v in NonDictTestMixin.expected_json_schema.items()
-            if k not in {"additionalProperties", "properties"}
+            if k not in {"additionalProperties"}
         },
         "properties": {
             **{
@@ -462,7 +493,7 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
         **{
             k: v
             for k, v in NonDictTestMixin.expected_json_schema.items()
-            if k not in {"additionalProperties", "properties"}
+            if k not in {"additionalProperties"}
         },
         "properties": {
             **{
@@ -487,6 +518,7 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
                 },
             },
         },
+        "required": NonDictTestMixin.expected_json_schema["required"],
     }
 
     def test_get_field_meta_defined_fields(self):
@@ -507,6 +539,24 @@ class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_subclassed = DataClassItemSubclassed
     item_class_empty = DataClassItemEmpty
     item_class_json_schema = DataClassItemJsonSchema
+    expected_json_schema = {
+        **NonDictTestMixin.expected_json_schema,
+        "properties": {
+            **{
+                k: v
+                for k, v in NonDictTestMixin.expected_json_schema["properties"].items()
+                if k not in {"value", "produced"}
+            },
+            # Title is set through json_schema_extra, so it comes first.
+            "name": {"title": "Name", "type": "string", "description": "Display name"},
+            # value and produced come last because they have a default value,
+            # and dataclass does not support values without a default after
+            # values with a default.
+            "value": NonDictTestMixin.expected_json_schema["properties"]["value"],
+            "produced": NonDictTestMixin.expected_json_schema["properties"]["produced"],
+        },
+        "required": NonDictTestMixin.expected_json_schema["required"],
+    }
 
 
 class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
@@ -515,3 +565,4 @@ class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_subclassed = AttrsItemSubclassed
     item_class_empty = AttrsItemEmpty
     item_class_json_schema = AttrsItemJsonSchema
+    expected_json_schema = DataClassItemTestCase.expected_json_schema

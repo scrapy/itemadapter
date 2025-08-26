@@ -91,6 +91,7 @@ disable = [
     "import-error",
     "import-outside-toplevel",
     "invalid-name",
+    "line-too-long",  # https://docs.astral.sh/ruff/rules/line-too-long/
     "missing-class-docstring",
     "missing-function-docstring",
     "missing-module-docstring",
