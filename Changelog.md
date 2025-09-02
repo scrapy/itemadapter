@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.12.2 (unreleased)
+
+The return value of `get_json_schema()` is now deterministic (deterministic
+order of dict keys and list items).
+
 ### 0.12.1 (2025-08-08)
 
 `get_json_schema()` now supports inherited field docstrings.
