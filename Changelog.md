@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.12.2 (unreleased)
+### 0.12.2 (2025-09-02)
 
 The return value of `get_json_schema()` is now deterministic (deterministic
 order of dict keys and list items).
