@@ -50,9 +50,6 @@ jobs:
         - python-version: "3.14.0-rc.2"
           env:
             TOXENV: scrapy
-        - python-version: "3.14.0-rc.2"
-          env:
-            TOXENV: extra
         - python-version: "3.13"
           env:
             TOXENV: attrs
