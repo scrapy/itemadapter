@@ -40,6 +40,16 @@ jobs:
         - python-version: "3.14.0-rc.2"
           env:
             TOXENV: py
+# not released yet
+#        - python-version: "3.14.0-rc.2"
+#          env:
+#            TOXENV: pydantic
+        - python-version: "3.14.0-rc.2"
+          env:
+            TOXENV: attrs
+        - python-version: "3.14.0-rc.2"
+          env:
+            TOXENV: scrapy
         - python-version: "3.14.0-rc.2"
           env:
             TOXENV: extra
