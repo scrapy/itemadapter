@@ -3,13 +3,7 @@ from types import MappingProxyType
 
 from itemadapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class, is_item
-from tests import (
-    AttrsItem,
-    DataClassItem,
-    PydanticV1Model,
-    ScrapyItem,
-    ScrapySubclassedItem,
-)
+from tests import AttrsItem, DataClassItem, PydanticV1Model, ScrapyItem, ScrapySubclassedItem
 
 
 class FieldMetaFromClassTestCase(unittest.TestCase):
