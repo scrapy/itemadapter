@@ -1,6 +1,8 @@
 from types import MappingProxyType
 from unittest import TestCase
 
+import pytest
+
 from itemadapter.utils import get_field_meta_from_class
 from tests import (
     AttrsItem,
@@ -60,5 +62,5 @@ class DataclassTestCase(TestCase):
         assert get_field_meta_from_class(DataClassItem, "value") == MappingProxyType(
             {"serializer": int}
         )
-        with self.assertRaises(KeyError, msg="DataClassItem does not support field: non_existent"):
+        with pytest.raises(KeyError, match="DataClassItem does not support field: non_existent"):
             get_field_meta_from_class(DataClassItem, "non_existent")

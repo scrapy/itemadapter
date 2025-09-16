@@ -3,6 +3,8 @@ from types import MappingProxyType
 from typing import Optional
 from unittest import mock
 
+import pytest
+
 from itemadapter.adapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class
 from tests import (
@@ -59,7 +61,9 @@ class PydanticTestCase(unittest.TestCase):
             from itemadapter.adapter import PydanticAdapter
 
             assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
-            with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
+            with pytest.raises(
+                TypeError, match=r"tests.PydanticModel'\> is not a valid item class"
+            ):
                 get_field_meta_from_class(PydanticModel, "name")
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
@@ -69,7 +73,7 @@ class PydanticTestCase(unittest.TestCase):
         from itemadapter.adapter import PydanticAdapter
 
         assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
-        with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
+        with pytest.raises(TypeError, match=r"tests.PydanticModel'\> is not a valid item class"):
             get_field_meta_from_class(PydanticModel, "name")
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
@@ -110,7 +114,7 @@ class PydanticTestCase(unittest.TestCase):
                 "repr": True,
             }
         )
-        with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
+        with pytest.raises(KeyError, match="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")

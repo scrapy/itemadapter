@@ -6,15 +6,17 @@ from types import MappingProxyType
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from itemadapter.adapter import AdapterInterface, ItemAdapter
 
 
 class AdapterInterfaceTest(unittest.TestCase):
     @mock.patch.multiple(AdapterInterface, __abstractmethods__=set())
     def test_interface_class_methods(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             AdapterInterface.is_item(object())
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             AdapterInterface.is_item_class(object)
 
 
@@ -115,7 +117,7 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_get_value_keyerror(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["_undefined_"]
 
     def test_as_dict(self):
@@ -126,7 +128,7 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_set_value_keyerror(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["_undefined_"] = "some value"
 
     def test_delitem_len_iter(self):
@@ -143,17 +145,17 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         assert len(adapter) == 0
         assert sorted(iter(adapter)) == []
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del adapter["name"]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del adapter["value"]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del adapter["_undefined_"]
 
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
         adapter = ItemAdapter(self.item_class())
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["name"]
 
     def test_get_field_meta(self):

@@ -4,6 +4,7 @@ import unittest
 from types import MappingProxyType
 from unittest import mock
 
+import pytest
 from packaging.version import Version
 
 from itemadapter.adapter import ItemAdapter
@@ -58,13 +59,13 @@ class AttrsTestCase(unittest.TestCase):
             from itemadapter.adapter import AttrsAdapter
 
             assert not AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234))
-            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+            with pytest.raises(RuntimeError, match="attr module is not available"):
                 AttrsAdapter(AttrsItem(name="asdf", value=1234))
-            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+            with pytest.raises(RuntimeError, match="attr module is not available"):
                 AttrsAdapter.get_field_meta_from_class(AttrsItem, "name")
-            with self.assertRaises(RuntimeError, msg="attr module is not available"):
+            with pytest.raises(RuntimeError, match="attr module is not available"):
                 AttrsAdapter.get_field_names_from_class(AttrsItem)
-            with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
+            with pytest.raises(TypeError, match=r"'tests.AttrsItem'\> is not a valid item class"):
                 get_field_meta_from_class(AttrsItem, "name")
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
@@ -73,7 +74,7 @@ class AttrsTestCase(unittest.TestCase):
         from itemadapter.adapter import AttrsAdapter
 
         assert not AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234))
-        with self.assertRaises(TypeError, msg="AttrsItem is not a valid item class"):
+        with pytest.raises(TypeError, match=r"'tests.AttrsItem'\> is not a valid item class"):
             get_field_meta_from_class(AttrsItem, "name")
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
@@ -89,7 +90,7 @@ class AttrsTestCase(unittest.TestCase):
         assert get_field_meta_from_class(AttrsItem, "value") == MappingProxyType(
             {"serializer": int}
         )
-        with self.assertRaises(KeyError, msg="AttrsItem does not support field: non_existent"):
+        with pytest.raises(KeyError, match="AttrsItem does not support field: non_existent"):
             get_field_meta_from_class(AttrsItem, "non_existent")
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")

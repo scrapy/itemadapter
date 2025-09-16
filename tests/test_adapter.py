@@ -4,6 +4,8 @@ import unittest
 from collections.abc import KeysView
 from types import MappingProxyType
 
+import pytest
+
 from itemadapter.adapter import ItemAdapter, PydanticAdapter
 from tests import (
     AttrsItem,
@@ -86,11 +88,11 @@ class ItemAdapterReprTestCase(unittest.TestCase):
 
 class ItemAdapterInitError(unittest.TestCase):
     def test_non_item(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ItemAdapter(ScrapySubclassedItem)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ItemAdapter(dict)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             ItemAdapter(1234)
 
 
@@ -126,7 +128,7 @@ class BaseTestMixin:
     def test_get_value_keyerror(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["undefined_field"]
 
     def test_as_dict(self):
@@ -247,14 +249,14 @@ class NonDictTestMixin(BaseTestMixin):
     def test_set_value_keyerror(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["undefined_field"] = "some value"
 
     def test_metadata_common(self):
         adapter = ItemAdapter(self.item_class())
         assert isinstance(adapter.get_field_meta("name"), MappingProxyType)
         assert isinstance(adapter.get_field_meta("value"), MappingProxyType)
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter.get_field_meta("undefined_field")
 
     def test_get_field_meta_defined_fields(self):
@@ -276,11 +278,11 @@ class NonDictTestMixin(BaseTestMixin):
         assert len(adapter) == 0
         assert sorted(iter(adapter)) == []
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del adapter["name"]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del adapter["value"]
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             del adapter["undefined_field"]
 
     def test_field_names_from_class(self):
@@ -309,7 +311,7 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
         adapter = ItemAdapter(self.item_class())
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["name"]
 
     def test_empty_metadata(self):
@@ -389,7 +391,7 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
     def test_get_value_keyerror_item_dict(self):
         """Instantiate without default values."""
         adapter = ItemAdapter(self.item_class())
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             adapter["name"]
 
 

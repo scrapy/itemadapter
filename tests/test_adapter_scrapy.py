@@ -2,6 +2,8 @@ import unittest
 from types import MappingProxyType
 from unittest import mock
 
+import pytest
+
 from itemadapter.utils import get_field_meta_from_class
 from tests import (
     AttrsItem,
@@ -51,8 +53,8 @@ class ScrapyItemTestCase(unittest.TestCase):
             from itemadapter.adapter import ScrapyItemAdapter
 
             assert not ScrapyItemAdapter.is_item(ScrapySubclassedItem(name="asdf", value=1234))
-            with self.assertRaises(
-                TypeError, msg="ScrapySubclassedItem is not a valid item class"
+            with pytest.raises(
+                TypeError, match=r"tests.ScrapySubclassedItem'\> is not a valid item class"
             ):
                 get_field_meta_from_class(ScrapySubclassedItem, "name")
 
@@ -62,7 +64,9 @@ class ScrapyItemTestCase(unittest.TestCase):
         from itemadapter.adapter import ScrapyItemAdapter
 
         assert not ScrapyItemAdapter.is_item(ScrapySubclassedItem(name="asdf", value=1234))
-        with self.assertRaises(TypeError, msg="ScrapySubclassedItem is not a valid item class"):
+        with pytest.raises(
+            TypeError, match=r"tests.ScrapySubclassedItem'\> is not a valid item class"
+        ):
             get_field_meta_from_class(ScrapySubclassedItem, "name")
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")

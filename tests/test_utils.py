@@ -1,6 +1,8 @@
 import unittest
 from types import MappingProxyType
 
+import pytest
+
 from itemadapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class, is_item
 from tests import AttrsItem, DataClassItem, PydanticV1Model, ScrapyItem, ScrapySubclassedItem
@@ -8,9 +10,9 @@ from tests import AttrsItem, DataClassItem, PydanticV1Model, ScrapyItem, ScrapyS
 
 class FieldMetaFromClassTestCase(unittest.TestCase):
     def test_invalid_item_class(self):
-        with self.assertRaises(TypeError, msg="1 is not a valid item class"):
+        with pytest.raises(TypeError, match=r"issubclass\(\) arg 1 must be a class"):
             get_field_meta_from_class(1, "field")
-        with self.assertRaises(TypeError, msg="list is not a valid item class"):
+        with pytest.raises(TypeError, match=r"'list'\> is not a valid item class"):
             get_field_meta_from_class(list, "field")
 
     def test_empty_meta_for_dict(self):
