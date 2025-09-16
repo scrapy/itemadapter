@@ -41,65 +41,47 @@ class ItemAdapterReprTestCase(unittest.TestCase):
     def test_repr_dict(self):
         item = {"name": "asdf", "value": 1234}
         adapter = ItemAdapter(item)
-        self.assertEqual(repr(adapter), "<ItemAdapter for dict(name='asdf', value=1234)>")
+        assert repr(adapter) == "<ItemAdapter for dict(name='asdf', value=1234)>"
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            repr(adapter),
-            "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>",
-        )
+        assert repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_repr_dataclass(self):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            repr(adapter),
-            "<ItemAdapter for DataClassItem(name='asdf', value=1234)>",
-        )
+        assert repr(adapter) == "<ItemAdapter for DataClassItem(name='asdf', value=1234)>"
 
     @unittest.skipIf(not DataClassWithoutInit, "dataclasses module is not available")
     def test_repr_dataclass_init_false(self):
         item = DataClassWithoutInit()
         adapter = ItemAdapter(item)
-        self.assertEqual(repr(adapter), "<ItemAdapter for DataClassWithoutInit()>")
+        assert repr(adapter) == "<ItemAdapter for DataClassWithoutInit()>"
         adapter["name"] = "set after init"
-        self.assertEqual(
-            repr(adapter),
-            "<ItemAdapter for DataClassWithoutInit(name='set after init')>",
-        )
+        assert repr(adapter) == "<ItemAdapter for DataClassWithoutInit(name='set after init')>"
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_repr_attrs(self):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            repr(adapter),
-            "<ItemAdapter for AttrsItem(name='asdf', value=1234)>",
-        )
+        assert repr(adapter) == "<ItemAdapter for AttrsItem(name='asdf', value=1234)>"
 
     @unittest.skipIf(not AttrsItemWithoutInit, "attrs module is not available")
     def test_repr_attrs_init_false(self):
         item = AttrsItemWithoutInit()
         adapter = ItemAdapter(item)
-        self.assertEqual(repr(adapter), "<ItemAdapter for AttrsItemWithoutInit()>")
+        assert repr(adapter) == "<ItemAdapter for AttrsItemWithoutInit()>"
         adapter["name"] = "set after init"
-        self.assertEqual(
-            repr(adapter),
-            "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>",
-        )
+        assert repr(adapter) == "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
 
     @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_repr_pydantic(self):
         item = PydanticV1Model(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            repr(adapter),
-            "<ItemAdapter for PydanticV1Model(name='asdf', value=1234)>",
-        )
+        assert repr(adapter) == "<ItemAdapter for PydanticV1Model(name='asdf', value=1234)>"
 
 
 class ItemAdapterInitError(unittest.TestCase):
@@ -125,21 +107,21 @@ class BaseTestMixin:
     def test_get_set_value(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        self.assertEqual(adapter.get("name"), None)
-        self.assertEqual(adapter.get("value"), None)
+        assert adapter.get("name") is None
+        assert adapter.get("value") is None
         adapter["name"] = "asdf"
         adapter["value"] = 1234
-        self.assertEqual(adapter.get("name"), "asdf")
-        self.assertEqual(adapter.get("value"), 1234)
-        self.assertEqual(adapter["name"], "asdf")
-        self.assertEqual(adapter["value"], 1234)
+        assert adapter.get("name") == "asdf"
+        assert adapter.get("value") == 1234
+        assert adapter["name"] == "asdf"
+        assert adapter["value"] == 1234
 
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(adapter.get("name"), "asdf")
-        self.assertEqual(adapter.get("value"), 1234)
-        self.assertEqual(adapter["name"], "asdf")
-        self.assertEqual(adapter["value"], 1234)
+        assert adapter.get("name") == "asdf"
+        assert adapter.get("value") == 1234
+        assert adapter["name"] == "asdf"
+        assert adapter["value"] == 1234
 
     def test_get_value_keyerror(self):
         item = self.item_class()
@@ -150,7 +132,7 @@ class BaseTestMixin:
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual({"name": "asdf", "value": 1234}, dict(adapter))
+        assert dict(adapter) == {"name": "asdf", "value": 1234}
 
     def test_as_dict_nested(self):
         item = self.item_class_nested(
@@ -163,24 +145,21 @@ class BaseTestMixin:
             int_=123,
         )
         adapter = ItemAdapter(item)
-        self.assertEqual(
-            adapter.asdict(),
-            {
-                "nested": {"name": "asdf", "value": 1234},
-                "adapter": {"foo": "bar", "nested_list": [1, 2, 3, 4, 5]},
-                "dict_": {"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
-                "list_": [1, 2, 3],
-                "set_": {1, 2, 3},
-                "tuple_": (1, 2, 3),
-                "int_": 123,
-            },
-        )
+        assert adapter.asdict() == {
+            "nested": {"name": "asdf", "value": 1234},
+            "adapter": {"foo": "bar", "nested_list": [1, 2, 3, 4, 5]},
+            "dict_": {"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
+            "list_": [1, 2, 3],
+            "set_": {1, 2, 3},
+            "tuple_": (1, 2, 3),
+            "int_": 123,
+        }
 
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertIsInstance(adapter.field_names(), KeysView)
-        self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
+        assert isinstance(adapter.field_names(), KeysView)
+        assert sorted(adapter.field_names()) == ["name", "value"]
 
     def test_json_schema(self):
         item_class = self.item_class_json_schema
@@ -273,29 +252,29 @@ class NonDictTestMixin(BaseTestMixin):
 
     def test_metadata_common(self):
         adapter = ItemAdapter(self.item_class())
-        self.assertIsInstance(adapter.get_field_meta("name"), MappingProxyType)
-        self.assertIsInstance(adapter.get_field_meta("value"), MappingProxyType)
+        assert isinstance(adapter.get_field_meta("name"), MappingProxyType)
+        assert isinstance(adapter.get_field_meta("value"), MappingProxyType)
         with self.assertRaises(KeyError):
             adapter.get_field_meta("undefined_field")
 
     def test_get_field_meta_defined_fields(self):
         adapter = ItemAdapter(self.item_class())
-        self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
-        self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
+        assert adapter.get_field_meta("name") == MappingProxyType({"serializer": str})
+        assert adapter.get_field_meta("value") == MappingProxyType({"serializer": int})
 
     def test_delitem_len_iter(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(len(adapter), 2)
-        self.assertEqual(sorted(iter(adapter)), ["name", "value"])
+        assert len(adapter) == 2
+        assert sorted(iter(adapter)) == ["name", "value"]
 
         del adapter["name"]
-        self.assertEqual(len(adapter), 1)
-        self.assertEqual(sorted(iter(adapter)), ["value"])
+        assert len(adapter) == 1
+        assert sorted(iter(adapter)) == ["value"]
 
         del adapter["value"]
-        self.assertEqual(len(adapter), 0)
-        self.assertEqual(sorted(iter(adapter)), [])
+        assert len(adapter) == 0
+        assert sorted(iter(adapter)) == []
 
         with self.assertRaises(KeyError):
             del adapter["name"]
@@ -307,17 +286,17 @@ class NonDictTestMixin(BaseTestMixin):
     def test_field_names_from_class(self):
         field_names = ItemAdapter.get_field_names_from_class(self.item_class)
         assert isinstance(field_names, list)
-        self.assertEqual(sorted(field_names), ["name", "value"])
+        assert sorted(field_names) == ["name", "value"]
 
     def test_field_names_from_class_nested(self):
         field_names = ItemAdapter.get_field_names_from_class(self.item_class_subclassed)
         assert isinstance(field_names, list)
-        self.assertEqual(sorted(field_names), ["name", "subclassed", "value"])
+        assert sorted(field_names) == ["name", "subclassed", "value"]
 
     def test_field_names_from_class_empty(self):
         field_names = ItemAdapter.get_field_names_from_class(self.item_class_empty)
         assert isinstance(field_names, list)
-        self.assertEqual(field_names, [])
+        assert field_names == []
 
 
 class DictTestCase(unittest.TestCase, BaseTestMixin):
@@ -336,14 +315,14 @@ class DictTestCase(unittest.TestCase, BaseTestMixin):
     def test_empty_metadata(self):
         adapter = ItemAdapter(self.item_class(name="foo", value=5))
         for field_name in ("name", "value", "undefined_field"):
-            self.assertEqual(adapter.get_field_meta(field_name), MappingProxyType({}))
+            assert adapter.get_field_meta(field_name) == MappingProxyType({})
 
     def test_field_names_updated(self):
         item = self.item_class(name="asdf")
         field_names = ItemAdapter(item).field_names()
-        self.assertEqual(sorted(field_names), ["name"])
+        assert sorted(field_names) == ["name"]
         item["value"] = 1234
-        self.assertEqual(sorted(field_names), ["name", "value"])
+        assert sorted(field_names) == ["name", "value"]
 
     def test_field_names_from_class(self):
         assert ItemAdapter.get_field_names_from_class(dict) is None
@@ -471,7 +450,7 @@ class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
                 "default_factory": name_actual["default_factory"],
             }
         )
-        self.assertEqual(name_expected, name_actual)
+        assert name_expected == name_actual
 
         value_actual = adapter.get_field_meta("value")
         value_expected = MappingProxyType(
@@ -480,7 +459,7 @@ class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
                 "default_factory": value_actual["default_factory"],
             }
         )
-        self.assertEqual(value_expected, value_actual)
+        assert value_expected == value_actual
 
 
 class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
@@ -523,13 +502,11 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
 
     def test_get_field_meta_defined_fields(self):
         adapter = ItemAdapter(self.item_class())
-        self.assertEqual(
-            adapter.get_field_meta("name")["json_schema_extra"],
-            MappingProxyType({"serializer": str}),
+        assert adapter.get_field_meta("name")["json_schema_extra"] == MappingProxyType(
+            {"serializer": str}
         )
-        self.assertEqual(
-            adapter.get_field_meta("value")["json_schema_extra"],
-            MappingProxyType({"serializer": int}),
+        assert adapter.get_field_meta("value")["json_schema_extra"] == MappingProxyType(
+            {"serializer": int}
         )
 
 

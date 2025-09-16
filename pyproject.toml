@@ -160,8 +160,8 @@ extend-select = [
     "PIE",
     # pylint
     "PL",
-#    # flake8-pytest-style
-#    "PT",
+    # flake8-pytest-style
+    "PT",
     # flake8-use-pathlib
     "PTH",
     # flake8-pyi
@@ -250,6 +250,8 @@ ignore = [
     "RUF012",
     # Use of `assert` detected
     "S101",
+
+    "PT027",
 ]
 
 [tool.ruff.lint.isort]

@@ -17,53 +17,53 @@ class FieldMetaFromClassTestCase(unittest.TestCase):
         class DictSubclass(dict):
             pass
 
-        self.assertEqual(get_field_meta_from_class(DictSubclass, "name"), MappingProxyType({}))
-        self.assertEqual(get_field_meta_from_class(dict, "name"), MappingProxyType({}))
+        assert get_field_meta_from_class(DictSubclass, "name") == MappingProxyType({})
+        assert get_field_meta_from_class(dict, "name") == MappingProxyType({})
 
 
 class ItemLikeTestCase(unittest.TestCase):
     def test_false(self):
-        self.assertFalse(is_item(int))
-        self.assertFalse(is_item(sum))
-        self.assertFalse(is_item(1234))
-        self.assertFalse(is_item(object()))
-        self.assertFalse(is_item("a string"))
-        self.assertFalse(is_item(b"some bytes"))
-        self.assertFalse(is_item(["a", "list"]))
-        self.assertFalse(is_item(("a", "tuple")))
-        self.assertFalse(is_item({"a", "set"}))
-        self.assertFalse(is_item(dict))
-        self.assertFalse(is_item(ScrapyItem))
-        self.assertFalse(is_item(DataClassItem))
-        self.assertFalse(is_item(ScrapySubclassedItem))
-        self.assertFalse(is_item(AttrsItem))
-        self.assertFalse(is_item(PydanticV1Model))
-        self.assertFalse(ItemAdapter.is_item_class(list))
-        self.assertFalse(ItemAdapter.is_item_class(int))
-        self.assertFalse(ItemAdapter.is_item_class(tuple))
+        assert not is_item(int)
+        assert not is_item(sum)
+        assert not is_item(1234)
+        assert not is_item(object())
+        assert not is_item("a string")
+        assert not is_item(b"some bytes")
+        assert not is_item(["a", "list"])
+        assert not is_item(("a", "tuple"))
+        assert not is_item({"a", "set"})
+        assert not is_item(dict)
+        assert not is_item(ScrapyItem)
+        assert not is_item(DataClassItem)
+        assert not is_item(ScrapySubclassedItem)
+        assert not is_item(AttrsItem)
+        assert not is_item(PydanticV1Model)
+        assert not ItemAdapter.is_item_class(list)
+        assert not ItemAdapter.is_item_class(int)
+        assert not ItemAdapter.is_item_class(tuple)
 
     def test_true_dict(self):
-        self.assertTrue(is_item({"a": "dict"}))
-        self.assertTrue(ItemAdapter.is_item_class(dict))
+        assert is_item({"a": "dict"})
+        assert ItemAdapter.is_item_class(dict)
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_true_scrapy(self):
-        self.assertTrue(is_item(ScrapyItem()))
-        self.assertTrue(is_item(ScrapySubclassedItem(name="asdf", value=1234)))
-        self.assertTrue(ItemAdapter.is_item_class(ScrapyItem))
-        self.assertTrue(ItemAdapter.is_item_class(ScrapySubclassedItem))
+        assert is_item(ScrapyItem())
+        assert is_item(ScrapySubclassedItem(name="asdf", value=1234))
+        assert ItemAdapter.is_item_class(ScrapyItem)
+        assert ItemAdapter.is_item_class(ScrapySubclassedItem)
 
     @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true_dataclass(self):
-        self.assertTrue(is_item(DataClassItem(name="asdf", value=1234)))
-        self.assertTrue(ItemAdapter.is_item_class(DataClassItem))
+        assert is_item(DataClassItem(name="asdf", value=1234))
+        assert ItemAdapter.is_item_class(DataClassItem)
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_true_attrs(self):
-        self.assertTrue(is_item(AttrsItem(name="asdf", value=1234)))
-        self.assertTrue(ItemAdapter.is_item_class(AttrsItem))
+        assert is_item(AttrsItem(name="asdf", value=1234))
+        assert ItemAdapter.is_item_class(AttrsItem)
 
     @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_true_pydantic(self):
-        self.assertTrue(is_item(PydanticV1Model(name="asdf", value=1234)))
-        self.assertTrue(ItemAdapter.is_item_class(PydanticV1Model))
+        assert is_item(PydanticV1Model(name="asdf", value=1234))
+        assert ItemAdapter.is_item_class(PydanticV1Model)

@@ -24,33 +24,33 @@ class PydanticTestCase(unittest.TestCase):
     def test_false(self):
         from itemadapter.adapter import PydanticAdapter
 
-        self.assertFalse(PydanticAdapter.is_item(int))
-        self.assertFalse(PydanticAdapter.is_item(sum))
-        self.assertFalse(PydanticAdapter.is_item(1234))
-        self.assertFalse(PydanticAdapter.is_item(object()))
-        self.assertFalse(PydanticAdapter.is_item(DataClassItem()))
-        self.assertFalse(PydanticAdapter.is_item("a string"))
-        self.assertFalse(PydanticAdapter.is_item(b"some bytes"))
-        self.assertFalse(PydanticAdapter.is_item({"a": "dict"}))
-        self.assertFalse(PydanticAdapter.is_item(["a", "list"]))
-        self.assertFalse(PydanticAdapter.is_item(("a", "tuple")))
-        self.assertFalse(PydanticAdapter.is_item({"a", "set"}))
-        self.assertFalse(PydanticAdapter.is_item(PydanticModel))
+        assert not PydanticAdapter.is_item(int)
+        assert not PydanticAdapter.is_item(sum)
+        assert not PydanticAdapter.is_item(1234)
+        assert not PydanticAdapter.is_item(object())
+        assert not PydanticAdapter.is_item(DataClassItem())
+        assert not PydanticAdapter.is_item("a string")
+        assert not PydanticAdapter.is_item(b"some bytes")
+        assert not PydanticAdapter.is_item({"a": "dict"})
+        assert not PydanticAdapter.is_item(["a", "list"])
+        assert not PydanticAdapter.is_item(("a", "tuple"))
+        assert not PydanticAdapter.is_item({"a", "set"})
+        assert not PydanticAdapter.is_item(PydanticModel)
 
         try:
             import attrs  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:
-            self.assertFalse(PydanticAdapter.is_item(AttrsItem()))
+            assert not PydanticAdapter.is_item(AttrsItem())
 
         try:
             import scrapy  # noqa: F401  # pylint: disable=unused-import
         except ImportError:
             pass
         else:
-            self.assertFalse(PydanticAdapter.is_item(ScrapyItem()))
-            self.assertFalse(PydanticAdapter.is_item(ScrapySubclassedItem()))
+            assert not PydanticAdapter.is_item(ScrapyItem())
+            assert not PydanticAdapter.is_item(ScrapySubclassedItem())
 
     @unittest.skipIf(not PydanticModel, "pydantic <2 module is not available")
     @mock.patch("builtins.__import__", make_mock_import("pydantic"))
@@ -58,7 +58,7 @@ class PydanticTestCase(unittest.TestCase):
         with clear_itemadapter_imports():
             from itemadapter.adapter import PydanticAdapter
 
-            self.assertFalse(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
+            assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
             with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
                 get_field_meta_from_class(PydanticModel, "name")
 
@@ -68,7 +68,7 @@ class PydanticTestCase(unittest.TestCase):
     def test_module_not_available(self):
         from itemadapter.adapter import PydanticAdapter
 
-        self.assertFalse(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
+        assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
         with self.assertRaises(TypeError, msg="PydanticModel is not a valid item class"):
             get_field_meta_from_class(PydanticModel, "name")
 
@@ -76,48 +76,39 @@ class PydanticTestCase(unittest.TestCase):
     def test_true(self):
         from itemadapter.adapter import PydanticAdapter
 
-        self.assertTrue(PydanticAdapter.is_item(PydanticModel()))
-        self.assertTrue(PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234)))
+        assert PydanticAdapter.is_item(PydanticModel())
+        assert PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
         # field metadata
         mapping_proxy_type = get_field_meta_from_class(PydanticModel, "name")
-        self.assertEqual(
-            mapping_proxy_type,
-            MappingProxyType(
-                {
-                    "annotation": Optional[str],
-                    "default_factory": mapping_proxy_type["default_factory"],
-                    "json_schema_extra": {"serializer": str},
-                    "repr": True,
-                }
-            ),
+        assert mapping_proxy_type == MappingProxyType(
+            {
+                "annotation": Optional[str],
+                "default_factory": mapping_proxy_type["default_factory"],
+                "json_schema_extra": {"serializer": str},
+                "repr": True,
+            }
         )
         mapping_proxy_type = get_field_meta_from_class(PydanticModel, "value")
-        self.assertEqual(
-            get_field_meta_from_class(PydanticModel, "value"),
-            MappingProxyType(
-                {
-                    "annotation": Optional[int],
-                    "default_factory": mapping_proxy_type["default_factory"],
-                    "json_schema_extra": {"serializer": int},
-                    "repr": True,
-                }
-            ),
+        assert get_field_meta_from_class(PydanticModel, "value") == MappingProxyType(
+            {
+                "annotation": Optional[int],
+                "default_factory": mapping_proxy_type["default_factory"],
+                "json_schema_extra": {"serializer": int},
+                "repr": True,
+            }
         )
         mapping_proxy_type = get_field_meta_from_class(PydanticSpecialCasesModel, "special_cases")
-        self.assertEqual(
-            mapping_proxy_type,
-            MappingProxyType(
-                {
-                    "annotation": Optional[int],
-                    "alias": "special_cases",
-                    "alias_priority": 2,
-                    "default_factory": mapping_proxy_type["default_factory"],
-                    "validation_alias": "special_cases",
-                    "serialization_alias": "special_cases",
-                    "frozen": True,
-                    "repr": True,
-                }
-            ),
+        assert mapping_proxy_type == MappingProxyType(
+            {
+                "annotation": Optional[int],
+                "alias": "special_cases",
+                "alias_priority": 2,
+                "default_factory": mapping_proxy_type["default_factory"],
+                "validation_alias": "special_cases",
+                "serialization_alias": "special_cases",
+                "frozen": True,
+                "repr": True,
+            }
         )
         with self.assertRaises(KeyError, msg="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")

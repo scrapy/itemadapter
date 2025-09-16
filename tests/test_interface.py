@@ -87,30 +87,30 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_repr(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        self.assertEqual(repr(adapter), "<ItemAdapter for FakeItemClass()>")
+        assert repr(adapter) == "<ItemAdapter for FakeItemClass()>"
         adapter["name"] = "asdf"
         adapter["value"] = 1234
-        self.assertEqual(repr(adapter), "<ItemAdapter for FakeItemClass(name='asdf', value=1234)>")
+        assert repr(adapter) == "<ItemAdapter for FakeItemClass(name='asdf', value=1234)>"
 
     def test_get_set_value(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
-        self.assertEqual(adapter.get("name"), None)
-        self.assertEqual(adapter.get("value"), None)
+        assert adapter.get("name") is None
+        assert adapter.get("value") is None
         adapter["name"] = "asdf"
         adapter["value"] = 1234
-        self.assertEqual(adapter.get("name"), "asdf")
-        self.assertEqual(adapter.get("value"), 1234)
-        self.assertEqual(adapter["name"], "asdf")
-        self.assertEqual(adapter["value"], 1234)
+        assert adapter.get("name") == "asdf"
+        assert adapter.get("value") == 1234
+        assert adapter["name"] == "asdf"
+        assert adapter["value"] == 1234
 
     def test_get_set_value_init(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(adapter.get("name"), "asdf")
-        self.assertEqual(adapter.get("value"), 1234)
-        self.assertEqual(adapter["name"], "asdf")
-        self.assertEqual(adapter["value"], 1234)
+        assert adapter.get("name") == "asdf"
+        assert adapter.get("value") == 1234
+        assert adapter["name"] == "asdf"
+        assert adapter["value"] == 1234
 
     def test_get_value_keyerror(self):
         item = self.item_class()
@@ -121,7 +121,7 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual({"name": "asdf", "value": 1234}, dict(adapter))
+        assert dict(adapter) == {"name": "asdf", "value": 1234}
 
     def test_set_value_keyerror(self):
         item = self.item_class()
@@ -132,16 +132,16 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_delitem_len_iter(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertEqual(len(adapter), 2)
-        self.assertEqual(sorted(iter(adapter)), ["name", "value"])
+        assert len(adapter) == 2
+        assert sorted(iter(adapter)) == ["name", "value"]
 
         del adapter["name"]
-        self.assertEqual(len(adapter), 1)
-        self.assertEqual(sorted(iter(adapter)), ["value"])
+        assert len(adapter) == 1
+        assert sorted(iter(adapter)) == ["value"]
 
         del adapter["value"]
-        self.assertEqual(len(adapter), 0)
-        self.assertEqual(sorted(iter(adapter)), [])
+        assert len(adapter) == 0
+        assert sorted(iter(adapter)) == []
 
         with self.assertRaises(KeyError):
             del adapter["name"]
@@ -159,30 +159,27 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     def test_get_field_meta(self):
         """Metadata is always empty for the default implementation."""
         adapter = ItemAdapter(self.item_class())
-        self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
-        self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({}))
-        self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({}))
+        assert adapter.get_field_meta("_undefined_") == MappingProxyType({})
+        assert adapter.get_field_meta("name") == MappingProxyType({})
+        assert adapter.get_field_meta("value") == MappingProxyType({})
 
     def test_get_field_meta_from_class(self):
         """Metadata is always empty for the default implementation."""
-        self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "_undefined_"),
-            MappingProxyType({}),
+        assert ItemAdapter.get_field_meta_from_class(
+            self.item_class, "_undefined_"
+        ) == MappingProxyType({})
+        assert ItemAdapter.get_field_meta_from_class(self.item_class, "name") == MappingProxyType(
+            {}
         )
-        self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "name"),
-            MappingProxyType({}),
-        )
-        self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "value"),
-            MappingProxyType({}),
+        assert ItemAdapter.get_field_meta_from_class(self.item_class, "value") == MappingProxyType(
+            {}
         )
 
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertIsInstance(adapter.field_names(), KeysView)
-        self.assertEqual(sorted(adapter.field_names()), ["name", "value"])
+        assert isinstance(adapter.field_names(), KeysView)
+        assert sorted(adapter.field_names()) == ["name", "value"]
 
 
 class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
@@ -191,22 +188,19 @@ class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
 
     def test_get_field_meta(self):
         adapter = ItemAdapter(self.item_class())
-        self.assertEqual(adapter.get_field_meta("_undefined_"), MappingProxyType({}))
-        self.assertEqual(adapter.get_field_meta("name"), MappingProxyType({"serializer": str}))
-        self.assertEqual(adapter.get_field_meta("value"), MappingProxyType({"serializer": int}))
+        assert adapter.get_field_meta("_undefined_") == MappingProxyType({})
+        assert adapter.get_field_meta("name") == MappingProxyType({"serializer": str})
+        assert adapter.get_field_meta("value") == MappingProxyType({"serializer": int})
 
     def test_get_field_meta_from_class(self):
-        self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "_undefined_"),
-            MappingProxyType({}),
+        assert ItemAdapter.get_field_meta_from_class(
+            self.item_class, "_undefined_"
+        ) == MappingProxyType({})
+        assert ItemAdapter.get_field_meta_from_class(self.item_class, "name") == MappingProxyType(
+            {"serializer": str}
         )
-        self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "name"),
-            MappingProxyType({"serializer": str}),
-        )
-        self.assertEqual(
-            ItemAdapter.get_field_meta_from_class(self.item_class, "value"),
-            MappingProxyType({"serializer": int}),
+        assert ItemAdapter.get_field_meta_from_class(self.item_class, "value") == MappingProxyType(
+            {"serializer": int}
         )
 
 
@@ -217,5 +211,5 @@ class FieldNamesFakeItemAdapterTest(BaseFakeItemAdapterTest):
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        self.assertIsInstance(adapter.field_names(), KeysView)
-        self.assertEqual(sorted(adapter.field_names()), ["NAME", "VALUE"])
+        assert isinstance(adapter.field_names(), KeysView)
+        assert sorted(adapter.field_names()) == ["NAME", "VALUE"]
