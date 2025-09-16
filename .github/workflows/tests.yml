@@ -40,40 +40,32 @@ jobs:
         - python-version: "3.14.0-rc.2"
           env:
             TOXENV: py
-# not released yet
-#        - python-version: "3.14.0-rc.2"
-#          env:
-#            TOXENV: pydantic
         - python-version: "3.14.0-rc.2"
           env:
             TOXENV: attrs
+        # pydantic doesn't yet support 3.14
+        - python-version: "3.13"
+          env:
+            TOXENV: pydantic
         - python-version: "3.14.0-rc.2"
           env:
             TOXENV: scrapy
+        # pydantic doesn't yet support 3.14
         - python-version: "3.13"
           env:
-            TOXENV: attrs
+            TOXENV: extra
+        - python-version: "pypy3.11"
+          env:
+            TOXENV: py
+
+        # pydantic1 won't support 3.14
         - python-version: "3.13"
           env:
             TOXENV: pydantic1
         - python-version: "3.13"
           env:
-            TOXENV: pydantic
-        - python-version: "3.13"
-          env:
-            TOXENV: scrapy
-        - python-version: "3.13"
-          env:
-            TOXENV: extra
-        - python-version: "3.13"
-          env:
             TOXENV: extra-pydantic1
-        - python-version: "pypy3.10"
-          env:
-            TOXENV: py
-        - python-version: "pypy3.11"
-          env:
-            TOXENV: py
+
 
     steps:
     - uses: actions/checkout@v5
