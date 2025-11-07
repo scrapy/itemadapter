@@ -582,7 +582,7 @@ class CrossNestingTestCase(unittest.TestCase):
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_scrapy_attrs(self):
-        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)
+        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)  # pylint: disable=possibly-used-before-assignment
         expected = {
             "type": "object",
             "additionalProperties": False,

@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Operating System :: OS Independent",
@@ -72,6 +73,9 @@ regex = true
 
 [[tool.bumpversion.files]]
 filename = "itemadapter/__init__.py"
+
+[tool.coverage.run]
+branch = true
 
 [tool.pylint.MASTER]
 persistent = "no"
