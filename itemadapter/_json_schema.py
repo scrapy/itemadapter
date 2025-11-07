@@ -9,6 +9,7 @@ from collections.abc import Set as AbstractSet
 from copy import copy
 from enum import Enum
 from textwrap import dedent
+from types import MappingProxyType, UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,8 +25,6 @@ from ._imports import PydanticUndefined, PydanticV1Undefined, attr
 from .utils import _is_pydantic_model
 
 if TYPE_CHECKING:
-    from types import MappingProxyType
-
     from .adapter import AdapterInterface, ItemAdapter
 
 
@@ -139,7 +138,7 @@ def array_type(type_hint):
     unique_args = set(args)
     if len(unique_args) == 1:
         return next(iter(unique_args))
-    return Union[tuple(unique_args)]
+    return Union[tuple(unique_args)]  # noqa: UP007
 
 
 def update_prop_from_pattern(prop: dict[str, Any], pattern: str) -> None:
@@ -147,12 +146,7 @@ def update_prop_from_pattern(prop: dict[str, Any], pattern: str) -> None:
         prop.setdefault("pattern", pattern)
 
 
-try:
-    from types import UnionType
-except ImportError:  # Python < 3.10
-    UNION_TYPES: set[Any] = {Union}
-else:
-    UNION_TYPES = {Union, UnionType}
+UNION_TYPES = {Union, UnionType}
 
 
 def update_prop_from_origin(
@@ -204,7 +198,7 @@ def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSche
         if issubclass(prop_type, Enum):
             values = [item.value for item in prop_type]
             value_types = tuple({type(v) for v in values})
-            prop_type = value_types[0] if len(value_types) == 1 else Union[value_types]
+            prop_type = value_types[0] if len(value_types) == 1 else Union[value_types]  # noqa: UP007
             update_prop_from_type(prop, prop_type, state)
             prop.setdefault("enum", values)
             return
