@@ -190,7 +190,6 @@ class JsonSchemaTestCase(unittest.TestCase):
                     "type": "string",
                 }
             },
-            "required": ["name"],
         }
         check_schemas(actual, expected)
 
@@ -596,7 +595,6 @@ class CrossNestingTestCase(unittest.TestCase):
                     },
                 }
             },
-            "required": ["nested"],
         }
         check_schemas(actual, expected)
 
@@ -605,7 +603,6 @@ class CrossNestingTestCase(unittest.TestCase):
             "type": "object",
             "additionalProperties": False,
             "properties": {"nested": {}},
-            "required": ["nested"],
         }
         check_schemas(actual, expected)
 

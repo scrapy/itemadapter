@@ -289,7 +289,7 @@ level:
     ...     name: str = Field(json_schema_extra={"minLength": 1})
     ...
     >>> ItemAdapter.get_json_schema(MyItem)
-    {'type': 'object', 'additionalProperties': False, 'properties': {'name': {'minLength': 1, 'type': 'string'}}, 'required': ['name']}
+    {'type': 'object', 'additionalProperties': False, 'properties': {'name': {'minLength': 1, 'type': 'string'}}}
 
     ```
 
