@@ -354,6 +354,7 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         schema = super().get_json_schema(item_class, _state=_state)
         _setdefault_attribute_types_on_json_schema(schema, item_class, _state)
         _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
+        schema.pop("required", None)
         return schema
 
     def field_names(self) -> KeysView:
