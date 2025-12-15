@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.13.0 (unreleased)
+
+Added support for Python 3.14 and removed support for [PyPy](https://pypy.org/)
+3.10.
+
+`get_json_schema()` no longer reports all `scrapy.Item` fields as required.
+
 ### 0.12.2 (2025-09-02)
 
 The return value of `get_json_schema()` is now deterministic (deterministic
