@@ -253,16 +253,16 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
         # coverage data does not seem to include those.
         return
     assert isinstance(class_node, ast.ClassDef)
-    for node in ast.iter_child_nodes(class_node):
-        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
-            attr_name = node.targets[0].id
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            attr_name = node.target.id
+    for child in ast.iter_child_nodes(class_node):
+        if isinstance(child, ast.Assign) and isinstance(child.targets[0], ast.Name):
+            attr_name = child.targets[0].id
+        elif isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
+            attr_name = child.target.id
         else:
             continue
         if attr_name not in attr_names:
             continue
-        next_idx = class_node.body.index(node) + 1
+        next_idx = class_node.body.index(child) + 1
         if next_idx >= len(class_node.body):
             continue
         next_node = class_node.body[next_idx]
