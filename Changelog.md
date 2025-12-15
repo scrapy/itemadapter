@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.13.0 (unreleased)
+### 0.13.0 (2025-12-15)
 
 Added support for Python 3.14 and removed support for [PyPy](https://pypy.org/)
 3.10.
