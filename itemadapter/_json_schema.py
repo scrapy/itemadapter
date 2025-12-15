@@ -243,9 +243,12 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
     except (OSError, TypeError):
         return
     tree = ast.parse(dedent(source))
-    try:
-        class_node = tree.body[0]
-    except IndexError:  # pragma: no cover
+    class_node = None
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == item_class.__name__:
+            class_node = node
+            break
+    if class_node is None:  # pragma: no cover
         # This can be reproduced with the doctests of the README, but the
         # coverage data does not seem to include those.
         return
