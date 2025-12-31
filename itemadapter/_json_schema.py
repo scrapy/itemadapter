@@ -299,7 +299,7 @@ def _setdefault_attribute_docstrings_on_json_schema(
         if "description" not in prop:
             doc = get_inherited_attr_docstring(item_class, attr_name)
             if doc:
-                prop["description"] = doc
+                prop["description"] = inspect.cleandoc(doc)
 
 
 def base_json_schema_from_item_class(item_class: type) -> dict[str, Any]:
