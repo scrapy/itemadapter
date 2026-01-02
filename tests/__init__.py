@@ -5,13 +5,13 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from itemadapter import ItemAdapter
 from itemadapter._imports import pydantic, pydantic_v1
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Callable, Generator
 
 
 def make_mock_import(block_name: str) -> Callable:
@@ -88,7 +88,7 @@ class DataClassItemJsonSchema:
     name: str = field(metadata={"json_schema_extra": {"title": "Name"}})
     """Display name"""
     color: Color
-    answer: Union[str, float, int, None]
+    answer: str | float | int | None
     numbers: list[float]
     aliases: dict[str, str]
     nested: DataClassItemJsonSchemaNested
@@ -151,7 +151,7 @@ else:
         name: str = attr.ib(metadata={"json_schema_extra": {"title": "Name"}})
         """Display name"""
         color: Color = attr.ib()
-        answer: Union[str, float, int, None] = attr.ib()
+        answer: str | float | int | None = attr.ib()
         numbers: list[float] = attr.ib()
         aliases: dict[str, str] = attr.ib()
         nested: AttrsItemJsonSchemaNested = attr.ib()
@@ -173,17 +173,17 @@ if pydantic_v1 is None:
 else:
 
     class PydanticV1Model(pydantic_v1.BaseModel):
-        name: Optional[str] = pydantic_v1.Field(
+        name: str | None = pydantic_v1.Field(
             default_factory=lambda: None,
             serializer=str,
         )
-        value: Optional[int] = pydantic_v1.Field(
+        value: int | None = pydantic_v1.Field(
             default_factory=lambda: None,
             serializer=int,
         )
 
     class PydanticV1SpecialCasesModel(pydantic_v1.BaseModel):
-        special_cases: Optional[int] = pydantic_v1.Field(
+        special_cases: int | None = pydantic_v1.Field(
             default_factory=lambda: None,
             alias="special_cases",
             allow_mutation=False,
@@ -220,7 +220,7 @@ else:
         value: Any = None
         color: Color
         produced: bool
-        answer: Union[str, float, int, None]
+        answer: str | float | int | None
         numbers: list[float]
         aliases: dict[str, str]
         nested: PydanticV1ModelJsonSchemaNested
@@ -245,17 +245,17 @@ if pydantic is None:
 else:
 
     class PydanticModel(pydantic.BaseModel):
-        name: Optional[str] = pydantic.Field(
+        name: str | None = pydantic.Field(
             default_factory=lambda: None,
             json_schema_extra={"serializer": str},
         )
-        value: Optional[int] = pydantic.Field(
+        value: int | None = pydantic.Field(
             default_factory=lambda: None,
             json_schema_extra={"serializer": int},
         )
 
     class PydanticSpecialCasesModel(pydantic.BaseModel):
-        special_cases: Optional[int] = pydantic.Field(
+        special_cases: int | None = pydantic.Field(
             default_factory=lambda: None,
             alias="special_cases",
             frozen=True,
@@ -294,7 +294,7 @@ else:
         value: Any = None
         color: Color
         produced: bool = pydantic.Field(default_factory=lambda: True)
-        answer: Union[str, float, int, None]
+        answer: str | float | int | None
         numbers: list[float]
         aliases: dict[str, str]
         nested: PydanticModelJsonSchemaNested
@@ -367,7 +367,7 @@ else:
         )
         color: Color = Field()
         produced = Field()
-        answer: Union[str, float, int, None] = Field()
+        answer: str | float | int | None = Field()
         numbers: list[float] = Field()
         aliases: dict[str, str] = Field()
         nested: ScrapySubclassedItemJsonSchemaNested = Field()

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import unittest
 from types import MappingProxyType
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -86,7 +87,7 @@ class PydanticTestCase(unittest.TestCase):
         mapping_proxy_type = get_field_meta_from_class(PydanticModel, "name")
         assert mapping_proxy_type == MappingProxyType(
             {
-                "annotation": Optional[str],
+                "annotation": str | None,
                 "default_factory": mapping_proxy_type["default_factory"],
                 "json_schema_extra": {"serializer": str},
                 "repr": True,
@@ -95,7 +96,7 @@ class PydanticTestCase(unittest.TestCase):
         mapping_proxy_type = get_field_meta_from_class(PydanticModel, "value")
         assert get_field_meta_from_class(PydanticModel, "value") == MappingProxyType(
             {
-                "annotation": Optional[int],
+                "annotation": int | None,
                 "default_factory": mapping_proxy_type["default_factory"],
                 "json_schema_extra": {"serializer": int},
                 "repr": True,
@@ -104,7 +105,7 @@ class PydanticTestCase(unittest.TestCase):
         mapping_proxy_type = get_field_meta_from_class(PydanticSpecialCasesModel, "special_cases")
         assert mapping_proxy_type == MappingProxyType(
             {
-                "annotation": Optional[int],
+                "annotation": int | None,
                 "alias": "special_cases",
                 "alias_priority": 2,
                 "default_factory": mapping_proxy_type["default_factory"],

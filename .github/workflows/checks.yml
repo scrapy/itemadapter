@@ -14,16 +14,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - python-version: 3.13
+        - python-version: 3.14
           env:
             TOXENV: typing
-        - python-version: 3.13
+        - python-version: 3.14
           env:
             TOXENV: docs
-        - python-version: 3.13
+        - python-version: 3.14
           env:
             TOXENV: twinecheck
-        - python-version: 3.13
+        - python-version: 3.14
           env:
             TOXENV: pylint
 
