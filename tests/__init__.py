@@ -5,7 +5,7 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from itemadapter import ItemAdapter
 from itemadapter._imports import pydantic, pydantic_v1
@@ -173,17 +173,17 @@ if pydantic_v1 is None:
 else:
 
     class PydanticV1Model(pydantic_v1.BaseModel):
-        name: str | None = pydantic_v1.Field(
+        name: Optional[str] = pydantic_v1.Field(  # noqa: UP045
             default_factory=lambda: None,
             serializer=str,
         )
-        value: int | None = pydantic_v1.Field(
+        value: Optional[int] = pydantic_v1.Field(  # noqa: UP045
             default_factory=lambda: None,
             serializer=int,
         )
 
     class PydanticV1SpecialCasesModel(pydantic_v1.BaseModel):
-        special_cases: int | None = pydantic_v1.Field(
+        special_cases: Optional[int] = pydantic_v1.Field(  # noqa: UP045
             default_factory=lambda: None,
             alias="special_cases",
             allow_mutation=False,
@@ -220,7 +220,7 @@ else:
         value: Any = None
         color: Color
         produced: bool
-        answer: str | float | int | None
+        answer: Union[str, float, int, None]  # noqa: UP007
         numbers: list[float]
         aliases: dict[str, str]
         nested: PydanticV1ModelJsonSchemaNested
