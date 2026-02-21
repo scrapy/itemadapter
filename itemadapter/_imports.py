@@ -33,8 +33,11 @@ try:
 except ImportError:
     attr = None
 
-pydantic_v1: Any = None
 pydantic: Any = None
+PydanticUndefined: Any = None
+
+pydantic_v1: Any = None
+PydanticV1Undefined: Any = None
 
 try:
     import pydantic
@@ -45,22 +48,20 @@ else:
         import pydantic.v1 as pydantic_v1
     except ImportError:  # Pydantic <1.10.17
         pydantic_v1 = pydantic
-        pydantic = None
     else:  # Pydantic 1.10.17+
-        if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic <2
+        if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic >=1.10.17,<2
             pydantic_v1 = pydantic
-            pydantic = None
+        # else Pydantic >=2
 
 try:
     from pydantic.v1.fields import Undefined as PydanticV1Undefined
     from pydantic_core import PydanticUndefined
-except ImportError:  # < Pydantic 2.0
+except ImportError:  # Pydantic < 2.0
     try:
         from pydantic.fields import (  # type: ignore[attr-defined,no-redef]
             Undefined as PydanticUndefined,
         )
-        from pydantic.fields import (  # type: ignore[attr-defined,no-redef]
-            Undefined as PydanticV1Undefined,
-        )
+
+        PydanticV1Undefined = PydanticUndefined
     except ImportError:
-        PydanticUndefined = PydanticV1Undefined = None  # type: ignore[assignment]
+        pass
