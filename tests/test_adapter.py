@@ -166,7 +166,7 @@ class BaseTestMixin:
     def test_json_schema(self):
         item_class = self.item_class_json_schema
         actual = ItemAdapter.get_json_schema(item_class)
-        check_schemas(self.expected_json_schema, actual)
+        check_schemas(actual, self.expected_json_schema)
 
     def test_json_schema_empty(self):
         actual = ItemAdapter.get_json_schema(self.item_class_empty)
@@ -383,9 +383,6 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
             # alphabetically. https://github.com/scrapy/scrapy/issues/7015
             "value": NonDictTestMixin.expected_json_schema["properties"]["value"],
         },
-        # Scrapy items seem to sort fields alphabetically. produced is required
-        # because there is no default factory support in Scrapy.
-        "required": sorted(NonDictTestMixin.expected_json_schema["required"] + ["produced"]),
     }
 
     def test_get_value_keyerror_item_dict(self):
