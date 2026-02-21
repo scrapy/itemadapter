@@ -55,7 +55,7 @@ class PydanticTestCase(unittest.TestCase):
             assert not PydanticAdapter.is_item(ScrapyItem())
             assert not PydanticAdapter.is_item(ScrapySubclassedItem())
 
-    @unittest.skipIf(not PydanticModel, "pydantic <2 module is not available")
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @mock.patch("builtins.__import__", make_mock_import("pydantic"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
