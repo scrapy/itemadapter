@@ -407,7 +407,7 @@ class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
         **{
             k: v
             for k, v in NonDictTestMixin.expected_json_schema.items()
-            if k not in {"additionalProperties"}
+            if k != "additionalProperties"
         },
         "properties": {
             **{
@@ -471,7 +471,7 @@ class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
         **{
             k: v
             for k, v in NonDictTestMixin.expected_json_schema.items()
-            if k not in {"additionalProperties"}
+            if k != "additionalProperties"
         },
         "properties": {
             **{

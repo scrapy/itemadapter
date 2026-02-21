@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 def make_mock_import(block_name: str) -> Callable:
     def mock_import(name: str, *args, **kwargs):
         """Prevent importing a specific module, let everything else pass."""
-        if name.split(".")[0] == block_name:
+        if name.split(".", maxsplit=1)[0] == block_name:
             raise ImportError(name)
         return importlib.__import__(name, *args, **kwargs)
 
