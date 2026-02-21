@@ -18,6 +18,8 @@ from tests import (
 )
 from tests.test_json_schema import check_schemas
 
+pytestmark = pytest.mark.skipif(not PydanticV1Model, reason="pydantic <2 module is not available")
+
 
 class PydanticTestCase(unittest.TestCase):
     def test_false(self):
@@ -51,7 +53,6 @@ class PydanticTestCase(unittest.TestCase):
             assert not PydanticAdapter.is_item(ScrapyItem())
             assert not PydanticAdapter.is_item(ScrapySubclassedItem())
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
     @mock.patch("builtins.__import__", make_mock_import("pydantic"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
@@ -63,7 +64,6 @@ class PydanticTestCase(unittest.TestCase):
             ):
                 get_field_meta_from_class(PydanticV1Model, "name")
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     @mock.patch("itemadapter.utils.pydantic", None)
     @mock.patch("itemadapter.utils.pydantic_v1", None)
     def test_module_not_available(self):
@@ -73,7 +73,6 @@ class PydanticTestCase(unittest.TestCase):
         with pytest.raises(TypeError, match=r"tests.PydanticV1Model'\> is not a valid item class"):
             get_field_meta_from_class(PydanticV1Model, "name")
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_true(self):
         from itemadapter.adapter import PydanticAdapter
 
@@ -99,7 +98,6 @@ class PydanticTestCase(unittest.TestCase):
         with pytest.raises(KeyError, match="PydanticV1Model does not support field: non_existent"):
             get_field_meta_from_class(PydanticV1Model, "non_existent")
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_json_schema_forbid(self):
         from itemadapter._imports import pydantic_v1
 
@@ -120,7 +118,6 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_json_schema_field_deprecated_bool(self):
         from itemadapter._imports import pydantic_v1
 
@@ -137,7 +134,6 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_json_schema_field_deprecated_str(self):
         from itemadapter._imports import pydantic_v1
 
@@ -154,7 +150,6 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_json_schema_field_default_factory(self):
         from itemadapter._imports import pydantic_v1
 
@@ -170,7 +165,6 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
     def test_json_schema_validators(self):
         from itemadapter._imports import pydantic_v1
 
