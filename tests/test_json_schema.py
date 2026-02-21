@@ -553,7 +553,7 @@ class CrossNestingTestCase(unittest.TestCase):
 
     maxDiff = None
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
     def test_dataclass_pydantic1(self):
         @dataclass
         class TestItem:
@@ -636,7 +636,7 @@ class CrossNestingTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     def test_pydantic1_scrapy(self):
         from . import pydantic_v1

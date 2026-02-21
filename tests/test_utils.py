@@ -65,7 +65,7 @@ class ItemLikeTestCase(unittest.TestCase):
         assert is_item(AttrsItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(AttrsItem)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic module is not available")
+    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
     def test_true_pydantic(self):
         assert is_item(PydanticV1Model(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(PydanticV1Model)
