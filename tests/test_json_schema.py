@@ -7,7 +7,7 @@ import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Union
 
 import pytest
 
@@ -329,7 +329,7 @@ class JsonSchemaTestCase(unittest.TestCase):
     def test_union_single(self):
         @dataclass
         class TestItem:
-            foo: str
+            foo: Union[str]  # noqa: UP007
 
         actual = ItemAdapter.get_json_schema(TestItem)
         expected = {
