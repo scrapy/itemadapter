@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 # attempt the following imports only once,
@@ -39,31 +40,39 @@ PydanticUndefined: Any = None
 pydantic_v1: Any = None
 PydanticV1Undefined: Any = None
 
-try:
-    import pydantic
-except ImportError:  # No pydantic
-    pass
-else:
+# pydantic v1 doesn't support Python 3.14+, on older Python versions we try to find both
+if sys.version_info < (3, 14):
     try:
-        import pydantic.v1 as pydantic_v1
-    except ImportError:  # Pydantic <1.10.17
-        pydantic_v1 = pydantic
-        pydantic = None
-    else:  # Pydantic 1.10.17+
-        if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic >=1.10.17,<2
+        import pydantic
+    except ImportError:  # No pydantic
+        pass
+    else:
+        try:
+            import pydantic.v1 as pydantic_v1
+        except ImportError:  # Pydantic <1.10.17
             pydantic_v1 = pydantic
             pydantic = None
-        # else Pydantic >=2
+        else:  # Pydantic 1.10.17+
+            if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic >=1.10.17,<2
+                pydantic_v1 = pydantic
+                pydantic = None
+            # else Pydantic >=2
 
-try:
-    from pydantic.v1.fields import Undefined as PydanticV1Undefined
-    from pydantic_core import PydanticUndefined
-except ImportError:  # Pydantic < 2.0
     try:
-        from pydantic.fields import (  # type: ignore[attr-defined,no-redef]
-            Undefined as PydanticUndefined,
-        )
+        from pydantic.v1.fields import Undefined as PydanticV1Undefined
+        from pydantic_core import PydanticUndefined
+    except ImportError:  # Pydantic < 2.0
+        try:
+            from pydantic.fields import (  # type: ignore[attr-defined,no-redef]
+                Undefined as PydanticUndefined,
+            )
 
-        PydanticV1Undefined = PydanticUndefined
-    except ImportError:
+            PydanticV1Undefined = PydanticUndefined
+        except ImportError:
+            pass
+else:
+    try:
+        import pydantic
+        from pydantic_core import PydanticUndefined
+    except ImportError:  # No pydantic
         pass
