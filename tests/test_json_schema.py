@@ -744,6 +744,7 @@ class CrossNestingTestCase(unittest.TestCase):
         check_schemas(actual, expected)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
     @pytest.mark.filterwarnings("ignore:Mixing V1 models and V2 models")
     def test_pydantics(self):
         class TestItem(pydantic.BaseModel):
