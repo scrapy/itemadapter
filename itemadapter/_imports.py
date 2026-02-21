@@ -48,9 +48,11 @@ else:
         import pydantic.v1 as pydantic_v1
     except ImportError:  # Pydantic <1.10.17
         pydantic_v1 = pydantic
+        pydantic = None
     else:  # Pydantic 1.10.17+
         if not hasattr(pydantic.BaseModel, "model_fields"):  # Pydantic >=1.10.17,<2
             pydantic_v1 = pydantic
+            pydantic = None
         # else Pydantic >=2
 
 try:
