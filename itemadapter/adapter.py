@@ -366,7 +366,7 @@ class ItemAdapter(MutableMapping):
     to extract and set data without having to take the object's type into account.
     """
 
-    ADAPTER_CLASSES: Iterable[type[AdapterInterface]] = deque(
+    ADAPTER_CLASSES: deque[type[AdapterInterface]] = deque(
         [
             ScrapyItemAdapter,
             DictAdapter,
