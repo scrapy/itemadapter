@@ -502,7 +502,7 @@ pip install zyte-common-items
 >>> from itemadapter.adapter import ItemAdapter
 >>> from zyte_common_items import Item, ZyteItemAdapter
 >>>
->>> ItemAdapter.ADAPTER_CLASSES.appendleft(ZyteItemAdapter)
+>>> ItemAdapter.ADAPTER_CLASSES = (ZyteItemAdapter, *ItemAdapter.ADAPTER_CLASSES)
 >>> item = Item()
 >>> adapter = ItemAdapter(item)
 >>> adapter

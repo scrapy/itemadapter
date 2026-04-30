@@ -81,10 +81,11 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
     adapter_class = BaseFakeItemAdapter
 
     def setUp(self):
-        ItemAdapter.ADAPTER_CLASSES.appendleft(self.adapter_class)
+        self._adapter_classes = ItemAdapter.ADAPTER_CLASSES
+        ItemAdapter.ADAPTER_CLASSES = (self.adapter_class, *self._adapter_classes)
 
     def tearDown(self):
-        ItemAdapter.ADAPTER_CLASSES.popleft()
+        ItemAdapter.ADAPTER_CLASSES = self._adapter_classes
 
     def test_repr(self):
         item = self.item_class()
