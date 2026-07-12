@@ -5,6 +5,7 @@ from collections.abc import KeysView
 from types import MappingProxyType
 
 import pytest
+from packaging.version import Version
 
 from itemadapter.adapter import ItemAdapter, PydanticAdapter
 from tests import (
@@ -37,6 +38,13 @@ from tests import (
     ScrapySubclassedItemSubclassed,
 )
 from tests.test_json_schema import check_schemas
+
+try:
+    import scrapy
+
+    SCRAPY_VERSION = Version(scrapy.__version__)
+except ImportError:
+    SCRAPY_VERSION = None
 
 
 class ItemAdapterReprTestCase(unittest.TestCase):
@@ -338,6 +346,35 @@ _SCRAPY_NESTED_JSON_SCHEMA = {
     },
 }
 
+_SCRAPY_JSON_SCHEMA_PROPERTIES = {
+    **NonDictTestMixin.expected_json_schema["properties"],
+    # Title is set through json_schema_extra, so it comes first.
+    "name": {"title": "Name", "type": "string", "description": "Display name"},
+    "nested": _SCRAPY_NESTED_JSON_SCHEMA,
+    "nested_list": {
+        "type": "array",
+        "items": _SCRAPY_NESTED_JSON_SCHEMA,
+    },
+    "nested_dict": {
+        "type": "object",
+        "additionalProperties": _SCRAPY_NESTED_JSON_SCHEMA,
+    },
+    "nested_dict_list": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "additionalProperties": _SCRAPY_NESTED_JSON_SCHEMA,
+        },
+    },
+    # No type, since none was specified in json_schema_extra.
+    "produced": {},
+}
+
+if SCRAPY_VERSION is not None and SCRAPY_VERSION < Version("2.17"):
+    # Scrapy < 2.17 sorts item fields alphabetically.
+    # https://github.com/scrapy/scrapy/issues/7015
+    _SCRAPY_JSON_SCHEMA_PROPERTIES = dict(sorted(_SCRAPY_JSON_SCHEMA_PROPERTIES.items()))
+
 
 class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class = ScrapySubclassedItem
@@ -349,40 +386,7 @@ class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
         "llmHint": "Hi model!",
         "type": "object",
         "additionalProperties": False,
-        "properties": {
-            **{
-                k: NonDictTestMixin.expected_json_schema["properties"][k]
-                for k in sorted(NonDictTestMixin.expected_json_schema["properties"])
-            },
-            # Different order since stuff defined in json_schema_extra comes
-            # first.
-            "name": {
-                "title": "Name",
-                "type": "string",
-                "description": "Display name",
-            },
-            "nested": _SCRAPY_NESTED_JSON_SCHEMA,
-            "nested_list": {
-                "type": "array",
-                "items": _SCRAPY_NESTED_JSON_SCHEMA,
-            },
-            "nested_dict": {
-                "type": "object",
-                "additionalProperties": _SCRAPY_NESTED_JSON_SCHEMA,
-            },
-            "nested_dict_list": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": _SCRAPY_NESTED_JSON_SCHEMA,
-                },
-            },
-            # No type, since none was specified in json_schema_extra.
-            "produced": {},
-            # value comes last due to Scrapy items sorting fields
-            # alphabetically. https://github.com/scrapy/scrapy/issues/7015
-            "value": NonDictTestMixin.expected_json_schema["properties"]["value"],
-        },
+        "properties": _SCRAPY_JSON_SCHEMA_PROPERTIES,
     }
 
     def test_get_value_keyerror_item_dict(self):
