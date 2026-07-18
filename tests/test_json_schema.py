@@ -42,6 +42,16 @@ class Brand:
 
 
 @dataclass
+class UnionAlphaItem:
+    v: int = 1
+
+
+@dataclass
+class UnionBetaItem:
+    w: str = "x"
+
+
+@dataclass
 class OptionalItemListNestedItem:
     is_nested: bool = True
 
@@ -489,6 +499,41 @@ class JsonSchemaTestCase(unittest.TestCase):
                 "in_stock": {"type": "boolean", "default": True},
             },
             "required": ["name", "brand"],
+        }
+        check_schemas(actual, expected)
+
+    def test_union_of_item_classes(self):
+        """Union of two item classes must build anyOf without sorting types with <."""
+
+        @dataclass
+        class Holder:
+            x: UnionAlphaItem | UnionBetaItem
+
+        actual = ItemAdapter.get_json_schema(Holder)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "x": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "v": {"type": "integer", "default": 1},
+                            },
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "w": {"type": "string", "default": "x"},
+                            },
+                        },
+                    ]
+                },
+            },
+            "required": ["x"],
         }
         check_schemas(actual, expected)
 
