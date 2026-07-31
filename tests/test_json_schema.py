@@ -12,7 +12,14 @@ from typing import Any, Union
 import pytest
 
 from itemadapter._imports import pydantic
-from itemadapter.adapter import AttrsAdapter, ItemAdapter, PydanticAdapter, ScrapyItemAdapter
+from itemadapter.adapter import (
+    AttrsAdapter,
+    DataclassAdapter,
+    DictAdapter,
+    ItemAdapter,
+    PydanticAdapter,
+    ScrapyItemAdapter,
+)
 from tests import (
     AttrsItem,
     AttrsItemJsonSchemaNested,
@@ -302,6 +309,36 @@ class JsonSchemaTestCase(unittest.TestCase):
             "required": ["a", "b"],
         }
         check_schemas(actual, expected)
+
+    def test_adapter_class_entry_point(self):
+        """An adapter class can be the entry point, instead of ItemAdapter."""
+
+        @dataclass
+        class TestItem:
+            a: SimpleItem
+            b: SimpleItem
+
+        actual = DataclassAdapter.get_json_schema(TestItem)
+        expected = {
+            "$defs": {
+                "SimpleItem": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"foo": {"type": "string"}},
+                    "required": ["foo"],
+                },
+            },
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "a": {"$ref": "#/$defs/SimpleItem"},
+                "b": {"$ref": "#/$defs/SimpleItem"},
+            },
+            "required": ["a", "b"],
+        }
+        check_schemas(actual, expected)
+
+        check_schemas(DictAdapter.get_json_schema(dict), {"type": "object"})
 
     def test_same_name_item_classes(self):
         """Different item classes that share a name get different definition
