@@ -64,8 +64,35 @@ class RecursionNestedItem:
 
 
 @dataclass
+class Node:
+    parent: Node | None
+    children: list[Node] | None
+
+
+@dataclass
 class SimpleItem:
     foo: str
+
+
+@dataclass
+class SameNameItem:
+    foo: str
+
+
+SameNameItem1 = SameNameItem
+
+
+@dataclass
+class SameNameItem:  # type: ignore[no-redef]  # pylint: disable=function-redefined
+    bar: str
+
+
+@dataclass
+class SameNameParentItem:
+    a: SameNameItem1
+    b: SameNameItem1
+    c: SameNameItem
+    d: SameNameItem
 
 
 class CustomMapping:  # noqa: PLW1641
@@ -196,27 +223,114 @@ class JsonSchemaTestCase(unittest.TestCase):
     def test_recursion(self):
         actual = ItemAdapter.get_json_schema(RecursionItem)
         expected = {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "child": {
+            "$defs": {
+                "RecursionItem": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "child": {"$ref": "#/$defs/RecursionNestedItem"},
+                        "sibling": {"$ref": "#/$defs/RecursionItem"},
+                    },
+                    "required": ["child", "sibling"],
+                },
+                "RecursionNestedItem": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {
+                        "parent": {"$ref": "#/$defs/RecursionItem"},
+                        "sibling": {"$ref": "#/$defs/RecursionNestedItem"},
+                    },
+                    "required": ["parent", "sibling"],
+                },
+            },
+            "$ref": "#/$defs/RecursionItem",
+        }
+        check_schemas(actual, expected)
+
+    def test_self_recursion(self):
+        """A class that is only referenced from itself, as in the example of
+        https://github.com/scrapy/itemadapter/issues/103"""
+        actual = ItemAdapter.get_json_schema(Node)
+        expected = {
+            "$defs": {
+                "Node": {
                     "type": "object",
                     "additionalProperties": False,
                     "properties": {
                         "parent": {
-                            "type": "object",
+                            "anyOf": [{"type": "null"}, {"$ref": "#/$defs/Node"}],
                         },
-                        "sibling": {
-                            "type": "object",
+                        "children": {
+                            "anyOf": [
+                                {"type": "null"},
+                                {"type": "array", "items": {"$ref": "#/$defs/Node"}},
+                            ],
                         },
                     },
-                    "required": ["parent", "sibling"],
-                },
-                "sibling": {
-                    "type": "object",
+                    "required": ["parent", "children"],
                 },
             },
-            "required": ["child", "sibling"],
+            "$ref": "#/$defs/Node",
+        }
+        check_schemas(actual, expected)
+
+    def test_reused_item_class(self):
+        """An item class used more than once is defined once in $defs and
+        referenced from every use."""
+
+        @dataclass
+        class TestItem:
+            a: SimpleItem
+            b: SimpleItem
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "$defs": {
+                "SimpleItem": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"foo": {"type": "string"}},
+                    "required": ["foo"],
+                },
+            },
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "a": {"$ref": "#/$defs/SimpleItem"},
+                "b": {"$ref": "#/$defs/SimpleItem"},
+            },
+            "required": ["a", "b"],
+        }
+        check_schemas(actual, expected)
+
+    def test_same_name_item_classes(self):
+        """Different item classes that share a name get different definition
+        names."""
+        actual = ItemAdapter.get_json_schema(SameNameParentItem)
+        expected = {
+            "$defs": {
+                "SameNameItem": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"foo": {"type": "string"}},
+                    "required": ["foo"],
+                },
+                "SameNameItem_2": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"bar": {"type": "string"}},
+                    "required": ["bar"],
+                },
+            },
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "a": {"$ref": "#/$defs/SameNameItem"},
+                "b": {"$ref": "#/$defs/SameNameItem"},
+                "c": {"$ref": "#/$defs/SameNameItem_2"},
+                "d": {"$ref": "#/$defs/SameNameItem_2"},
+            },
+            "required": ["a", "b", "c", "d"],
         }
         check_schemas(actual, expected)
 

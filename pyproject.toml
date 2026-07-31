@@ -106,7 +106,7 @@ disable = [
     "unused-argument",
 ]
 per-file-ignores = [
-    "/tests/:disallowed-name,too-many-instance-attributes",
+    "/tests/:disallowed-name,too-many-instance-attributes,too-many-public-methods",
     "/itemadapter/_imports.py:unused-import,ungrouped-imports",
 ]
 

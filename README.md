@@ -276,6 +276,38 @@ class Product:
 }
 ```
 
+Item classes used more than once, including recursively, are defined once in
+`$defs` and used through `$ref`. For example, given:
+
+```python
+from dataclasses import dataclass
+
+
+@dataclass
+class Node:
+    parent: Node | None
+```
+
+`ItemAdapter.get_json_schema(Node)` returns:
+
+```python
+{
+    "$defs": {
+        "Node": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "parent": {
+                    "anyOf": [{"type": "null"}, {"$ref": "#/$defs/Node"}],
+                },
+            },
+            "required": ["parent"],
+        },
+    },
+    "$ref": "#/$defs/Node",
+}
+```
+
 You can also extend or override JSON Schema data at the item class or field
 level:
 
@@ -327,11 +359,6 @@ itemadapter:
 
 -   String pattern contraints are silently ignored if they are not compatible
     with JSON Schema. No effort is made to make them compatible.
-
--   Recursion is silently ignored: if you have an item class that has an
-    attribute with that same item class as a type or as part of its type, a
-    simple `{"type": "object"}` is used to map the nested instances of that
-    item class.
 
 #### `get_field_meta(field_name: str) -> MappingProxyType`
 
