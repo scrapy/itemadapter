@@ -905,11 +905,11 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_attrs_unhandled_validator(self):
         """Validators that map to no JSON Schema keyword are ignored."""
-        import attrs
+        import attr
 
-        @attrs.define
+        @attr.define
         class TestAttrsItem:
-            foo: str = attrs.field(validator=attrs.validators.instance_of(str))
+            foo: str = attr.field(validator=attr.validators.instance_of(str))
 
         actual = ItemAdapter.get_json_schema(TestAttrsItem)
         expected = {
