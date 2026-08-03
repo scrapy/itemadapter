@@ -4,6 +4,7 @@ import ast
 import dataclasses
 import inspect
 import operator
+import re
 from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -119,6 +120,12 @@ INVALID_PATTERN_SUBSTRINGS = [
 ]
 
 
+# Flags that change the meaning of a pattern in a way that cannot be
+# expressed in JSON Schema, where patterns are always flagless. re.ASCII is
+# not one of them: it brings Python semantics closer to JSON Schema ones.
+INVALID_PATTERN_FLAGS = re.IGNORECASE | re.MULTILINE | re.DOTALL | re.VERBOSE
+
+
 def is_valid_pattern(pattern: str) -> bool:
     # https://ecma-international.org/publications-and-standards/standards/ecma-262/
     #
@@ -126,6 +133,16 @@ def is_valid_pattern(pattern: str) -> bool:
     # a difference in behavior: in Python, they work with Unicode; in JSON
     # Schema, they only work with ASCII.
     return not any(sub in pattern for sub in INVALID_PATTERN_SUBSTRINGS)
+
+
+def json_schema_pattern(pattern: str | re.Pattern[str]) -> str | None:
+    """Return *pattern* as a JSON Schema pattern, or ``None`` if it cannot be
+    expressed as one."""
+    if isinstance(pattern, re.Pattern):
+        if pattern.flags & INVALID_PATTERN_FLAGS:
+            return None
+        pattern = pattern.pattern
+    return pattern if is_valid_pattern(pattern) else None
 
 
 def array_type(type_hint):
@@ -143,9 +160,19 @@ def array_type(type_hint):
     return Union[tuple(unique_args)]  # noqa: UP007
 
 
-def update_prop_from_pattern(prop: dict[str, Any], pattern: str) -> None:
-    if is_valid_pattern(pattern):
-        prop.setdefault("pattern", pattern)
+# JSON Schema patterns are unanchored, i.e. they behave like re.search(), so
+# patterns meant for re.match() or re.fullmatch() need explicit anchors.
+MATCH_FUNC_ANCHORS = {
+    "search": ("", ""),
+    "match": ("^(?:", ")"),
+    "fullmatch": ("^(?:", ")$"),
+}
+
+
+def update_prop_from_pattern(prop: dict[str, Any], pattern: str | re.Pattern[str]) -> None:
+    json_schema_value = json_schema_pattern(pattern)
+    if json_schema_value is not None:
+        prop.setdefault("pattern", json_schema_value)
 
 
 UNION_TYPES = {Union, UnionType}
@@ -505,7 +532,10 @@ def _update_attrs_prop_validation(
             prop.setdefault(key, validator.max_length)
         elif validator_type_name == "_MatchesReValidator":
             pattern_obj = getattr(validator, "pattern", None) or validator.regex
-            update_prop_from_pattern(prop, pattern_obj.pattern)
+            pattern = json_schema_pattern(pattern_obj)
+            if pattern is not None:
+                prefix, suffix = MATCH_FUNC_ANCHORS[validator.match_func.__name__]
+                prop.setdefault("pattern", f"{prefix}{pattern}{suffix}")
 
 
 def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:

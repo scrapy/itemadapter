@@ -1,5 +1,6 @@
 import importlib
 import importlib.metadata
+import re
 import unittest
 from types import MappingProxyType
 from unittest import mock
@@ -137,6 +138,24 @@ class AttrsTestCase(unittest.TestCase):
                     validators.matches_re(r"(?i)\bY\d{4}\b"),
                 ],
             )
+            # Unsupported flags
+            month: str = attr.ib(
+                validator=[
+                    validators.matches_re(r"\bM\d{2}\b", flags=re.IGNORECASE),
+                ],
+            )
+            # Unanchored pattern
+            day: str = attr.ib(
+                validator=[
+                    validators.matches_re(r"\bD\d{2}\b", func=re.search),
+                ],
+            )
+            # Prefix-anchored pattern
+            hour: str = attr.ib(
+                validator=[
+                    validators.matches_re(r"H\d{2}", func=re.match),
+                ],
+            )
             # Len limits on sequences/sets.
             tags: set[str] = attr.ib(
                 validator=validators.max_len(50) if Version("21.3.0") <= ATTRS_VERSION else [],
@@ -151,7 +170,7 @@ class AttrsTestCase(unittest.TestCase):
                     "type": "string",
                     **({"minLength": 3} if Version("22.1.0") <= ATTRS_VERSION else {}),
                     **({"maxLength": 10} if Version("21.3.0") <= ATTRS_VERSION else {}),
-                    "pattern": "^[A-Za-z]+$",
+                    "pattern": "^(?:^[A-Za-z]+$)$",
                 },
                 "age": {
                     "type": "integer",
@@ -170,6 +189,17 @@ class AttrsTestCase(unittest.TestCase):
                 "year": {
                     "type": "string",
                 },
+                "month": {
+                    "type": "string",
+                },
+                "day": {
+                    "type": "string",
+                    "pattern": r"\bD\d{2}\b",
+                },
+                "hour": {
+                    "type": "string",
+                    "pattern": r"^(?:H\d{2})",
+                },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
@@ -179,6 +209,6 @@ class AttrsTestCase(unittest.TestCase):
                     **({"maxItems": 50} if Version("21.3.0") <= ATTRS_VERSION else {}),
                 },
             },
-            "required": ["name", "age", "color", "year", "tags"],
+            "required": ["name", "age", "color", "year", "month", "day", "hour", "tags"],
         }
         check_schemas(actual, expected)

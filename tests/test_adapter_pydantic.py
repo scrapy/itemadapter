@@ -192,6 +192,8 @@ class PydanticTestCase(unittest.TestCase):
                 gt=17,
                 lt=100,
             )
+            # Unsupported pattern [(?i)]
+            year: str = pydantic.Field(pattern=r"(?i)\bY\d{4}\b")
             # Sequence with max_items
             tags: set[str] = pydantic.Field(max_length=50)
 
@@ -212,6 +214,9 @@ class PydanticTestCase(unittest.TestCase):
                     "exclusiveMaximum": 100,
                     "maximum": 99,
                 },
+                "year": {
+                    "type": "string",
+                },
                 "tags": {
                     "type": "array",
                     "uniqueItems": True,
@@ -221,6 +226,6 @@ class PydanticTestCase(unittest.TestCase):
                     "maxItems": 50,
                 },
             },
-            "required": ["name", "age", "tags"],
+            "required": ["name", "age", "year", "tags"],
         }
         check_schemas(actual, expected)
