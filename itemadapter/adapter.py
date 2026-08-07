@@ -4,6 +4,7 @@ import dataclasses
 from abc import ABCMeta, abstractmethod
 from collections import deque
 from collections.abc import Iterable, Iterator, KeysView, MutableMapping
+from copy import copy, deepcopy
 from types import MappingProxyType
 from typing import Any
 
@@ -81,6 +82,13 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     def field_names(self) -> KeysView:
         """Return a dynamic view of the item's field names."""
         return self.keys()  # type: ignore[return-value]
+
+    def clone(self, *, deep: bool = True) -> Any:
+        """Return a copy of the item. If ``deep`` is True (the default), a deep
+        copy is returned; otherwise, a shallow copy is returned."""
+        if deep:
+            return deepcopy(self.item)
+        return copy(self.item)
 
 
 class _MixinAttrsDataclassAdapter:
@@ -289,6 +297,12 @@ class PydanticAdapter(AdapterInterface):
     def __len__(self) -> int:
         return len(list(iter(self)))
 
+    def clone(self, *, deep: bool = True) -> Any:
+        try:
+            return self.item.model_copy(deep=deep)
+        except AttributeError:
+            return self.item.copy(deep=deep)
+
 
 class _MixinDictScrapyItemAdapter:
     _fields_dict: dict
@@ -359,6 +373,13 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
 
     def field_names(self) -> KeysView:
         return KeysView(self.item.fields)
+
+    def clone(self, *, deep: bool = True) -> Any:
+        if deep:
+            return deepcopy(self.item)
+        # copy.copy() would share the internal value storage between the
+        # original item and the copy.
+        return self.item.__class__(self.item)
 
 
 class ItemAdapter(MutableMapping):
@@ -467,3 +488,9 @@ class ItemAdapter(MutableMapping):
         if cls.is_item(obj):
             return cls(obj).asdict()
         return obj
+
+    def clone(self, *, deep: bool = True) -> ItemAdapter:
+        """Return a new ItemAdapter object wrapping a copy of the underlying item.
+        If ``deep`` is True (the default), a deep copy of the item is made;
+        otherwise, a shallow copy is made."""
+        return self.__class__(self.adapter.clone(deep=deep))

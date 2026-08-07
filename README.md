@@ -348,6 +348,12 @@ with the names of all the defined fields for the item.
 Return a `dict` object with the contents of the adapter. This works slightly different than
 calling `dict(adapter)`, because it's applied recursively to nested items (if there are any).
 
+#### `clone(deep: bool = True) -> ItemAdapter`
+
+Return a new `ItemAdapter` object, wrapping a copy of the underlying item. If
+`deep` is `True` (the default), a deep copy of the item is made (i.e., nested
+values are copied as well); otherwise, a shallow copy is made.
+
 
 ### function `itemadapter.utils.is_item(obj: Any) -> bool`
 
@@ -487,6 +493,17 @@ so all methods from the `MutableMapping` interface must be implemented as well.
 
     You might want to override this method if you want a way to get all fields for an item, whether or not
     they are populated. For instance, Scrapy uses this method to define column names when exporting items to CSV.
+
+* _method `clone(self, deep: bool = True) -> Any`_:
+
+    Return a copy of the item. If `deep` is `True` (the default), return a
+    deep copy; otherwise, return a shallow copy. The default implementation
+    applies [`copy.deepcopy()`](https://docs.python.org/3/library/copy.html#copy.deepcopy)
+    or [`copy.copy()`](https://docs.python.org/3/library/copy.html#copy.copy),
+    depending on the value of `deep`. You might want to override this method
+    if your item type needs custom copy logic, e.g., if the default
+    shallow copy of your item would share mutable internal state between the
+    original and the copy.
 
 ### Registering an adapter
 
