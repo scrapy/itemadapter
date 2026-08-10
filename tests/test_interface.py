@@ -184,6 +184,24 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         assert isinstance(adapter.field_names(), KeysView)
         assert sorted(adapter.field_names()) == ["name", "value"]
 
+    def test_clone(self):
+        item = self.item_class(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        clone = adapter.clone()
+        assert isinstance(clone, ItemAdapter)
+        assert clone.item is not item
+        assert dict(clone) == {"name": "asdf", "value": 1234}
+        clone["name"] = "foo"
+        assert clone["name"] == "foo"
+        assert adapter["name"] == "asdf"
+
+    def test_clone_shallow(self):
+        item = self.item_class(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        clone = adapter.clone(deep=False)
+        assert clone.item is not item
+        assert dict(clone) == {"name": "asdf", "value": 1234}
+
 
 class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
     item_class = FakeItemClass

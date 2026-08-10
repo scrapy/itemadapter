@@ -165,6 +165,55 @@ class BaseTestMixin:
             "int_": 123,
         }
 
+    def test_clone(self):
+        item = self.item_class(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        clone = adapter.clone()
+        assert isinstance(clone, ItemAdapter)
+        assert clone is not adapter
+        assert clone.item is not item
+        assert dict(clone) == {"name": "asdf", "value": 1234}
+        clone["name"] = "foo"
+        assert clone["name"] == "foo"
+        assert adapter["name"] == "asdf"
+
+    def test_clone_nested(self):
+        item = self.item_class_nested(
+            nested=self.item_class(name="asdf", value=1234),
+            adapter=ItemAdapter({"foo": "bar", "nested_list": [1, 2, 3, 4, 5]}),
+            dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
+            list_=[1, 2, 3],
+            set_={1, 2, 3},
+            tuple_=(1, 2, 3),
+            int_=123,
+        )
+        adapter = ItemAdapter(item)
+        clone = adapter.clone()
+        assert clone.item is not item
+        assert clone.asdict() == adapter.asdict()
+        assert clone["dict_"] is not adapter["dict_"]
+        assert clone["nested"] is not adapter["nested"]
+        clone_nested = ItemAdapter(clone["nested"])
+        clone_nested["name"] = "changed"
+        assert ItemAdapter(adapter["nested"])["name"] == "asdf"
+
+    def test_clone_shallow(self):
+        item = self.item_class_nested(
+            nested=self.item_class(name="asdf", value=1234),
+            adapter=ItemAdapter({"foo": "bar", "nested_list": [1, 2, 3, 4, 5]}),
+            dict_={"foo": "bar", "answer": 42, "nested_dict": {"a": "b"}},
+            list_=[1, 2, 3],
+            set_={1, 2, 3},
+            tuple_=(1, 2, 3),
+            int_=123,
+        )
+        adapter = ItemAdapter(item)
+        clone = adapter.clone(deep=False)
+        assert clone.item is not item
+        assert clone.asdict() == adapter.asdict()
+        assert clone["dict_"] is adapter["dict_"]
+        assert clone["nested"] is adapter["nested"]
+
     def test_field_names(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
