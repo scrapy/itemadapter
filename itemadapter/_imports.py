@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import typing
 from typing import Any
 
 # attempt the following imports only once,
@@ -27,6 +28,20 @@ else:
         _scrapy_item_classes = (scrapy.item.Item,)
     else:
         _scrapy_item_classes = (scrapy.item.Item, _base_item_cls)
+
+typing_extensions: Any
+try:
+    import typing_extensions
+except ImportError:
+    typing_extensions = None
+
+# typing.is_typeddict() does not recognize typing_extensions.TypedDict
+# subclasses, which are the only way to use Required and NotRequired on Python
+# 3.10.
+if typing_extensions is None:
+    _is_typeddict = typing.is_typeddict
+else:
+    _is_typeddict = typing_extensions.is_typeddict
 
 attr: Any
 try:

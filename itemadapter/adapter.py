@@ -5,14 +5,15 @@ from abc import ABCMeta, abstractmethod
 from collections import deque
 from collections.abc import Iterable, Iterator, KeysView, MutableMapping
 from types import MappingProxyType
-from typing import Any
+from typing import Any, get_type_hints
 
-from itemadapter._imports import _scrapy_item_classes, attr
+from itemadapter._imports import _is_typeddict, _scrapy_item_classes, attr
 from itemadapter._json_schema import (
     _json_schema_from_attrs,
     _json_schema_from_dataclass,
     _json_schema_from_item_class,
     _json_schema_from_pydantic,
+    _json_schema_from_typed_dict,
     _JsonSchemaState,
     _setdefault_attribute_docstrings_on_json_schema,
     _setdefault_attribute_types_on_json_schema,
@@ -20,6 +21,7 @@ from itemadapter._json_schema import (
 from itemadapter.utils import (
     _get_pydantic_model_metadata,
     _get_pydantic_v1_model_metadata,
+    _get_typed_dict_field_metadata,
     _is_attrs_class,
     _is_pydantic_model,
     _is_pydantic_v1_model,
@@ -311,6 +313,13 @@ class _MixinDictScrapyItemAdapter:
 
 
 class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
+    """Adapter for :class:`dict` items.
+
+    :class:`~typing.TypedDict` subclasses are also supported as item classes.
+    Their instances are plain dictionaries at run time, so they are handled
+    like any other dictionary.
+    """
+
     @classmethod
     def is_item(cls, item: Any) -> bool:
         return isinstance(item, dict)
@@ -320,9 +329,24 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         return issubclass(item_class, dict)
 
     @classmethod
+    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+        if _is_typeddict(item_class):
+            return _get_typed_dict_field_metadata(item_class, field_name)
+        return MappingProxyType({})
+
+    @classmethod
+    def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
+        if _is_typeddict(item_class):
+            return list(get_type_hints(item_class))
+        return None
+
+    @classmethod
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
+        if _is_typeddict(item_class):
+            _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+            return _json_schema_from_typed_dict(item_class, _state)
         return {"type": "object"}
 
     def field_names(self) -> KeysView:

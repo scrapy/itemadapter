@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-import sys
 import typing
 import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Union
+from unittest import mock
 
 import pytest
 
@@ -24,9 +24,6 @@ from tests import (
     ScrapySubclassedItem,
     ScrapySubclassedItemJsonSchemaNested,
 )
-
-PYTHON_VERSION = sys.version_info[:2]
-
 
 if ScrapySubclassedItem and AttrsItem:
     from scrapy import Field as ScrapyField
@@ -49,6 +46,36 @@ class OptionalItemListNestedItem:
 @dataclass
 class OptionalItemListItem:
     foo: list[OptionalItemListNestedItem] | None = None
+
+
+T = typing.TypeVar("T")
+
+
+@dataclass
+class UnhandledTypeItem:
+    """Type hints that map to no JSON Schema type."""
+
+    mapping: typing.Mapping
+    """A mapping with no key or value types."""
+    meta: type[int]
+    """A generic alias whose origin is neither a container nor a union."""
+    var: T
+    """A type variable, which is not a type."""
+
+
+@dataclass
+class ExplicitRequiredItem:
+    __json_schema_extra__ = {"required": ["bar"]}
+
+    foo: str
+    bar: str = "asdf"
+
+
+@dataclass
+class MultiItemUnionItem:
+    either: Brand | OptionalItemListNestedItem
+    or_none: Brand | OptionalItemListNestedItem | None
+    containers: list[int] | dict
 
 
 @dataclass
@@ -167,20 +194,15 @@ class JsonSchemaTestCase(unittest.TestCase):
         check_schemas(actual, expected)
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @unittest.skipIf(
-        PYTHON_VERSION >= (3, 13), "It seems inspect can get the class code in Python 3.13+"
-    )
     def test_unreachable_source(self):
-        """Using inspect to get the item class source and find attribute
-        docstrings is not always a possibility, e.g. when the item class is
-        defined within a (test) method. In those cases, only the extraction of
-        those docstrings should fail."""
+        """Reading the item class source to find attribute docstrings is not
+        always a possibility, e.g. for classes defined in a REPL. In those
+        cases, only the extraction of those docstrings should fail."""
 
         class ScrapySubclassedItemUnreachable(ScrapyItem):
             name: str = ScrapyField(json_schema_extra={"example": "Foo"})
             """Display name"""
 
-        actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
         expected = {
             "type": "object",
             "additionalProperties": False,
@@ -191,7 +213,10 @@ class JsonSchemaTestCase(unittest.TestCase):
                 }
             },
         }
-        check_schemas(actual, expected)
+        for exception in (OSError, TypeError):
+            with mock.patch("inspect.getsource", side_effect=exception):
+                actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
+            check_schemas(actual, expected)
 
     def test_recursion(self):
         actual = ItemAdapter.get_json_schema(RecursionItem)
@@ -779,5 +804,134 @@ class CrossNestingTestCase(unittest.TestCase):
                 },
             },
             "required": ["nested"],
+        }
+        check_schemas(actual, expected)
+
+
+class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
+    """Inputs that map to no JSON Schema output, or that the JSON Schema
+    generation cannot take at face value."""
+
+    maxDiff = None
+
+    def test_unhandled_types(self):
+        actual = ItemAdapter.get_json_schema(UnhandledTypeItem)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "mapping": {
+                    "type": "object",
+                    "description": "A mapping with no key or value types.",
+                },
+                "meta": {
+                    "description": (
+                        "A generic alias whose origin is neither a container nor a union."
+                    )
+                },
+                "var": {"description": "A type variable, which is not a type."},
+            },
+            "required": ["mapping", "meta", "var"],
+        }
+        check_schemas(actual, expected)
+
+    def test_multi_item_union(self):
+        """Unions keep the declaration order of their members, and only get a
+        leading entry for their simple types if they have any."""
+        actual = ItemAdapter.get_json_schema(MultiItemUnionItem)
+        brand_schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"],
+        }
+        nested_schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"is_nested": {"type": "boolean", "default": True}},
+        }
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "either": {"anyOf": [brand_schema, nested_schema]},
+                "or_none": {"anyOf": [{"type": "null"}, brand_schema, nested_schema]},
+                "containers": {
+                    "anyOf": [
+                        {"type": "array", "items": {"type": "integer"}},
+                        {"type": "object"},
+                    ]
+                },
+            },
+            "required": ["either", "or_none", "containers"],
+        }
+        check_schemas(actual, expected)
+
+    def test_explicit_required(self):
+        """An explicit required list in the class metadata is not overridden."""
+        actual = ItemAdapter.get_json_schema(ExplicitRequiredItem)
+        expected = {
+            "required": ["bar"],
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "foo": {"type": "string"},
+                "bar": {"type": "string", "default": "asdf"},
+            },
+        }
+        check_schemas(actual, expected)
+
+    def test_source_of_a_different_class(self):
+        """Reading the item class source can find the source of a different
+        class, e.g. for classes that are renamed after their definition. Only
+        the extraction of attribute docstrings should be affected."""
+
+        @dataclass
+        class RenamedItem:
+            foo: str
+            """Foo"""
+
+        source = "@dataclass\nclass SomethingElse:\n    foo: str\n    '''Bar'''\n"
+        with mock.patch("inspect.getsource", return_value=source):
+            actual = ItemAdapter.get_json_schema(RenamedItem)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"foo": {"type": "string"}},
+            "required": ["foo"],
+        }
+        check_schemas(actual, expected)
+
+    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    def test_attrs_unhandled_validator(self):
+        """Validators that map to no JSON Schema keyword are ignored."""
+        import attr
+
+        @attr.define
+        class TestAttrsItem:
+            foo: str = attr.field(validator=attr.validators.instance_of(str))
+
+        actual = ItemAdapter.get_json_schema(TestAttrsItem)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"foo": {"type": "string"}},
+            "required": ["foo"],
+        }
+        check_schemas(actual, expected)
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_pydantic_general_metadata_without_pattern(self):
+        """General metadata that carries no pattern maps to no JSON Schema
+        keyword."""
+
+        class TestItem(pydantic.BaseModel):
+            foo: float = pydantic.Field(allow_inf_nan=False)
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "properties": {"foo": {"type": "number"}},
+            "required": ["foo"],
         }
         check_schemas(actual, expected)

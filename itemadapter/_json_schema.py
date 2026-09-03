@@ -23,7 +23,7 @@ from typing import (
 )
 
 from ._imports import PydanticUndefined, PydanticV1Undefined, attr
-from .utils import _is_pydantic_model
+from .utils import _is_pydantic_model, _split_typed_dict_hint
 
 if TYPE_CHECKING:
     from .adapter import AdapterInterface, ItemAdapter
@@ -67,7 +67,7 @@ def dedupe_types(types: Sequence[type]) -> list[type]:
 def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     prop_types = dedupe_types(get_args(prop_type))
     simple_types = [v for k, v in SIMPLE_TYPES.items() if k in prop_types]
-    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])  # type: ignore[type-var]
+    complex_types = [t for t in prop_types if t not in SIMPLE_TYPES]
     if not complex_types:
         prop.setdefault("type", simple_types)
         return
@@ -75,7 +75,8 @@ def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSch
     any_of = prop.setdefault("anyOf", new_any_of)
     if any_of is not new_any_of:
         return
-    any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
+    if simple_types:
+        any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
     for complex_type in complex_types:
         complex_prop: dict[str, Any] = {}
         update_prop_from_type(complex_prop, complex_type, state)
@@ -299,9 +300,8 @@ def get_inherited_attr_docstring(item_class: type, attr_name: str) -> str | None
     """Recursively search the MRO for a docstring for the given attribute
     name."""
     for cls in item_class.__mro__:
-        for name, doc in iter_docstrings(cls, {attr_name}):
-            if name == attr_name:
-                return doc
+        for _, doc in iter_docstrings(cls, {attr_name}):
+            return doc
     return None
 
 
@@ -448,6 +448,29 @@ def _update_attrs_prop_validation(
                 prop.setdefault("pattern", f"{prefix}{pattern}{suffix}")
 
 
+def _json_schema_from_typed_dict(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
+    schema = base_json_schema_from_item_class(item_class)
+    type_hints = get_type_hints(item_class, include_extras=True)
+    if not type_hints:
+        return schema
+    schema["properties"] = {}
+    required = []
+    required_keys = item_class.__required_keys__  # type: ignore[attr-defined]
+    for field_name, type_hint in type_hints.items():
+        field_type, field_metadata, field_required = _split_typed_dict_hint(type_hint)
+        prop = copy(field_metadata.get("json_schema_extra", {}))
+        update_prop_from_type(prop, field_type, state)
+        schema["properties"][field_name] = prop
+        if field_required is None:
+            field_required = field_name in required_keys
+        if field_required:
+            required.append(field_name)
+    if required:
+        schema.setdefault("required", required)
+    _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
+    return schema
+
+
 def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
     schema = base_json_schema_from_item_class(item_class)
     fields = dataclasses.fields(item_class)
@@ -459,9 +482,7 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
         }
         for field in fields:
             prop = schema["properties"][field.name]
-            field_type = resolved_field_types.get(field.name)
-            if field_type is not None:
-                update_prop_from_type(prop, field_type, state)
+            update_prop_from_type(prop, resolved_field_types.get(field.name), state)
             if field.default_factory is not dataclasses.MISSING:
                 default_factory_fields.add(field.name)
             elif field.default is not dataclasses.MISSING:
@@ -509,10 +530,8 @@ def _update_pydantic_prop(
     _state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
-    if "annotation" in metadata:
-        field_type = metadata["annotation"]
-        if field_type is not None:
-            update_prop_from_type(prop, field_type, _state)
+    field_type = metadata.get("annotation")
+    update_prop_from_type(prop, field_type, _state)
     if "default_factory" in metadata:
         default_factory_fields.add(name)
     elif "default" in metadata and metadata["default"] is not PydanticUndefined:
@@ -533,7 +552,7 @@ def _update_pydantic_prop(
 def _update_pydantic_prop_validation(
     prop: dict[str, Any],
     metadata: Sequence[Any],
-    field_type: type,
+    field_type: Any,
 ) -> None:
     for metadata_item in metadata:
         metadata_item_type = type(metadata_item).__name__
@@ -598,8 +617,7 @@ def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,t
     state: _JsonSchemaState,
 ) -> None:
     field_type = field_type_hints[name]
-    if field_type is not None:
-        update_prop_from_type(prop, field_type, state)
+    update_prop_from_type(prop, field_type, state)
     if "default_factory" in metadata:
         default_factory_fields.add(name)
     elif "default" in metadata and metadata["default"] not in (

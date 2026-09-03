@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any
+from typing import Any, get_args, get_origin, get_type_hints
 
 from itemadapter._imports import (
     PydanticUndefined,
@@ -12,6 +13,43 @@ from itemadapter._imports import (
 )
 
 __all__ = ["get_field_meta_from_class", "is_item"]
+
+_EMPTY_METADATA: MappingProxyType = MappingProxyType({})
+
+
+def _split_typed_dict_hint(type_hint: Any) -> tuple[Any, MappingProxyType, bool | None]:
+    """Return the type, the metadata and the requiredness of a ``TypedDict``
+    field, given its type hint.
+
+    The metadata is the first mapping in the metadata of an
+    :data:`~typing.Annotated` type hint. The requiredness is ``None`` unless
+    the type hint is wrapped in :data:`~typing.Required` or
+    :data:`~typing.NotRequired`.
+    """
+    required = None
+    origin = get_origin(type_hint)
+    # Required and NotRequired are matched by name to cover both their typing
+    # and their typing_extensions variants. The latter are missing from
+    # __required_keys__ and __optional_keys__ on TypedDict subclasses that
+    # inherit from typing.TypedDict instead of typing_extensions.TypedDict,
+    # hence the need to read requiredness from type hints as well.
+    if (name := getattr(origin, "_name", None)) in {"Required", "NotRequired"}:
+        required = name == "Required"
+        type_hint = get_args(type_hint)[0]
+    metadata = _EMPTY_METADATA
+    if annotations := getattr(type_hint, "__metadata__", ()):
+        entry = next((entry for entry in annotations if isinstance(entry, Mapping)), None)
+        if entry is not None:
+            metadata = MappingProxyType(entry)
+        type_hint = type_hint.__origin__
+    return type_hint, metadata, required
+
+
+def _get_typed_dict_field_metadata(item_class: Any, field_name: str) -> MappingProxyType:
+    type_hints = get_type_hints(item_class, include_extras=True)
+    if field_name not in type_hints:
+        raise KeyError(f"{item_class.__name__} does not support field: {field_name}")
+    return _split_typed_dict_hint(type_hints[field_name])[1]
 
 
 def _is_attrs_class(obj: Any) -> bool:
