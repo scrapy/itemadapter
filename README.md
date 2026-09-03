@@ -243,6 +243,7 @@ import attrs
 class Brand:
     name: str
 
+
 @attrs.define
 class Product:
     name: str

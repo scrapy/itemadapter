@@ -106,8 +106,8 @@ disable = [
     "unused-argument",
 ]
 per-file-ignores = [
-    "/tests/:disallowed-name,too-many-instance-attributes",
-    "/itemadapter/_imports.py:unused-import,ungrouped-imports",
+    "tests/*:disallowed-name,too-many-instance-attributes",
+    "itemadapter/_imports.py:unused-import,ungrouped-imports",
 ]
 
 [tool.pylint.FORMAT]
@@ -241,6 +241,8 @@ ignore = [
     "PLR0913",
     # Too many statements
     "PLR0915",
+    # Too many positional arguments
+    "PLR0917",
     # Magic value used in comparison
     "PLR2004",
     # String contains ambiguous {}.
