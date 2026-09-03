@@ -5,6 +5,7 @@ import dataclasses
 import inspect
 import operator
 import re
+from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from copy import copy
@@ -48,9 +49,10 @@ class _JsonSchemaState:
     adapter.get_json_schema() is used to get the corresponding, nested JSON
     Schema.
     """
-    containers: set[type] = dataclasses.field(default_factory=set)
-    """Used to keep track of item classes that are being processed, to avoid
-    recursion."""
+    defs: dict[str, dict[str, Any]] = dataclasses.field(default_factory=dict)
+    """JSON Schema of every item class found so far, by definition name."""
+    def_names: dict[type, str] = dataclasses.field(default_factory=dict)
+    """Definition name of every item class found so far."""
 
 
 def dedupe_types(types: Sequence[type]) -> list[type]:
@@ -204,23 +206,30 @@ def update_prop_from_origin(
         update_prop_from_union(prop, prop_type, state)
 
 
+def _def(item_class: type, state: _JsonSchemaState) -> str:
+    """Return the definition name of the given item class, generating its JSON
+    Schema into the definitions of *state* the first time it is seen."""
+    name = state.def_names.get(item_class)
+    if name is not None:
+        return name
+    name = item_class.__name__
+    suffix = 1
+    while name in state.defs:
+        suffix += 1
+        name = f"{item_class.__name__}_{suffix}"
+    state.def_names[item_class] = name
+    state.defs[name] = {}  # placeholder, so that recursion finds the name above
+    state.defs[name] = state.adapter.get_json_schema(item_class, _state=state)
+    return name
+
+
 def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     if (origin := get_origin(prop_type)) is not None:
         update_prop_from_origin(prop, origin, prop_type, state)
         return
     if isinstance(prop_type, type):
         if state.adapter.is_item_class(prop_type):
-            if prop_type in state.containers:
-                prop.setdefault("type", "object")
-                return
-            state.containers.add(prop_type)
-            subschema = state.adapter.get_json_schema(
-                prop_type,
-                _state=state,
-            )
-            state.containers.remove(prop_type)
-            for k, v in subschema.items():
-                prop.setdefault(k, v)
+            prop.setdefault("$ref", f"#/$defs/{_def(prop_type, state)}")
             return
         if issubclass(prop_type, Enum):
             values = [item.value for item in prop_type]
@@ -241,6 +250,88 @@ def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSche
     json_schema_type = SIMPLE_TYPES.get(prop_type)
     if json_schema_type is not None:
         prop.setdefault("type", json_schema_type)
+
+
+def _iter_refs(schema: Any) -> Iterator[str]:
+    """Yield the definition name of every reference in the given JSON Schema,
+    once per reference."""
+    if isinstance(schema, dict):
+        for key, value in schema.items():
+            if key == "$ref":
+                yield value.rpartition("/")[2]
+            else:
+                yield from _iter_refs(value)
+    elif isinstance(schema, list):
+        for value in schema:
+            yield from _iter_refs(value)
+
+
+def _cyclic_defs(edges: dict[str, set[str]]) -> set[str]:
+    """Return the definition names that can be reached from themselves."""
+    result = set()
+    for start, targets in edges.items():
+        stack = list(targets)
+        seen = set()
+        while stack:
+            name = stack.pop()
+            if name == start:
+                result.add(start)
+                break
+            if name in seen:
+                continue
+            seen.add(name)
+            stack.extend(edges.get(name, ()))
+    return result
+
+
+def _inline_refs(schema: Any, defs: dict[str, dict[str, Any]], inline: AbstractSet[str]) -> Any:
+    """Return a copy of the given JSON Schema where references to the
+    definitions in *inline* are replaced by those definitions.
+
+    Keys already present next to a reference take precedence over the keys of
+    the definition that replaces it."""
+    if isinstance(schema, list):
+        return [_inline_refs(value, defs, inline) for value in schema]
+    if not isinstance(schema, dict):
+        return schema
+    result: dict[str, Any] = {}
+    for key, value in schema.items():
+        if key == "$ref" and (name := value.rpartition("/")[2]) in inline:
+            result.update(
+                {
+                    def_key: def_value
+                    for def_key, def_value in _inline_refs(defs[name], defs, inline).items()
+                    if def_key not in schema
+                }
+            )
+        else:
+            result[key] = _inline_refs(value, defs, inline)
+    return result
+
+
+def _root_json_schema(
+    adapter: type[ItemAdapter | AdapterInterface], item_class: type
+) -> dict[str, Any]:
+    """Return the JSON Schema of the given item class, with the JSON Schema of
+    item classes used more than once or recursively kept in ``$defs``."""
+    state = _JsonSchemaState(adapter=adapter)
+    schema: dict[str, Any] = {}
+    update_prop_from_type(schema, item_class, state)
+    ref_counts = Counter(_iter_refs(schema))
+    edges = {}
+    for name, def_schema in state.defs.items():
+        refs = list(_iter_refs(def_schema))
+        ref_counts.update(refs)
+        edges[name] = set(refs)
+    cyclic = _cyclic_defs(edges)
+    inline = {name for name, count in ref_counts.items() if count == 1 and name not in cyclic}
+    defs = {
+        name: _inline_refs(def_schema, state.defs, inline)
+        for name, def_schema in state.defs.items()
+        if name not in inline and ref_counts[name]
+    }
+    schema = _inline_refs(schema, state.defs, inline)
+    return {"$defs": defs, **schema} if defs else schema
 
 
 def _setdefault_attribute_types_on_json_schema(
@@ -332,9 +423,8 @@ def base_json_schema_from_item_class(item_class: type) -> dict[str, Any]:
 
 
 def _json_schema_from_item_class(
-    adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState | None = None
+    adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState
 ) -> dict[str, Any]:
-    state = state or _JsonSchemaState(adapter=adapter, containers={item_class})
     schema = base_json_schema_from_item_class(item_class)
     fields_meta = {
         field_name: adapter.get_field_meta_from_class(item_class, field_name)
@@ -472,9 +562,8 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
 
 
 def _json_schema_from_pydantic(
-    adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState | None = None
+    adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState
 ) -> dict[str, Any]:
-    state = state or _JsonSchemaState(adapter=adapter, containers={item_class})
     if not _is_pydantic_model(item_class):
         return _json_schema_from_pydantic_v1(adapter, item_class, state)
     schema = copy(
