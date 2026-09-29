@@ -198,7 +198,7 @@ class PydanticTestCase(unittest.TestCase):
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 10,
-                    "pattern": "^[A-Za-z]+$",
+                    "pattern": "^(?:^[A-Za-z]+$)",
                 },
                 "age1": {
                     "type": "integer",
@@ -223,5 +223,29 @@ class PydanticTestCase(unittest.TestCase):
                 },
             },
             "required": ["name", "age1", "age2", "year", "tags"],
+        }
+        check_schemas(actual, expected)
+
+    def test_json_schema_regex_anchored(self):
+        """Pydantic v1 anchors the ``regex`` constraint at the start of the string,
+        while JSON Schema patterns are unanchored, so the start anchor is made
+        explicit, the same way the attrs adapter does it for
+        ``validators.matches_re()``."""
+        from itemadapter._imports import pydantic_v1
+
+        class Model(pydantic_v1.BaseModel):
+            # pydantic.v1 matches regex with re.match(), i.e. anchored at the start
+            name: str = pydantic_v1.Field(regex=r"[A-Za-z]+")
+
+        actual = ItemAdapter.get_json_schema(Model)
+        expected = {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "pattern": "^(?:[A-Za-z]+)",
+                },
+            },
+            "required": ["name"],
         }
         check_schemas(actual, expected)

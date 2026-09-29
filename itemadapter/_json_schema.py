@@ -627,7 +627,13 @@ def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,t
     for metadata_key in ("pattern", "regex"):
         if metadata_key in metadata:
             pattern = metadata[metadata_key]
-            update_prop_from_pattern(prop, pattern)
+            # pydantic v1 matches the pattern with re.match(), i.e. anchored at the
+            # start of the string, while JSON Schema patterns are unanchored, so the
+            # start anchor is made explicit, as the attrs adapter does.
+            json_schema_value = json_schema_pattern(pattern)
+            if json_schema_value is not None:
+                prefix, suffix = MATCH_FUNC_ANCHORS["match"]
+                prop.setdefault("pattern", f"{prefix}{json_schema_value}{suffix}")
             break
     if "deprecated" in metadata:
         prop.setdefault("deprecated", bool(metadata["deprecated"]))
