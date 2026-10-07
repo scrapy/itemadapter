@@ -56,11 +56,13 @@ class _JsonSchemaState:
 def dedupe_types(types: Sequence[type]) -> list[type]:
     seen = set()
     result = []
+    # JSON Schema's number type includes integers, but not the other way around.
+    numeric_type = float if float in types else int
     for t in types:
-        key = float if t in (int, float) else t
+        key = numeric_type if t in (int, float) else t
         if key not in seen:
             seen.add(key)
-            result.append(t)
+            result.append(key)
     return result
 
 

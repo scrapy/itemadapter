@@ -5,7 +5,7 @@ import sys
 import typing
 import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, make_dataclass
 from enum import Enum
 from typing import Any, Union
 
@@ -131,6 +131,25 @@ def check_schemas(actual, expected):
     The indentation is set for better readability or mismatch output.
     """
     assert json.dumps(actual, indent=2) == json.dumps(expected, indent=2)
+
+
+@pytest.mark.parametrize(
+    ("field_type", "expected"),
+    [
+        (int | float, {"type": ["number"]}),
+        (float | int, {"type": ["number"]}),
+        (int | float | None, {"type": ["null", "number"]}),
+        (bool | int | float, {"type": ["boolean", "number"]}),
+        (int | str, {"type": ["integer", "string"]}),
+        (int | None, {"type": ["null", "integer"]}),
+        (list[int | float], {"type": "array", "items": {"type": ["number"]}}),
+        (tuple[int, float], {"type": "array", "items": {"type": ["number"]}}),
+    ],
+)
+def test_numeric_union(field_type, expected):
+    item_class = make_dataclass("NumericItem", [("value", field_type)])
+    actual = ItemAdapter.get_json_schema(item_class)["properties"]["value"]
+    check_schemas(actual, expected)
 
 
 class JsonSchemaTestCase(unittest.TestCase):
