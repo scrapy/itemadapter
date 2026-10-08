@@ -11,7 +11,7 @@ permissions: {}
 
 jobs:
   tests-ubuntu:
-    name: "Test: ${{ matrix.python-version }}, Ubuntu"
+    name: "Test: ${{ matrix.env.TOXENV }}, ${{ matrix.python-version }}, Ubuntu"
     runs-on: ubuntu-latest
     permissions:
       contents: read

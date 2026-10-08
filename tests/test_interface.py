@@ -95,6 +95,9 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         adapter["value"] = 1234
         assert repr(adapter) == "<ItemAdapter for FakeItemClass(name='asdf', value=1234)>"
 
+    def test_get_field_names_from_class(self):
+        assert ItemAdapter.get_field_names_from_class(self.item_class) is None
+
     def test_get_set_value(self):
         item = self.item_class()
         adapter = ItemAdapter(item)
