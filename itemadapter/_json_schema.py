@@ -22,7 +22,7 @@ from typing import (
     runtime_checkable,
 )
 
-from ._imports import PydanticUndefined, PydanticV1Undefined, attr
+from ._imports import PydanticUndefined, PydanticV1Undefined, _get_type_hints, attr
 from ._utils import _is_pydantic_model, _split_typed_dict_hint
 
 if TYPE_CHECKING:
@@ -452,14 +452,15 @@ def _update_attrs_prop_validation(
 
 def _json_schema_from_typed_dict(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
     schema = base_json_schema_from_item_class(item_class)
-    type_hints = get_type_hints(item_class, include_extras=True)
+    type_hints = _get_type_hints(item_class)
     if not type_hints:
         return schema
+    extra_type_hints = _get_type_hints(item_class, include_extras=True)
     schema["properties"] = {}
     required = []
     required_keys = item_class.__required_keys__  # type: ignore[attr-defined]
-    for field_name, type_hint in type_hints.items():
-        field_type, field_metadata, field_required = _split_typed_dict_hint(type_hint)
+    for field_name, field_type in type_hints.items():
+        field_metadata, field_required = _split_typed_dict_hint(extra_type_hints[field_name])
         prop = copy(field_metadata.get("json_schema_extra", {}))
         update_prop_from_type(prop, field_type, state)
         schema["properties"][field_name] = prop

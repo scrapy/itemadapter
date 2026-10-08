@@ -36,11 +36,14 @@ except ImportError:
     typing_extensions = None
 
 # typing.is_typeddict() does not recognize typing_extensions.TypedDict
-# subclasses.
+# subclasses, and typing.get_type_hints() does not strip
+# typing_extensions.ReadOnly before Python 3.13.
 if typing_extensions is None:
     _is_typeddict = typing.is_typeddict
+    _get_type_hints = typing.get_type_hints
 else:
     _is_typeddict = typing_extensions.is_typeddict
+    _get_type_hints = typing_extensions.get_type_hints
 
 attr: Any
 try:

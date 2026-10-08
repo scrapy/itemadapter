@@ -34,9 +34,6 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   interact with `attrs`-based items
 * [`pydantic`](https://pypi.org/project/pydantic/) 1.8+: optional, needed to
   interact with `pydantic`-based items
-* [`typing_extensions`](https://pypi.org/project/typing-extensions/): optional,
-  needed to use `Required` and `NotRequired` in `TypedDict`-based items on
-  Python 3.10
 
 ---
 

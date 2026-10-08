@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from typing import Annotated, NotRequired, Required, TypedDict
+from typing import TYPE_CHECKING, Annotated, NotRequired, Required, TypedDict
 from unittest import mock
 
 import pytest
@@ -10,6 +10,14 @@ from itemadapter.adapter import DictAdapter, ItemAdapter
 from itemadapter.utils import get_field_meta_from_class
 from tests import clear_itemadapter_imports, make_mock_import
 from tests.test_json_schema import check_schemas
+
+try:
+    import typing_extensions
+except ImportError:
+    typing_extensions = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    from decimal import Decimal
 
 
 class TypedDictItem(TypedDict):
@@ -209,6 +217,76 @@ class TypedDictTestCase(unittest.TestCase):
                 "optional": {"type": "string"},
             },
             "required": ["required"],
+        }
+        check_schemas(actual, expected)
+
+
+class TypedDictTypeHintTestCase(unittest.TestCase):
+    maxDiff = None
+
+    def test_qualifiers_in_any_order(self):
+        class TypedDictItemQualifiers(TypedDict, total=False):
+            required: Annotated[Required[int], {"json_schema_extra": {"minimum": 0}}]
+            optional: Annotated[NotRequired[str], {"json_schema_extra": {"minLength": 2}}]
+
+        assert get_field_meta_from_class(TypedDictItemQualifiers, "required") == {
+            "json_schema_extra": {"minimum": 0}
+        }
+        actual = ItemAdapter.get_json_schema(TypedDictItemQualifiers)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "required": {"minimum": 0, "type": "integer"},
+                "optional": {"minLength": 2, "type": "string"},
+            },
+            "required": ["required"],
+        }
+        check_schemas(actual, expected)
+
+    def test_nested_annotated(self):
+        class TypedDictItemNestedAnnotated(TypedDict):
+            values: list[Annotated[int, {"json_schema_extra": {"minimum": 0}}]]
+
+        assert get_field_meta_from_class(TypedDictItemNestedAnnotated, "values") == {}
+        actual = ItemAdapter.get_json_schema(TypedDictItemNestedAnnotated)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"values": {"type": "array", "items": {"type": "integer"}}},
+            "required": ["values"],
+        }
+        check_schemas(actual, expected)
+
+    def test_get_field_names_from_class_unresolvable(self):
+        class TypedDictItemUnresolvable(TypedDict):
+            price: Decimal
+
+        assert ItemAdapter.get_field_names_from_class(TypedDictItemUnresolvable) == ["price"]
+
+    @unittest.skipIf(not typing_extensions, "typing_extensions module is not available")
+    def test_typing_extensions(self):
+        class TypedDictItemTypingExtensions(typing_extensions.TypedDict):
+            name: typing_extensions.ReadOnly[Annotated[str, {"json_schema_extra": {"x": 1}}]]
+            value: NotRequired[typing_extensions.ReadOnly[int]]
+
+        assert ItemAdapter.is_item_class(TypedDictItemTypingExtensions)
+        assert ItemAdapter.get_field_names_from_class(TypedDictItemTypingExtensions) == [
+            "name",
+            "value",
+        ]
+        assert get_field_meta_from_class(TypedDictItemTypingExtensions, "name") == {
+            "json_schema_extra": {"x": 1}
+        }
+        actual = ItemAdapter.get_json_schema(TypedDictItemTypingExtensions)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "name": {"x": 1, "type": "string"},
+                "value": {"type": "integer"},
+            },
+            "required": ["name"],
         }
         check_schemas(actual, expected)
 

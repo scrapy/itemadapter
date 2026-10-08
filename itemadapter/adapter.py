@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Iterator, KeysView, MutableMapping
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any, get_type_hints
+from typing import Any
 
 from itemadapter._imports import _is_typeddict, _scrapy_item_classes, attr
 from itemadapter._json_schema import (
@@ -326,7 +326,7 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
         if _is_typeddict(item_class):
-            return list(get_type_hints(item_class))
+            return list(item_class.__annotations__)
         return None
 
     @classmethod
