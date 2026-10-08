@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import Any, NotRequired, Required, get_args, get_origin, get_type_hints
 
 from itemadapter._imports import (
     PydanticUndefined,
@@ -137,13 +137,11 @@ def _split_typed_dict_hint(type_hint: Any) -> tuple[Any, MappingProxyType, bool 
     """
     required = None
     origin = get_origin(type_hint)
-    # Required and NotRequired are matched by name to cover both their typing
-    # and their typing_extensions variants. The latter are missing from
-    # __required_keys__ and __optional_keys__ on TypedDict subclasses that
-    # inherit from typing.TypedDict instead of typing_extensions.TypedDict,
-    # hence the need to read requiredness from type hints as well.
-    if (name := getattr(origin, "_name", None)) in {"Required", "NotRequired"}:
-        required = name == "Required"
+    # Required and NotRequired are missing from __required_keys__ and
+    # __optional_keys__ when annotations are postponed, hence the need to read
+    # requiredness from type hints as well.
+    if origin is Required or origin is NotRequired:
+        required = origin is Required
         type_hint = get_args(type_hint)[0]
     metadata = _EMPTY_METADATA
     if annotations := getattr(type_hint, "__metadata__", ()):

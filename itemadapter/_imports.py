@@ -36,8 +36,7 @@ except ImportError:
     typing_extensions = None
 
 # typing.is_typeddict() does not recognize typing_extensions.TypedDict
-# subclasses, which are the only way to use Required and NotRequired on Python
-# 3.10.
+# subclasses.
 if typing_extensions is None:
     _is_typeddict = typing.is_typeddict
 else:

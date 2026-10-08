@@ -4,9 +4,9 @@ import json
 import typing
 import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, make_dataclass
 from enum import Enum
-from typing import Any, Union
+from typing import Any, Generic, TypeVar, Union
 from unittest import mock
 
 import pytest
@@ -24,6 +24,9 @@ from tests import (
     ScrapySubclassedItem,
     ScrapySubclassedItemJsonSchemaNested,
 )
+
+_T = TypeVar("_T")
+
 
 if ScrapySubclassedItem and AttrsItem:
     from scrapy import Field as ScrapyField
@@ -158,6 +161,25 @@ def check_schemas(actual, expected):
     The indentation is set for better readability or mismatch output.
     """
     assert json.dumps(actual, indent=2) == json.dumps(expected, indent=2)
+
+
+@pytest.mark.parametrize(
+    ("field_type", "expected"),
+    [
+        (int | float, {"type": ["number"]}),
+        (float | int, {"type": ["number"]}),
+        (int | float | None, {"type": ["null", "number"]}),
+        (bool | int | float, {"type": ["boolean", "number"]}),
+        (int | str, {"type": ["integer", "string"]}),
+        (int | None, {"type": ["null", "integer"]}),
+        (list[int | float], {"type": "array", "items": {"type": ["number"]}}),
+        (tuple[int, float], {"type": "array", "items": {"type": ["number"]}}),
+    ],
+)
+def test_numeric_union(field_type, expected):
+    item_class = make_dataclass("NumericItem", [("value", field_type)])
+    actual = ItemAdapter.get_json_schema(item_class)["properties"]["value"]
+    check_schemas(actual, expected)
 
 
 class JsonSchemaTestCase(unittest.TestCase):
@@ -346,6 +368,24 @@ class JsonSchemaTestCase(unittest.TestCase):
                         "type": ["integer", "string"],
                     },
                 },
+            },
+            "required": ["foo"],
+        }
+        check_schemas(actual, expected)
+
+    def test_type_var(self):
+        # this tests the update_prop_from_type() branch where prop_type is not a type
+
+        @dataclass
+        class TestItem(Generic[_T]):
+            foo: _T
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "foo": {},
             },
             "required": ["foo"],
         }

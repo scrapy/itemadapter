@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import typing
 import unittest
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, Required, TypedDict
 from unittest import mock
 
 import pytest
@@ -11,12 +10,6 @@ from itemadapter.adapter import DictAdapter, ItemAdapter
 from itemadapter.utils import get_field_meta_from_class
 from tests import clear_itemadapter_imports, make_mock_import
 from tests.test_json_schema import check_schemas
-
-try:
-    from typing_extensions import NotRequired, Required
-except ImportError:  # Python 3.11+ without typing_extensions
-    NotRequired = getattr(typing, "NotRequired", None)
-    Required = getattr(typing, "Required", None)
 
 
 class TypedDictItem(TypedDict):
@@ -176,7 +169,6 @@ class TypedDictTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(NotRequired is None, "Required and NotRequired are not available")
     def test_json_schema_not_required(self):
         class TypedDictItemNotRequired(TypedDict):
             required: int
@@ -199,12 +191,10 @@ class TypedDictTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(Required is None, "Required and NotRequired are not available")
     def test_json_schema_required(self):
-        """Required and NotRequired from typing_extensions are missing from
-        __required_keys__ and __optional_keys__ when the TypedDict subclass
-        inherits from typing.TypedDict, so requiredness is read from the field
-        type hints as well."""
+        """Required and NotRequired are missing from __required_keys__ and
+        __optional_keys__ when annotations are postponed, so requiredness is
+        read from the field type hints as well."""
 
         class TypedDictItemRequired(TypedDict, total=False):
             required: Required[int]
