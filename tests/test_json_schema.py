@@ -7,7 +7,7 @@ import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field, make_dataclass
 from enum import Enum
-from typing import Any, Union
+from typing import Any, Generic, TypeVar, Union
 
 import pytest
 
@@ -26,6 +26,8 @@ from tests import (
 )
 
 PYTHON_VERSION = sys.version_info[:2]
+
+_T = TypeVar("_T")
 
 
 if ScrapySubclassedItem and AttrsItem:
@@ -340,6 +342,24 @@ class JsonSchemaTestCase(unittest.TestCase):
                         "type": ["integer", "string"],
                     },
                 },
+            },
+            "required": ["foo"],
+        }
+        check_schemas(actual, expected)
+
+    def test_type_var(self):
+        # this tests the update_prop_from_type() branch where prop_type is not a type
+
+        @dataclass
+        class TestItem(Generic[_T]):
+            foo: _T
+
+        actual = ItemAdapter.get_json_schema(TestItem)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "foo": {},
             },
             "required": ["foo"],
         }
