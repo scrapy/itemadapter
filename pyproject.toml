@@ -11,13 +11,12 @@ authors = [
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -40,7 +39,7 @@ pydantic = [
     "pydantic>=1.8",
 ]
 scrapy = [
-    "scrapy>=2.2",
+    "scrapy>=2.7",
 ]
 
 [project.urls]
@@ -121,7 +120,7 @@ allow-any-import-level = [
     "scrapy"
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
 filterwarnings = [
     "ignore:.*BaseItem.*",
 ]
