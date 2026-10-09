@@ -15,6 +15,7 @@ from itemadapter._json_schema import (
     _json_schema_from_item_class,
     _json_schema_from_pydantic,
     _JsonSchemaState,
+    _root_json_schema,
     _setdefault_attribute_docstrings_on_json_schema,
     _setdefault_attribute_types_on_json_schema,
 )
@@ -73,6 +74,8 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
+        if _state is None:
+            return _root_json_schema(cls, item_class)
         return _json_schema_from_item_class(cls, item_class, _state)
 
     def get_field_meta(self, field_name: str) -> MappingProxyType:
@@ -155,7 +158,8 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
-        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        if _state is None:
+            return _root_json_schema(cls, item_class)
         return _json_schema_from_attrs(item_class, _state)
 
 
@@ -184,7 +188,8 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
-        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        if _state is None:
+            return _root_json_schema(cls, item_class)
         return _json_schema_from_dataclass(item_class, _state)
 
 
@@ -216,6 +221,8 @@ class PydanticAdapter(AdapterInterface):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
+        if _state is None:
+            return _root_json_schema(cls, item_class)
         return _json_schema_from_pydantic(cls, item_class, _state)
 
     def field_names(self) -> KeysView:
@@ -335,7 +342,8 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
-        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
+        if _state is None:
+            return _root_json_schema(cls, item_class)
         schema = super().get_json_schema(item_class, _state=_state)
         _setdefault_attribute_types_on_json_schema(schema, item_class, _state)
         _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
@@ -443,8 +451,9 @@ class ItemAdapter(MutableMapping):
     def get_json_schema(
         cls, item_class: type, *, _state: _JsonSchemaState | None = None
     ) -> dict[str, Any]:
-        _state = _state or _JsonSchemaState(adapter=cls, containers={item_class})
         adapter_class = cls._get_adapter_class(item_class)
+        if _state is None:
+            return _root_json_schema(cls, item_class)
         return adapter_class.get_json_schema(item_class, _state=_state)
 
     @property

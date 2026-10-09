@@ -184,6 +184,14 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         assert isinstance(adapter.field_names(), KeysView)
         assert sorted(adapter.field_names()) == ["name", "value"]
 
+    def test_json_schema(self):
+        """Fields are unknown for adapters that do not implement
+        get_field_names_from_class()."""
+        assert self.adapter_class.get_json_schema(self.item_class) == {
+            "type": "object",
+            "additionalProperties": False,
+        }
+
 
 class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
     item_class = FakeItemClass
