@@ -105,44 +105,196 @@ class ObjectProtocol(Protocol):  # noqa: PLW1641
     def __ne__(self, other): ...
 
 
-INVALID_PATTERN_SUBSTRINGS = [
-    "(?P<",  # named groups
-    "(?<=",  # lookbehind
-    "(?<!",  # negative lookbehind
-    "(?>",  # atomic group
-    "\\A",  # start of string
-    "\\Z",  # end of string
-    "(?i)",  # inline flags (case-insensitive, etc.)
-    "(?m)",  # multiline
-    "(?s)",  # dotall
-    "(?x)",  # verbose
-    "(?#",  # comments
-]
-
-
 # Flags that change the meaning of a pattern in a way that cannot be
 # expressed in JSON Schema, where patterns are always flagless. re.ASCII is
 # not one of them: it brings Python semantics closer to JSON Schema ones.
-INVALID_PATTERN_FLAGS = re.IGNORECASE | re.MULTILINE | re.DOTALL | re.VERBOSE
+INVALID_PATTERN_FLAGS = re.IGNORECASE | re.MULTILINE
+
+INLINE_FLAGS = {
+    "a": re.ASCII,
+    "i": re.IGNORECASE,
+    "L": re.LOCALE,
+    "m": re.MULTILINE,
+    "s": re.DOTALL,
+    "u": re.UNICODE,
+    "x": re.VERBOSE,
+}
+
+# Python only allows global inline flags at the start of a pattern.
+LEADING_INLINE_FLAGS = re.compile(r"\(\?([aiLmsux]+)\)")
+
+# Whitespace that re.VERBOSE ignores.
+VERBOSE_WHITESPACE = frozenset(" \t\n\r\v\f")
+
+# Escape sequences that have the same meaning in Python and in ECMA-262. \b
+# and \B are included even though Python matches word boundaries against
+# Unicode word characters, while ECMA-262 only matches them against ASCII
+# ones.
+SHARED_ESCAPE_LETTERS = frozenset("bdDfnrstvwSW")
+
+# Escape sequences with an ECMA-262 equivalent. ECMA-262 patterns are never
+# multiline, so ^ and $ can only match at the start and at the end of the
+# string, like \A and \Z do in Python.
+CONVERTED_ESCAPES = {"A": "^", "Z": "$"}
+
+# Escape sequences made of a letter and a fixed number of hexadecimal digits.
+HEX_ESCAPE_SIZES = {"x": 2, "u": 4}
+
+HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+
+DIGITS = frozenset("0123456789")
+
+# Groups that have the same meaning in Python and in ECMA-262.
+SHARED_GROUP_PREFIXES = ("(?:", "(?=", "(?!", "(?<=", "(?<!")
 
 
-def is_valid_pattern(pattern: str) -> bool:
-    # https://ecma-international.org/publications-and-standards/standards/ecma-262/
-    #
-    # Note: We allow word boundaries (\b, \B) in patterns even thought there is
-    # a difference in behavior: in Python, they work with Unicode; in JSON
-    # Schema, they only work with ASCII.
-    return not any(sub in pattern for sub in INVALID_PATTERN_SUBSTRINGS)
+def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] | None:
+    """Return the ECMA-262 translation of the escape sequence that starts at
+    *index*, along with the index right after it, or ``None`` if that sequence
+    has no ECMA-262 equivalent."""
+    char = pattern[index + 1 : index + 2]
+    if not char:
+        return None
+    if char in HEX_ESCAPE_SIZES:
+        end = index + 2 + HEX_ESCAPE_SIZES[char]
+        digits = pattern[index + 2 : end]
+        if len(digits) != HEX_ESCAPE_SIZES[char] or not HEX_DIGITS.issuperset(digits):
+            return None
+        return end, pattern[index:end]
+    if char in SHARED_ESCAPE_LETTERS or (char == "B" and not in_class):
+        return index + 2, pattern[index : index + 2]
+    if char in CONVERTED_ESCAPES and not in_class:
+        return index + 2, CONVERTED_ESCAPES[char]
+    if char in DIGITS:
+        # Backreferences have the same meaning, but \0 and multi-digit escapes
+        # may be octal escapes instead, which the 2 dialects number
+        # differently.
+        if in_class or char == "0" or pattern[index + 2 : index + 3] in DIGITS:
+            return None
+        return index + 2, pattern[index : index + 2]
+    if char.isalnum():
+        return None
+    return index + 2, pattern[index : index + 2]
+
+
+def scan_class(pattern: str, index: int) -> tuple[int, str] | None:
+    """Return the ECMA-262 translation of the character class that starts at
+    *index*, along with the index right after it, or ``None`` if that class
+    has no ECMA-262 equivalent."""
+    start = index
+    index += 1
+    if pattern[index : index + 1] == "^":
+        index += 1
+    if pattern[index : index + 1] == "]":
+        # Python reads a leading ] as a literal, ECMA-262 as the end of an
+        # empty class.
+        return None
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "]":
+            return index + 1, pattern[start : index + 1]
+        if char == "\\":
+            # Escape sequences are never translated within a character class,
+            # so the class can be copied verbatim.
+            escape = scan_escape(pattern, index, in_class=True)
+            if escape is None:
+                return None
+            index = escape[0]
+            continue
+        index += 1
+    return None
+
+
+def scan_group(pattern: str, index: int) -> tuple[int, str] | None:
+    """Return the ECMA-262 translation of the opening parenthesis of the group
+    that starts at *index*, along with the index right after it, or ``None``
+    if that group has no ECMA-262 equivalent."""
+    if pattern[index + 1 : index + 2] != "?":
+        return index + 1, "("
+    if pattern.startswith("(?#", index):
+        end = pattern.find(")", index)
+        return None if end == -1 else (end + 1, "")
+    if pattern.startswith("(?P<", index):
+        # ECMA-262 group names follow different rules, and JSON Schema never
+        # reads captured groups, so the group is left unnamed. It stays a
+        # capturing group to keep numbered backreferences working.
+        end = pattern.find(">", index)
+        return None if end == -1 else (end + 1, "(")
+    for prefix in SHARED_GROUP_PREFIXES:
+        if pattern.startswith(prefix, index):
+            return index + len(prefix), prefix
+    return None
+
+
+def scan_braces(pattern: str, index: int, *, verbose: bool) -> tuple[int, str] | None:
+    """Return the ECMA-262 translation of the quantifier or literal brace that
+    starts at *index*, along with the index right after it, or ``None`` if it
+    has no ECMA-262 equivalent."""
+    end = pattern.find("}", index)
+    if end == -1:
+        return index + 1, "{"
+    if pattern[end + 1 : end + 2] == "+":
+        return None  # possessive quantifier
+    if verbose and not VERBOSE_WHITESPACE.isdisjoint(pattern[index:end]):
+        # Python drops the whitespace and reads the result as a literal,
+        # ECMA-262 reads it as a quantifier.
+        return None
+    return end + 1, pattern[index : end + 1]
+
+
+def translate_pattern(pattern: str, flags: int) -> str | None:
+    """Return *pattern*, a Python regular expression with *flags*, as an
+    ECMA-262 one, the regular expression dialect of JSON Schema patterns, or
+    ``None`` if it has no ECMA-262 equivalent.
+
+    See https://ecma-international.org/publications-and-standards/standards/ecma-262/
+    """
+    verbose = bool(flags & re.VERBOSE)
+    output = []
+    index = 0
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "\\":
+            result = scan_escape(pattern, index, in_class=False)
+        elif char == "[":
+            result = scan_class(pattern, index)
+        elif char == "(":
+            result = scan_group(pattern, index)
+        elif char == "{":
+            result = scan_braces(pattern, index, verbose=verbose)
+        elif char in "*+?" and pattern[index + 1 : index + 2] == "+":
+            return None  # possessive quantifier
+        elif verbose and char in VERBOSE_WHITESPACE:
+            result = (index + 1, "")
+        elif verbose and char == "#":
+            end = pattern.find("\n", index)
+            result = (len(pattern) if end == -1 else end + 1, "")
+        elif char == "." and flags & re.DOTALL:
+            result = (index + 1, r"[\s\S]")
+        else:
+            result = (index + 1, char)
+        if result is None:
+            return None
+        index, text = result
+        output.append(text)
+    return "".join(output)
 
 
 def json_schema_pattern(pattern: str | re.Pattern[str]) -> str | None:
     """Return *pattern* as a JSON Schema pattern, or ``None`` if it cannot be
     expressed as one."""
+    flags = 0
     if isinstance(pattern, re.Pattern):
-        if pattern.flags & INVALID_PATTERN_FLAGS:
-            return None
+        flags = pattern.flags
         pattern = pattern.pattern
-    return pattern if is_valid_pattern(pattern) else None
+    match = LEADING_INLINE_FLAGS.match(pattern)
+    if match:
+        for letter in match[1]:
+            flags |= INLINE_FLAGS[letter]
+        pattern = pattern[match.end() :]
+    if flags & INVALID_PATTERN_FLAGS:
+        return None
+    return translate_pattern(pattern, flags)
 
 
 def array_type(type_hint):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import typing
 import unittest
@@ -12,6 +13,7 @@ from typing import Any, Generic, TypeVar, Union
 import pytest
 
 from itemadapter._imports import pydantic
+from itemadapter._json_schema import json_schema_pattern
 from itemadapter.adapter import AttrsAdapter, ItemAdapter, PydanticAdapter, ScrapyItemAdapter
 from tests import (
     AttrsItem,
@@ -820,3 +822,58 @@ class CrossNestingTestCase(unittest.TestCase):
             "required": ["nested"],
         }
         check_schemas(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("pattern", "expected"),
+    [
+        # Shared syntax.
+        (r"^[A-Za-z]+$", r"^[A-Za-z]+$"),
+        (r"\bD\d{2}\b", r"\bD\d{2}\b"),
+        (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", r"a(b|c)?(?:d)(?=e)(?!f)\.\\"),
+        (r"\x41\u00e9\t\n", r"\x41\u00e9\t\n"),
+        (r"(a)\1", r"(a)\1"),
+        (r"[a\]b^-]", r"[a\]b^-]"),
+        (r"[a.b]", r"[a.b]"),
+        (r"(?<=a)b", r"(?<=a)b"),
+        (r"(?<!a)b", r"(?<!a)b"),
+        (r"a{2", r"a{2"),
+        # Translated syntax.
+        (r"\Aab\Z", r"^ab$"),
+        (r"(?P<year>\d{4})", r"(\d{4})"),
+        (r"a(?#comment)b", r"ab"),
+        (r"(?s)a.b", r"a[\s\S]b"),
+        (re.compile(r"a.b", re.DOTALL), r"a[\s\S]b"),
+        ("(?x)a  # comment\n  \\d+", r"a\d+"),
+        (re.compile("a  # comment\n  b", re.VERBOSE), r"ab"),
+        (r"(?ax)a b", r"ab"),
+        ("(?x)a # unterminated comment", "a"),
+        # Python-only syntax.
+        (r"\a", None),
+        (r"[\a]", None),
+        (r"\N{BULLET}", None),
+        (r"\U0001F600", None),
+        (r"(?P=name)", None),
+        (r"(?i)a", None),
+        (re.compile(r"a", re.IGNORECASE), None),
+        (r"(?m)a", None),
+        (r"(?i:a)", None),
+        (r"(?>a)", None),
+        (r"a*+", None),
+        (r"a{2,3}+", None),
+        # Syntax that both dialects accept with a different meaning.
+        (r"[]]", None),
+        (r"[^]]", None),
+        (r"\0", None),
+        (r"\01", None),
+        (r"(?x)a{2, 3}", None),
+        # Malformed patterns.
+        ("\\", None),
+        (r"[abc", None),
+        (r"\x4", None),
+        (r"(?#unterminated", None),
+        (r"(?P<unterminated", None),
+    ],
+)
+def test_json_schema_pattern(pattern, expected):
+    assert json_schema_pattern(pattern) == expected
