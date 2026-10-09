@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import typing
 import unittest
@@ -12,6 +13,7 @@ from typing import Any, Generic, TypeVar, Union
 import pytest
 
 from itemadapter._imports import pydantic
+from itemadapter._json_schema import is_valid_pattern, json_schema_pattern
 from itemadapter.adapter import AttrsAdapter, ItemAdapter, PydanticAdapter, ScrapyItemAdapter
 from tests import (
     AttrsItem,
@@ -820,3 +822,57 @@ class CrossNestingTestCase(unittest.TestCase):
             "required": ["nested"],
         }
         check_schemas(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("pattern", "expected"),
+    [
+        # Shared syntax.
+        (r"^[A-Za-z]+$", True),
+        (r"\bD\d{2}\b", True),
+        (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", True),
+        (r"\x41é\t\n", True),
+        (r"(a)\1", True),
+        (r"[a\]b^-]", True),
+        # Python-only syntax.
+        (r"\A", False),
+        (r"\Z", False),
+        (r"\a", False),
+        (r"[\a]", False),
+        (r"\N{BULLET}", False),
+        (r"\U0001F600", False),
+        (r"(?P<name>a)", False),
+        (r"(?P=name)", False),
+        (r"(?i)a", False),
+        (r"(?i:a)", False),
+        (r"(?#comment)", False),
+        (r"(?>a)", False),
+        (r"(?<=a)b", False),
+        (r"a*+", False),
+        (r"a{2,3}+", False),
+        # Syntax that both dialects accept with a different meaning.
+        (r"[]]", False),
+        (r"[^]]", False),
+        (r"\0", False),
+        (r"\01", False),
+        # Malformed patterns.
+        ("\\", False),
+        (r"[abc", False),
+        (r"\x4", False),
+    ],
+)
+def test_is_valid_pattern(pattern, expected):
+    assert is_valid_pattern(pattern) is expected
+
+
+@pytest.mark.parametrize(
+    ("pattern", "expected"),
+    [
+        (r"a", "a"),
+        (r"\A", None),
+        (re.compile(r"a"), "a"),
+        (re.compile(r"a", re.IGNORECASE), None),
+    ],
+)
+def test_json_schema_pattern(pattern, expected):
+    assert json_schema_pattern(pattern) == expected

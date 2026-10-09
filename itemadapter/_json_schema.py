@@ -105,34 +105,116 @@ class ObjectProtocol(Protocol):  # noqa: PLW1641
     def __ne__(self, other): ...
 
 
-INVALID_PATTERN_SUBSTRINGS = [
-    "(?P<",  # named groups
-    "(?<=",  # lookbehind
-    "(?<!",  # negative lookbehind
-    "(?>",  # atomic group
-    "\\A",  # start of string
-    "\\Z",  # end of string
-    "(?i)",  # inline flags (case-insensitive, etc.)
-    "(?m)",  # multiline
-    "(?s)",  # dotall
-    "(?x)",  # verbose
-    "(?#",  # comments
-]
-
-
 # Flags that change the meaning of a pattern in a way that cannot be
 # expressed in JSON Schema, where patterns are always flagless. re.ASCII is
 # not one of them: it brings Python semantics closer to JSON Schema ones.
 INVALID_PATTERN_FLAGS = re.IGNORECASE | re.MULTILINE | re.DOTALL | re.VERBOSE
 
 
+# Escape sequences that have the same meaning in Python and in ECMA-262. \b
+# and \B are included even though Python matches word boundaries against
+# Unicode word characters, while ECMA-262 only matches them against ASCII
+# ones.
+SHARED_ESCAPE_LETTERS = frozenset("bdDfnrstvwSW")
+
+# Escape sequences made of a letter and a fixed number of hexadecimal digits.
+HEX_ESCAPE_SIZES = {"x": 2, "u": 4}
+
+HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+
+DIGITS = frozenset("0123456789")
+
+# Groups that have the same meaning in Python and in ECMA-262.
+SHARED_GROUP_PREFIXES = ("(?:", "(?=", "(?!")
+
+
+def scan_escape(pattern: str, index: int, *, in_class: bool) -> int | None:
+    """Return the index right after the escape sequence that starts at
+    *index*, or ``None`` if that sequence does not have the same meaning in
+    Python and in ECMA-262."""
+    char = pattern[index + 1 : index + 2]
+    if not char:
+        return None
+    if char in HEX_ESCAPE_SIZES:
+        end = index + 2 + HEX_ESCAPE_SIZES[char]
+        digits = pattern[index + 2 : end]
+        if len(digits) != HEX_ESCAPE_SIZES[char] or not HEX_DIGITS.issuperset(digits):
+            return None
+        return end
+    if char in SHARED_ESCAPE_LETTERS or (char == "B" and not in_class):
+        return index + 2
+    if char in DIGITS:
+        # Backreferences have the same meaning, but \0 and multi-digit escapes
+        # may be octal escapes instead, which the 2 dialects number
+        # differently.
+        if in_class or char == "0" or pattern[index + 2 : index + 3] in DIGITS:
+            return None
+        return index + 2
+    if char.isalnum():
+        return None
+    return index + 2
+
+
+def scan_class(pattern: str, index: int) -> int | None:
+    """Return the index right after the character class that starts at
+    *index*, or ``None`` if that class does not have the same meaning in
+    Python and in ECMA-262."""
+    index += 1
+    if pattern[index : index + 1] == "^":
+        index += 1
+    if pattern[index : index + 1] == "]":
+        # Python reads a leading ] as a literal, ECMA-262 as the end of an
+        # empty class.
+        return None
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "]":
+            return index + 1
+        if char == "\\":
+            next_index = scan_escape(pattern, index, in_class=True)
+            if next_index is None:
+                return None
+            index = next_index
+            continue
+        index += 1
+    return None
+
+
+def scan_group(pattern: str, index: int) -> int | None:
+    """Return the index right after the opening parenthesis of the group that
+    starts at *index*, or ``None`` if that group does not have the same
+    meaning in Python and in ECMA-262."""
+    if pattern[index + 1 : index + 2] != "?":
+        return index + 1
+    if pattern.startswith(SHARED_GROUP_PREFIXES, index):
+        return index + 3
+    return None
+
+
 def is_valid_pattern(pattern: str) -> bool:
-    # https://ecma-international.org/publications-and-standards/standards/ecma-262/
-    #
-    # Note: We allow word boundaries (\b, \B) in patterns even thought there is
-    # a difference in behavior: in Python, they work with Unicode; in JSON
-    # Schema, they only work with ASCII.
-    return not any(sub in pattern for sub in INVALID_PATTERN_SUBSTRINGS)
+    """Return whether *pattern* has the same meaning in Python and in
+    ECMA-262, the regular expression dialect of JSON Schema patterns.
+
+    See https://ecma-international.org/publications-and-standards/standards/ecma-262/
+    """
+    index = 0
+    while index < len(pattern):
+        char = pattern[index]
+        if char == "\\":
+            next_index = scan_escape(pattern, index, in_class=False)
+        elif char == "[":
+            next_index = scan_class(pattern, index)
+        elif char == "(":
+            next_index = scan_group(pattern, index)
+        elif char in "*+?}" and pattern[index + 1 : index + 2] == "+":
+            # Possessive quantifiers have no ECMA-262 equivalent.
+            return False
+        else:
+            next_index = index + 1
+        if next_index is None:
+            return False
+        index = next_index
+    return True
 
 
 def json_schema_pattern(pattern: str | re.Pattern[str]) -> str | None:
