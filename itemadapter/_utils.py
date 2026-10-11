@@ -128,12 +128,12 @@ def _get_pydantic_v1_model_metadata(
     return MappingProxyType(metadata)
 
 
-_EMPTY_METADATA: MappingProxyType = MappingProxyType({})
+_EMPTY_METADATA: MappingProxyType[str, Any] = MappingProxyType({})
 _READ_ONLY = {getattr(typing, "ReadOnly", None), getattr(typing_extensions, "ReadOnly", None)}
 _READ_ONLY.discard(None)
 
 
-def _split_typed_dict_hint(type_hint: Any) -> tuple[MappingProxyType, bool | None]:
+def _split_typed_dict_hint(type_hint: Any) -> tuple[MappingProxyType[str, Any], bool | None]:
     """Return the metadata and the requiredness of a ``TypedDict`` field, given
     its type hint including extras.
 
@@ -166,7 +166,9 @@ def _split_typed_dict_hint(type_hint: Any) -> tuple[MappingProxyType, bool | Non
     return MappingProxyType(metadata) if metadata is not None else _EMPTY_METADATA, required
 
 
-def _get_typed_dict_field_metadata(item_class: Any, field_name: str) -> MappingProxyType:
+def _get_typed_dict_field_metadata(
+    item_class: type, field_name: str
+) -> MappingProxyType[str, Any]:
     type_hints = _get_type_hints(item_class, include_extras=True)
     if field_name not in type_hints:
         raise KeyError(f"{item_class.__name__} does not support field: {field_name}")

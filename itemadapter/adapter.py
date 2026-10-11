@@ -325,7 +325,9 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         return issubclass(item_class, dict)
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         if _is_typeddict(item_class):
             return _get_typed_dict_field_metadata(item_class, field_name)
         return MappingProxyType({})
