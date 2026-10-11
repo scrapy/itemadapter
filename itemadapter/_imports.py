@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import typing
 from typing import Any
 
 # attempt the following imports only once,
@@ -27,6 +28,22 @@ else:
         _scrapy_item_classes = (scrapy.item.Item,)
     else:
         _scrapy_item_classes = (scrapy.item.Item, _base_item_cls)
+
+typing_extensions: Any
+try:
+    import typing_extensions
+except ImportError:
+    typing_extensions = None
+
+# typing.is_typeddict() does not recognize typing_extensions.TypedDict
+# subclasses, and typing.get_type_hints() does not strip
+# typing_extensions.ReadOnly before Python 3.13.
+if typing_extensions is None:
+    _is_typeddict = typing.is_typeddict
+    _get_type_hints = typing.get_type_hints
+else:
+    _is_typeddict = typing_extensions.is_typeddict
+    _get_type_hints = typing_extensions.get_type_hints
 
 attr: Any
 try:
