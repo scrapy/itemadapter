@@ -5,12 +5,12 @@ import dataclasses
 import inspect
 import operator
 import re
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from copy import copy
 from enum import Enum
 from textwrap import dedent
-from types import MappingProxyType, UnionType
+from types import UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,6 +26,8 @@ from ._imports import PydanticUndefined, PydanticV1Undefined, attr
 from ._utils import _is_pydantic_model
 
 if TYPE_CHECKING:
+    from attr import Attribute
+
     from .adapter import AdapterInterface, ItemAdapter
 
 
@@ -53,7 +55,7 @@ class _JsonSchemaState:
     recursion."""
 
 
-def dedupe_types(types: Sequence[type]) -> list[type]:
+def dedupe_types(types: Sequence[Any]) -> list[Any]:
     seen = set()
     result = []
     # JSON Schema's number type includes integers, but not the other way around.
@@ -69,7 +71,7 @@ def dedupe_types(types: Sequence[type]) -> list[type]:
 def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     prop_types = dedupe_types(get_args(prop_type))
     simple_types = [v for k, v in SIMPLE_TYPES.items() if k in prop_types]
-    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])  # type: ignore[type-var]
+    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])
     if not complex_types:
         prop.setdefault("type", simple_types)
         return
@@ -88,7 +90,7 @@ def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSch
 class ArrayProtocol(Protocol):
     def __iter__(self) -> Iterator[Any]: ...
     def __len__(self) -> int: ...
-    def __contains__(self, item: Any) -> bool: ...
+    def __contains__(self, item: object) -> bool: ...
 
 
 @runtime_checkable
@@ -96,13 +98,13 @@ class ObjectProtocol(Protocol):  # noqa: PLW1641
     def __getitem__(self, key: str) -> Any: ...
     def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
-    def __contains__(self, key: str) -> bool: ...
-    def keys(self): ...
-    def items(self): ...
-    def values(self): ...
-    def get(self, key: str, default: Any = ...): ...
-    def __eq__(self, other): ...
-    def __ne__(self, other): ...
+    def __contains__(self, key: object) -> bool: ...
+    def keys(self) -> Iterable[str]: ...
+    def items(self) -> Iterable[tuple[str, Any]]: ...
+    def values(self) -> Iterable[Any]: ...
+    def get(self, key: str, default: Any = ...) -> Any: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
 
 
 INVALID_PATTERN_SUBSTRINGS = [
@@ -145,7 +147,7 @@ def json_schema_pattern(pattern: str | re.Pattern[str]) -> str | None:
     return pattern if is_valid_pattern(pattern) else None
 
 
-def array_type(type_hint):
+def array_type(type_hint: Any) -> Any:
     """Given the type hint of a Python type that maps to a JSON Schema array,
     such as a list, a tuple or a set, return the type of the items in that
     array."""
@@ -397,7 +399,7 @@ def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[s
 
 def _update_attrs_prop(
     prop: dict[str, Any],
-    field: attr.Attribute,
+    field: Attribute[Any],
     state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
@@ -419,12 +421,12 @@ ATTRS_NUMBER_VALIDATORS = {
 
 def _update_attrs_prop_validation(
     prop: dict[str, Any],
-    field: attr.Attribute,
+    field: Attribute[Any],
 ) -> None:
     if not field.validator:
         return
     if type(field.validator).__name__ == "_AndValidator":
-        validators = field.validator._validators
+        validators = field.validator._validators  # type: ignore[attr-defined]
     else:
         validators = [field.validator]
     for validator in validators:
@@ -479,7 +481,7 @@ def _json_schema_from_pydantic(
     state = state or _JsonSchemaState(adapter=adapter, containers={item_class})
     if not _is_pydantic_model(item_class):
         return _json_schema_from_pydantic_v1(adapter, item_class, state)
-    schema = copy(
+    schema: dict[str, Any] = copy(
         item_class.model_config.get("json_schema_extra", {})  # type: ignore[attr-defined]
     )
     extra = item_class.model_config.get("extra")  # type: ignore[attr-defined]
@@ -507,7 +509,7 @@ def _json_schema_from_pydantic(
 def _update_pydantic_prop(
     prop: dict[str, Any],
     name: str,
-    metadata: MappingProxyType,
+    metadata: Mapping[str, Any],
     _state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
@@ -535,7 +537,7 @@ def _update_pydantic_prop(
 def _update_pydantic_prop_validation(
     prop: dict[str, Any],
     metadata: Sequence[Any],
-    field_type: type,
+    field_type: object,
 ) -> None:
     for metadata_item in metadata:
         metadata_item_type = type(metadata_item).__name__

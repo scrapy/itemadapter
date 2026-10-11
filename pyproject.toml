@@ -77,6 +77,9 @@ filename = "itemadapter/__init__.py"
 [tool.coverage.run]
 branch = true
 
+[tool.mypy]
+strict = true
+
 [tool.pylint.MASTER]
 persistent = "no"
 load-plugins=[

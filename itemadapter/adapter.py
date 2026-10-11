@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable, Iterator, KeysView, MutableMapping
 from functools import lru_cache
 from types import MappingProxyType
-from typing import Any
+from typing import Any, ClassVar, cast
 
 from itemadapter._imports import _scrapy_item_classes, attr
 from itemadapter._json_schema import (
@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 
-class AdapterInterface(MutableMapping, metaclass=ABCMeta):
+class AdapterInterface(MutableMapping[str, Any], metaclass=ABCMeta):
     """Abstract Base Class for adapters.
 
     An adapter that handles a specific type of item should inherit from this
@@ -55,12 +55,14 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    def is_item(cls, item: Any) -> bool:
+    def is_item(cls, item: object) -> bool:
         """Return True if the adapter can handle the given item, False otherwise."""
         return cls.is_item_class(item.__class__)
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         return MappingProxyType({})
 
     @classmethod
@@ -75,23 +77,23 @@ class AdapterInterface(MutableMapping, metaclass=ABCMeta):
     ) -> dict[str, Any]:
         return _json_schema_from_item_class(cls, item_class, _state)
 
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
+    def get_field_meta(self, field_name: str) -> MappingProxyType[str, Any]:
         """Return metadata for the given field name, if available."""
         return self.get_field_meta_from_class(self.item.__class__, field_name)
 
-    def field_names(self) -> KeysView:
+    def field_names(self) -> KeysView[str]:
         """Return a dynamic view of the item's field names."""
-        return self.keys()  # type: ignore[return-value]
+        return self.keys()
 
 
 class _MixinAttrsDataclassAdapter:
-    _fields_dict: dict
+    _fields_dict: dict[str, Any]
     item: Any
 
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
-        return self._fields_dict[field_name].metadata
+    def get_field_meta(self, field_name: str) -> MappingProxyType[str, Any]:
+        return cast("MappingProxyType[str, Any]", self._fields_dict[field_name].metadata)
 
-    def field_names(self) -> KeysView:
+    def field_names(self) -> KeysView[str]:
         return KeysView(self._fields_dict)
 
     def __getitem__(self, field_name: str) -> Any:
@@ -117,7 +119,7 @@ class _MixinAttrsDataclassAdapter:
         else:
             raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[str]:
         return iter(attr for attr in self._fields_dict if hasattr(self.item, attr))
 
     def __len__(self) -> int:
@@ -137,11 +139,15 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         return _is_attrs_class(item_class)
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         if attr is None:
             raise RuntimeError("attr module is not available")
         try:
-            return attr.fields_dict(item_class)[field_name].metadata
+            return cast(
+                "MappingProxyType[str, Any]", attr.fields_dict(item_class)[field_name].metadata
+            )
         except KeyError as ex:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}") from ex
 
@@ -170,7 +176,9 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
         return dataclasses.is_dataclass(item_class)
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         for field in dataclasses.fields(item_class):
             if field.name == field_name:
                 return field.metadata
@@ -189,14 +197,14 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 
 
 class PydanticAdapter(AdapterInterface):
-    item: Any
-
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
         return _is_pydantic_model(item_class) or _is_pydantic_v1_model(item_class)
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         try:
             try:
                 return _get_pydantic_model_metadata(item_class, field_name)
@@ -218,7 +226,7 @@ class PydanticAdapter(AdapterInterface):
     ) -> dict[str, Any]:
         return _json_schema_from_pydantic(cls, item_class, _state)
 
-    def field_names(self) -> KeysView:
+    def field_names(self) -> KeysView[str]:
         try:
             return KeysView(self.item.__class__.model_fields)
         except AttributeError:
@@ -271,7 +279,7 @@ class PydanticAdapter(AdapterInterface):
                     raise KeyError(field_name) from ex
         raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[str]:
         try:
             return iter(
                 attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr)
@@ -284,7 +292,6 @@ class PydanticAdapter(AdapterInterface):
 
 
 class _MixinDictScrapyItemAdapter:
-    _fields_dict: dict
     item: Any
 
     def __getitem__(self, field_name: str) -> Any:
@@ -296,7 +303,7 @@ class _MixinDictScrapyItemAdapter:
     def __delitem__(self, field_name: str) -> None:
         del self.item[field_name]
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[str]:
         return iter(self.item)
 
     def __len__(self) -> int:
@@ -314,7 +321,7 @@ class DictAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
     ) -> dict[str, Any]:
         return {"type": "object"}
 
-    def field_names(self) -> KeysView:
+    def field_names(self) -> KeysView[str]:
         return KeysView(self.item)
 
 
@@ -324,7 +331,9 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         return issubclass(item_class, _scrapy_item_classes)
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         return MappingProxyType(item_class.fields[field_name])  # type: ignore[attr-defined]
 
     @classmethod
@@ -342,7 +351,7 @@ class ScrapyItemAdapter(_MixinDictScrapyItemAdapter, AdapterInterface):
         schema.pop("required", None)
         return schema
 
-    def field_names(self) -> KeysView:
+    def field_names(self) -> KeysView[str]:
         return KeysView(self.item.fields)
 
 
@@ -381,12 +390,12 @@ def _find_adapter_class(
     return None, _has_item_overrides(adapter_classes)
 
 
-class ItemAdapter(MutableMapping):
+class ItemAdapter(MutableMapping[str, Any]):
     """Wrapper class to interact with data container objects. It provides a common interface
     to extract and set data without having to take the object's type into account.
     """
 
-    ADAPTER_CLASSES: Iterable[type[AdapterInterface]] = (
+    ADAPTER_CLASSES: ClassVar[Iterable[type[AdapterInterface]]] = (
         ScrapyItemAdapter,
         DictAdapter,
         DataclassAdapter,
@@ -430,7 +439,9 @@ class ItemAdapter(MutableMapping):
         return adapter_class
 
     @classmethod
-    def get_field_meta_from_class(cls, item_class: type, field_name: str) -> MappingProxyType:
+    def get_field_meta_from_class(
+        cls, item_class: type, field_name: str
+    ) -> MappingProxyType[str, Any]:
         adapter_class = cls._get_adapter_class(item_class)
         return adapter_class.get_field_meta_from_class(item_class, field_name)
 
@@ -464,28 +475,28 @@ class ItemAdapter(MutableMapping):
     def __delitem__(self, field_name: str) -> None:
         self.adapter.__delitem__(field_name)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[str]:
         return self.adapter.__iter__()
 
     def __len__(self) -> int:
         return self.adapter.__len__()
 
-    def get_field_meta(self, field_name: str) -> MappingProxyType:
+    def get_field_meta(self, field_name: str) -> MappingProxyType[str, Any]:
         """Return metadata for the given field name."""
         return self.adapter.get_field_meta(field_name)
 
-    def field_names(self) -> KeysView:
+    def field_names(self) -> KeysView[str]:
         """Return read-only key view with the names of all the defined fields for the item."""
         return self.adapter.field_names()
 
-    def asdict(self) -> dict:
+    def asdict(self) -> dict[str, Any]:
         """Return a dict object with the contents of the adapter. This works slightly different
         than calling `dict(adapter)`: it's applied recursively to nested items (if there are any).
         """
         return {key: self._asdict(value) for key, value in self.items()}
 
     @classmethod
-    def _asdict(cls, obj: Any) -> Any:
+    def _asdict(cls, obj: object) -> object:
         if isinstance(obj, dict):
             return {key: cls._asdict(value) for key, value in obj.items()}
         if isinstance(obj, (list, set, tuple)):

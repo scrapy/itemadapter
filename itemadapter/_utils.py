@@ -12,25 +12,25 @@ from itemadapter._imports import (
 )
 
 
-def _is_attrs_class(obj: Any) -> bool:
+def _is_attrs_class(obj: type) -> bool:
     if attr is None:
         return False
-    return attr.has(obj)
+    return bool(attr.has(obj))
 
 
-def _is_pydantic_model(obj: Any) -> bool:
+def _is_pydantic_model(obj: type) -> bool:
     if pydantic is None:
         return False
     return issubclass(obj, pydantic.BaseModel)
 
 
-def _is_pydantic_v1_model(obj: Any) -> bool:
+def _is_pydantic_v1_model(obj: type) -> bool:
     if pydantic_v1 is None:
         return False
     return issubclass(obj, pydantic_v1.BaseModel)
 
 
-def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
+def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType[str, Any]:
     metadata = {}
     field = item_model.model_fields[field_name]
 
@@ -84,7 +84,9 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
     return MappingProxyType(metadata)
 
 
-def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
+def _get_pydantic_v1_model_metadata(
+    item_model: Any, field_name: str
+) -> MappingProxyType[str, Any]:
     metadata = {}
     field = item_model.__fields__[field_name]
     field_info = field.field_info
