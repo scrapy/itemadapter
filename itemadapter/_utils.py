@@ -16,25 +16,25 @@ from itemadapter._imports import (
 )
 
 
-def _is_attrs_class(obj: Any) -> bool:
+def _is_attrs_class(obj: type) -> bool:
     if attr is None:
         return False
-    return attr.has(obj)
+    return bool(attr.has(obj))
 
 
-def _is_pydantic_model(obj: Any) -> bool:
+def _is_pydantic_model(obj: type) -> bool:
     if pydantic is None:
         return False
     return issubclass(obj, pydantic.BaseModel)
 
 
-def _is_pydantic_v1_model(obj: Any) -> bool:
+def _is_pydantic_v1_model(obj: type) -> bool:
     if pydantic_v1 is None:
         return False
     return issubclass(obj, pydantic_v1.BaseModel)
 
 
-def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
+def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType[str, Any]:
     metadata = {}
     field = item_model.model_fields[field_name]
 
@@ -88,7 +88,9 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
     return MappingProxyType(metadata)
 
 
-def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> MappingProxyType:
+def _get_pydantic_v1_model_metadata(
+    item_model: Any, field_name: str
+) -> MappingProxyType[str, Any]:
     metadata = {}
     field = item_model.__fields__[field_name]
     field_info = field.field_info
@@ -126,12 +128,12 @@ def _get_pydantic_v1_model_metadata(item_model: Any, field_name: str) -> Mapping
     return MappingProxyType(metadata)
 
 
-_EMPTY_METADATA: MappingProxyType = MappingProxyType({})
+_EMPTY_METADATA: MappingProxyType[str, Any] = MappingProxyType({})
 _READ_ONLY = {getattr(typing, "ReadOnly", None), getattr(typing_extensions, "ReadOnly", None)}
 _READ_ONLY.discard(None)
 
 
-def _split_typed_dict_hint(type_hint: Any) -> tuple[MappingProxyType, bool | None]:
+def _split_typed_dict_hint(type_hint: Any) -> tuple[MappingProxyType[str, Any], bool | None]:
     """Return the metadata and the requiredness of a ``TypedDict`` field, given
     its type hint including extras.
 
@@ -164,7 +166,9 @@ def _split_typed_dict_hint(type_hint: Any) -> tuple[MappingProxyType, bool | Non
     return MappingProxyType(metadata) if metadata is not None else _EMPTY_METADATA, required
 
 
-def _get_typed_dict_field_metadata(item_class: Any, field_name: str) -> MappingProxyType:
+def _get_typed_dict_field_metadata(
+    item_class: type, field_name: str
+) -> MappingProxyType[str, Any]:
     type_hints = _get_type_hints(item_class, include_extras=True)
     if field_name not in type_hints:
         raise KeyError(f"{item_class.__name__} does not support field: {field_name}")

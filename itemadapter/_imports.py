@@ -8,7 +8,7 @@ from typing import Any
 # to be imported from itemadapter's submodules
 
 
-_scrapy_item_classes: tuple
+_scrapy_item_classes: tuple[type, ...]
 scrapy: Any
 
 try:
@@ -52,10 +52,10 @@ except ImportError:
     attr = None
 
 pydantic: Any = None
-PydanticUndefined: Any = None
+PydanticUndefined: object = None
 
 pydantic_v1: Any = None
-PydanticV1Undefined: Any = None
+PydanticV1Undefined: object = None
 
 # pydantic v1 doesn't support Python 3.14+, on older Python versions we try to find both
 if sys.version_info < (3, 14):
