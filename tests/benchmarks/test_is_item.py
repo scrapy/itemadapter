@@ -7,7 +7,7 @@ import pytest
 
 import itemadapter
 from itemadapter import ItemAdapter
-from itemadapter._imports import attr, pydantic, pydantic_v1, scrapy
+from itemadapter._imports import attr, pydantic, scrapy
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -45,10 +45,6 @@ def _pydantic_class(index: int) -> type:
     return pydantic.create_model(f"PydanticModel{index}", name=(str, None), value=(int, None))
 
 
-def _pydantic_v1_class(index: int) -> type:
-    return pydantic_v1.create_model(f"PydanticV1Model{index}", name=(str, None), value=(int, None))
-
-
 def _scrapy_class(index: int) -> type:
     return type(scrapy.Item)(
         f"ScrapyItem{index}",
@@ -66,8 +62,6 @@ if attr is not None:
     ITEM_CLASS_FACTORIES["attrs"] = _attrs_class
 if pydantic is not None:
     ITEM_CLASS_FACTORIES["pydantic"] = _pydantic_class
-if pydantic_v1 is not None:
-    ITEM_CLASS_FACTORIES["pydantic-v1"] = _pydantic_v1_class
 if scrapy is not None:
     ITEM_CLASS_FACTORIES["scrapy"] = _scrapy_class
 

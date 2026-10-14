@@ -9,7 +9,6 @@ from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
-    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
     clear_itemadapter_imports,
@@ -43,8 +42,6 @@ class ScrapyItemTestCase(unittest.TestCase):
 
         if PydanticModel is not None:
             assert not ScrapyItemAdapter.is_item(PydanticModel())
-        if PydanticV1Model is not None:
-            assert not ScrapyItemAdapter.is_item(PydanticV1Model())
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @mock.patch("builtins.__import__", make_mock_import("scrapy"))
@@ -84,56 +81,3 @@ class ScrapyItemTestCase(unittest.TestCase):
         assert get_field_meta_from_class(ScrapySubclassedItem, "value") == MappingProxyType(
             {"serializer": int}
         )
-
-
-try:
-    import scrapy
-except ImportError:
-    scrapy = None
-
-
-class ScrapyDeprecatedBaseItemTestCase(unittest.TestCase):
-    """Tests for deprecated classes. These will go away once the upstream classes are removed."""
-
-    @unittest.skipIf(
-        scrapy is None or not hasattr(scrapy.item, "_BaseItem"),
-        "scrapy.item._BaseItem not available",
-    )
-    def test_deprecated_underscore_baseitem(self):
-        from itemadapter.adapter import ScrapyItemAdapter
-
-        class SubClassed_BaseItem(scrapy.item._BaseItem):
-            pass
-
-        assert ScrapyItemAdapter.is_item(scrapy.item._BaseItem())
-        assert ScrapyItemAdapter.is_item(SubClassed_BaseItem())
-
-    @unittest.skipIf(
-        scrapy is None or not hasattr(scrapy.item, "BaseItem"),
-        "scrapy.item.BaseItem not available",
-    )
-    def test_deprecated_baseitem(self):
-        from itemadapter.adapter import ScrapyItemAdapter
-
-        class SubClassedBaseItem(scrapy.item.BaseItem):
-            pass
-
-        assert ScrapyItemAdapter.is_item(scrapy.item.BaseItem())
-        assert ScrapyItemAdapter.is_item(SubClassedBaseItem())
-
-    @unittest.skipIf(scrapy is None, "scrapy module is not available")
-    def test_removed_baseitem(self):
-        """Mock the scrapy.item module so it does not contain the deprecated _BaseItem class."""
-        from itemadapter.adapter import ScrapyItemAdapter
-
-        class MockItemModule:
-            Item = ScrapyItem
-
-        with mock.patch("scrapy.item", MockItemModule):
-            assert not ScrapyItemAdapter.is_item({})
-            assert get_field_meta_from_class(ScrapySubclassedItem, "name") == MappingProxyType(
-                {"serializer": str}
-            )
-            assert get_field_meta_from_class(ScrapySubclassedItem, "value") == MappingProxyType(
-                {"serializer": int}
-            )

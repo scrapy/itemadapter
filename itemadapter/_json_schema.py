@@ -22,8 +22,8 @@ from typing import (
     runtime_checkable,
 )
 
-from ._imports import PydanticUndefined, PydanticV1Undefined, _get_type_hints, attr
-from ._utils import _is_pydantic_model, _split_typed_dict_hint
+from ._imports import PydanticUndefined, _get_type_hints, attr
+from ._utils import _split_typed_dict_hint
 
 if TYPE_CHECKING:
     from attr import Attribute
@@ -501,8 +501,6 @@ def _json_schema_from_pydantic(
     adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState | None = None
 ) -> dict[str, Any]:
     state = state or _JsonSchemaState(adapter=adapter, containers={item_class})
-    if not _is_pydantic_model(item_class):
-        return _json_schema_from_pydantic_v1(adapter, item_class, state)
     schema: dict[str, Any] = copy(
         item_class.model_config.get("json_schema_extra", {})  # type: ignore[attr-defined]
     )
@@ -580,77 +578,3 @@ def _update_pydantic_prop_validation(
             ):
                 if metadata_item_type == metadata_key.capitalize():
                     prop.setdefault(json_schema_field, getattr(metadata_item, metadata_key))
-
-
-def _json_schema_from_pydantic_v1(
-    adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState
-) -> dict[str, Any]:
-    schema = copy(
-        getattr(item_class.Config, "schema_extra", {})  # type: ignore[attr-defined]
-    )
-    extra = getattr(item_class.Config, "extra", None)  # type: ignore[attr-defined]
-    schema.setdefault("type", "object")
-    if extra == "forbid":
-        schema.setdefault("additionalProperties", False)
-    fields = {
-        name: adapter.get_field_meta_from_class(item_class, name)
-        for name in adapter.get_field_names_from_class(item_class) or ()
-    }
-    if not fields:
-        return schema
-    schema["properties"] = {
-        name: copy(metadata.get("json_schema_extra", {})) for name, metadata in fields.items()
-    }
-    default_factory_fields: set[str] = set()
-    field_type_hints = get_type_hints(item_class)
-    for name, metadata in fields.items():
-        prop = schema["properties"][name]
-        _update_pydantic_v1_prop(
-            prop, name, metadata, field_type_hints, default_factory_fields, state
-        )
-    update_required_fields(schema, default_factory_fields)
-    _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
-    return schema
-
-
-def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,too-many-arguments
-    prop: dict[str, Any],
-    name: str,
-    metadata: Mapping[str, Any],
-    field_type_hints: dict[str, Any],
-    default_factory_fields: set[str],
-    state: _JsonSchemaState,
-) -> None:
-    field_type = field_type_hints[name]
-    update_prop_from_type(prop, field_type, state)
-    if "default_factory" in metadata:
-        default_factory_fields.add(name)
-    elif "default" in metadata and metadata["default"] not in (
-        Ellipsis,
-        PydanticV1Undefined,
-    ):
-        prop.setdefault("default", metadata["default"])
-    for metadata_key, json_schema_field in (
-        ("title", "title"),
-        ("description", "description"),
-        ("examples", "examples"),
-        ("ge", "minimum"),
-        ("gt", "exclusiveMinimum"),
-        ("le", "maximum"),
-        ("lt", "exclusiveMaximum"),
-    ):
-        if metadata_key in metadata:
-            prop.setdefault(json_schema_field, metadata[metadata_key])
-    for prefix in ("min", "max"):
-        if f"{prefix}_length" in metadata:
-            key = f"{prefix}Length" if field_type is str else f"{prefix}Items"
-            prop.setdefault(key, metadata[f"{prefix}_length"])
-        elif f"{prefix}_items" in metadata:
-            prop.setdefault(f"{prefix}Items", metadata[f"{prefix}_items"])
-    for metadata_key in ("pattern", "regex"):
-        if metadata_key in metadata:
-            pattern = metadata[metadata_key]
-            update_prop_from_pattern(prop, pattern)
-            break
-    if "deprecated" in metadata:
-        prop.setdefault("deprecated", bool(metadata["deprecated"]))

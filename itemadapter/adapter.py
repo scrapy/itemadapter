@@ -21,11 +21,9 @@ from itemadapter._json_schema import (
 )
 from itemadapter._utils import (
     _get_pydantic_model_metadata,
-    _get_pydantic_v1_model_metadata,
     _get_typed_dict_field_metadata,
     _is_attrs_class,
     _is_pydantic_model,
-    _is_pydantic_v1_model,
 )
 
 __all__ = [
@@ -201,26 +199,20 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 class PydanticAdapter(AdapterInterface):
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        return _is_pydantic_model(item_class) or _is_pydantic_v1_model(item_class)
+        return _is_pydantic_model(item_class)
 
     @classmethod
     def get_field_meta_from_class(
         cls, item_class: type, field_name: str
     ) -> MappingProxyType[str, Any]:
         try:
-            try:
-                return _get_pydantic_model_metadata(item_class, field_name)
-            except AttributeError:
-                return _get_pydantic_v1_model_metadata(item_class, field_name)
+            return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError as ex:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}") from ex
 
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
-        try:
-            return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
-        except AttributeError:
-            return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
+        return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
 
     @classmethod
     def get_json_schema(
@@ -229,65 +221,31 @@ class PydanticAdapter(AdapterInterface):
         return _json_schema_from_pydantic(cls, item_class, _state)
 
     def field_names(self) -> KeysView[str]:
-        try:
-            return KeysView(self.item.__class__.model_fields)
-        except AttributeError:
-            return KeysView(self.item.__fields__)
+        return KeysView(self.item.__class__.model_fields)
 
     def __getitem__(self, field_name: str) -> Any:
-        try:
-            self.item.__class__.model_fields  # noqa: B018
-        except AttributeError:
-            if field_name in self.item.__fields__:
-                return getattr(self.item, field_name)
-        else:
-            if field_name in self.item.__class__.model_fields:
-                return getattr(self.item, field_name)
-        raise KeyError(field_name)
+        if field_name not in self.item.__class__.model_fields:
+            raise KeyError(field_name)
+        return getattr(self.item, field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
-        try:
-            self.item.__class__.model_fields  # noqa: B018
-        except AttributeError:
-            if field_name in self.item.__fields__:
-                setattr(self.item, field_name, value)
-                return
-        else:
-            if field_name in self.item.__class__.model_fields:
-                setattr(self.item, field_name, value)
-                return
-        raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+        if field_name not in self.item.__class__.model_fields:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+        setattr(self.item, field_name, value)
 
     def __delitem__(self, field_name: str) -> None:
+        if field_name not in self.item.__class__.model_fields:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
         try:
-            self.item.__class__.model_fields  # noqa: B018
+            if hasattr(self.item, field_name):
+                delattr(self.item, field_name)
+                return
+            raise AttributeError
         except AttributeError as ex:
-            if field_name in self.item.__fields__:
-                try:
-                    if hasattr(self.item, field_name):
-                        delattr(self.item, field_name)
-                        return
-                    raise AttributeError from ex
-                except AttributeError as ex2:
-                    raise KeyError(field_name) from ex2
-        else:
-            if field_name in self.item.__class__.model_fields:
-                try:
-                    if hasattr(self.item, field_name):
-                        delattr(self.item, field_name)
-                        return
-                    raise AttributeError
-                except AttributeError as ex:
-                    raise KeyError(field_name) from ex
-        raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+            raise KeyError(field_name) from ex
 
     def __iter__(self) -> Iterator[str]:
-        try:
-            return iter(
-                attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr)
-            )
-        except AttributeError:
-            return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
+        return iter(attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr))
 
     def __len__(self) -> int:
         return len(list(iter(self)))

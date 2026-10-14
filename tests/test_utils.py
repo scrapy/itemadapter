@@ -5,7 +5,7 @@ import pytest
 
 from itemadapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class, is_item
-from tests import AttrsItem, DataClassItem, PydanticV1Model, ScrapyItem, ScrapySubclassedItem
+from tests import AttrsItem, DataClassItem, PydanticModel, ScrapyItem, ScrapySubclassedItem
 
 
 class FieldMetaFromClassTestCase(unittest.TestCase):
@@ -39,7 +39,7 @@ class ItemLikeTestCase(unittest.TestCase):
         assert not is_item(DataClassItem)
         assert not is_item(ScrapySubclassedItem)
         assert not is_item(AttrsItem)
-        assert not is_item(PydanticV1Model)
+        assert not is_item(PydanticModel)
         assert not ItemAdapter.is_item_class(list)
         assert not ItemAdapter.is_item_class(int)
         assert not ItemAdapter.is_item_class(tuple)
@@ -65,7 +65,7 @@ class ItemLikeTestCase(unittest.TestCase):
         assert is_item(AttrsItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(AttrsItem)
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true_pydantic(self):
-        assert is_item(PydanticV1Model(name="asdf", value=1234))
-        assert ItemAdapter.is_item_class(PydanticV1Model)
+        assert is_item(PydanticModel(name="asdf", value=1234))
+        assert ItemAdapter.is_item_class(PydanticModel)

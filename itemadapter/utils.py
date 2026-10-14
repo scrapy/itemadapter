@@ -27,7 +27,7 @@ def get_field_meta_from_class(item_class: type, field_name: str) -> MappingProxy
     * scrapy.item.Item: corresponding scrapy.item.Field object
     * dataclass items: "metadata" attribute for the corresponding field
     * attrs items: "metadata" attribute for the corresponding field
-    * pydantic models: corresponding pydantic.field.FieldInfo/ModelField object
+    * pydantic models: corresponding pydantic.fields.FieldInfo object
 
     The returned value is an instance of types.MappingProxyType, i.e. a dynamic read-only view
     of the original mapping, which gets automatically updated if the original mapping changes.

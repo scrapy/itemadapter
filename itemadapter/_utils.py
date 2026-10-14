@@ -7,11 +7,9 @@ from typing import Annotated, Any, NotRequired, Required, get_args, get_origin
 
 from itemadapter._imports import (
     PydanticUndefined,
-    PydanticV1Undefined,
     _get_type_hints,
     attr,
     pydantic,
-    pydantic_v1,
     typing_extensions,
 )
 
@@ -26,12 +24,6 @@ def _is_pydantic_model(obj: type) -> bool:
     if pydantic is None:
         return False
     return issubclass(obj, pydantic.BaseModel)
-
-
-def _is_pydantic_v1_model(obj: type) -> bool:
-    if pydantic_v1 is None:
-        return False
-    return issubclass(obj, pydantic_v1.BaseModel)
 
 
 def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingProxyType[str, Any]:
@@ -84,46 +76,6 @@ def _get_pydantic_model_metadata(item_model: Any, field_name: str) -> MappingPro
     ]:
         if hasattr(field, attribute) and (value := getattr(field, attribute)) != default_value:
             metadata[attribute] = value
-
-    return MappingProxyType(metadata)
-
-
-def _get_pydantic_v1_model_metadata(
-    item_model: Any, field_name: str
-) -> MappingProxyType[str, Any]:
-    metadata = {}
-    field = item_model.__fields__[field_name]
-    field_info = field.field_info
-
-    for attribute in [
-        "alias",
-        "const",
-        "description",
-        "ge",
-        "gt",
-        "le",
-        "lt",
-        "max_items",
-        "max_length",
-        "min_items",
-        "min_length",
-        "multiple_of",
-        "regex",
-        "title",
-    ]:
-        value = getattr(field_info, attribute)
-        if value is not None:
-            metadata[attribute] = value
-
-    if (value := field_info.default) not in (PydanticV1Undefined, Ellipsis):
-        metadata["default"] = value
-
-    if value := field.default_factory is not None:
-        metadata["default_factory"] = value
-
-    if not field_info.allow_mutation:
-        metadata["allow_mutation"] = field_info.allow_mutation
-    metadata.update(field_info.extra)
 
     return MappingProxyType(metadata)
 
