@@ -124,11 +124,6 @@ allow-any-import-level = [
     "scrapy"
 ]
 
-[tool.pytest]
-filterwarnings = [
-    "ignore:.*BaseItem.*",
-]
-
 [tool.ruff]
 line-length = 99
 

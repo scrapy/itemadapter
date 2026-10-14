@@ -12,21 +12,11 @@ scrapy: Any
 
 try:
     import scrapy
+
+    _scrapy_item_classes = (scrapy.item.Item,)
 except ImportError:
-    _scrapy_item_classes = ()
     scrapy = None
-else:
-    try:
-        # handle deprecated base classes
-        _base_item_cls = getattr(
-            scrapy.item,
-            "_BaseItem",
-            scrapy.item.BaseItem,
-        )
-    except AttributeError:
-        _scrapy_item_classes = (scrapy.item.Item,)
-    else:
-        _scrapy_item_classes = (scrapy.item.Item, _base_item_cls)
+    _scrapy_item_classes = ()
 
 typing_extensions: Any
 try:
