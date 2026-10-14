@@ -21,11 +21,9 @@ from itemadapter._json_schema import (
 )
 from itemadapter._utils import (
     _get_pydantic_model_metadata,
-    _get_pydantic_v1_model_metadata,
     _get_typed_dict_field_metadata,
     _is_attrs_class,
     _is_pydantic_model,
-    _is_pydantic_v1_model,
 )
 
 __all__ = [
@@ -201,17 +199,14 @@ class DataclassAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
 class PydanticAdapter(AdapterInterface):
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
-        return _is_pydantic_model(item_class) or _is_pydantic_v1_model(item_class)
+        return _is_pydantic_model(item_class)
 
     @classmethod
     def get_field_meta_from_class(
         cls, item_class: type, field_name: str
     ) -> MappingProxyType[str, Any]:
         try:
-            try:
-                return _get_pydantic_model_metadata(item_class, field_name)
-            except AttributeError:
-                return _get_pydantic_v1_model_metadata(item_class, field_name)
+            return _get_pydantic_model_metadata(item_class, field_name)
         except KeyError as ex:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}") from ex
 

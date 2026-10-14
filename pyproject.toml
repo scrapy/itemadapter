@@ -37,7 +37,7 @@ attrs = [
     "attrs>=20.1.0",
 ]
 pydantic = [
-    "pydantic>=1.8",
+    "pydantic>=2.7",
 ]
 scrapy = [
     "scrapy>=2.7",

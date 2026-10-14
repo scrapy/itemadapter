@@ -9,7 +9,6 @@ from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
-    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
     clear_itemadapter_imports,
@@ -43,8 +42,6 @@ class ScrapyItemTestCase(unittest.TestCase):
 
         if PydanticModel is not None:
             assert not ScrapyItemAdapter.is_item(PydanticModel())
-        if PydanticV1Model is not None:
-            assert not ScrapyItemAdapter.is_item(PydanticV1Model())
 
     @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
     @mock.patch("builtins.__import__", make_mock_import("scrapy"))

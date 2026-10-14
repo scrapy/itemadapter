@@ -32,7 +32,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   `scrapy` items
 * [`attrs`](https://pypi.org/project/attrs/) 20.1.0+: optional, needed to
   interact with `attrs`-based items
-* [`pydantic`](https://pypi.org/project/pydantic/) 1.8+: optional, needed to
+* [`pydantic`](https://pypi.org/project/pydantic/) 2.7+: optional, needed to
   interact with `pydantic`-based items
 
 ---

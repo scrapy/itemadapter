@@ -14,7 +14,6 @@ from tests import (
     AttrsItem,
     DataClassItem,
     PydanticModel,
-    PydanticV1Model,
     ScrapyItem,
     ScrapySubclassedItem,
     clear_itemadapter_imports,
@@ -42,8 +41,6 @@ class AttrsTestCase(unittest.TestCase):
 
         if PydanticModel is not None:
             assert not AttrsAdapter.is_item(PydanticModel())
-        if PydanticV1Model is not None:
-            assert not AttrsAdapter.is_item(PydanticV1Model())
 
         try:
             import scrapy  # noqa: F401  # pylint: disable=unused-import
