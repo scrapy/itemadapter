@@ -9,6 +9,12 @@ from packaging.version import Version
 
 from itemadapter.adapter import ItemAdapter, PydanticAdapter
 from tests import (
+    AttrsClassicItem,
+    AttrsClassicItemEmpty,
+    AttrsClassicItemJsonSchema,
+    AttrsClassicItemNested,
+    AttrsClassicItemSubclassed,
+    AttrsClassicItemWithoutInit,
     AttrsItem,
     AttrsItemEmpty,
     AttrsItemJsonSchema,
@@ -81,6 +87,22 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         assert repr(adapter) == "<ItemAdapter for AttrsItemWithoutInit()>"
         adapter["name"] = "set after init"
         assert repr(adapter) == "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
+
+    @unittest.skipIf(not AttrsClassicItem, "attrs module is not available")
+    def test_repr_attrs_classic(self):
+        item = AttrsClassicItem(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        assert repr(adapter) == "<ItemAdapter for AttrsClassicItem(name='asdf', value=1234)>"
+
+    @unittest.skipIf(not AttrsClassicItemWithoutInit, "attrs module is not available")
+    def test_repr_attrs_classic_init_false(self):
+        item = AttrsClassicItemWithoutInit()
+        adapter = ItemAdapter(item)
+        assert repr(adapter) == "<ItemAdapter for AttrsClassicItemWithoutInit()>"
+        adapter["name"] = "set after init"
+        assert (
+            repr(adapter) == "<ItemAdapter for AttrsClassicItemWithoutInit(name='set after init')>"
+        )
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_repr_pydantic(self):
@@ -476,4 +498,13 @@ class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
     item_class_subclassed = AttrsItemSubclassed
     item_class_empty = AttrsItemEmpty
     item_class_json_schema = AttrsItemJsonSchema
+    expected_json_schema = DataClassItemTestCase.expected_json_schema
+
+
+class AttrsClassicItemTestCase(NonDictTestMixin, unittest.TestCase):
+    item_class = AttrsClassicItem
+    item_class_nested = AttrsClassicItemNested
+    item_class_subclassed = AttrsClassicItemSubclassed
+    item_class_empty = AttrsClassicItemEmpty
+    item_class_json_schema = AttrsClassicItemJsonSchema
     expected_json_schema = DataClassItemTestCase.expected_json_schema

@@ -22,11 +22,11 @@ from typing import (
     runtime_checkable,
 )
 
-from ._imports import PydanticUndefined, _get_type_hints, attr
+from ._imports import PydanticUndefined, _get_type_hints, attrs
 from ._utils import _split_typed_dict_hint
 
 if TYPE_CHECKING:
-    from attr import Attribute
+    from attrs import Attribute
 
     from .adapter import AdapterInterface, ItemAdapter
 
@@ -377,13 +377,11 @@ def update_required_fields(
 
 def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
     schema = base_json_schema_from_item_class(item_class)
-    fields = attr.fields(item_class)
+    fields = attrs.fields(item_class)
     if not fields:
         return schema
 
-    from attr import resolve_types
-
-    resolve_types(item_class)  # Ensure field.type annotations are resolved
+    attrs.resolve_types(item_class)  # Ensure field.type annotations are resolved
 
     schema["properties"] = {
         field.name: copy(field.metadata.get("json_schema_extra", {})) for field in fields
@@ -404,9 +402,9 @@ def _update_attrs_prop(
     default_factory_fields: set[str],
 ) -> None:
     update_prop_from_type(prop, field.type, state)
-    if isinstance(field.default, attr.Factory):
+    if isinstance(field.default, attrs.Factory):
         default_factory_fields.add(field.name)
-    elif field.default is not attr.NOTHING:
+    elif field.default is not attrs.NOTHING:
         prop.setdefault("default", field.default)
     _update_attrs_prop_validation(prop, field)
 
@@ -445,8 +443,7 @@ def _update_attrs_prop_validation(
             key = "maxLength" if field.type is str else "maxItems"
             prop.setdefault(key, validator.max_length)
         elif validator_type_name == "_MatchesReValidator":
-            pattern_obj = getattr(validator, "pattern", None) or validator.regex
-            pattern = json_schema_pattern(pattern_obj)
+            pattern = json_schema_pattern(validator.pattern)
             if pattern is not None:
                 prefix, suffix = MATCH_FUNC_ANCHORS[validator.match_func.__name__]
                 prop.setdefault("pattern", f"{prefix}{pattern}{suffix}")

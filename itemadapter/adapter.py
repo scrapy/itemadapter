@@ -8,7 +8,7 @@ from functools import lru_cache
 from types import MappingProxyType
 from typing import Any, ClassVar, cast
 
-from itemadapter._imports import _is_typeddict, _scrapy_item_classes, attr
+from itemadapter._imports import _is_typeddict, _scrapy_item_classes, attrs
 from itemadapter._json_schema import (
     _json_schema_from_attrs,
     _json_schema_from_dataclass,
@@ -129,10 +129,10 @@ class _MixinAttrsDataclassAdapter:
 class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def __init__(self, item: Any) -> None:
         super().__init__(item)
-        if attr is None:
-            raise RuntimeError("attr module is not available")
+        if attrs is None:
+            raise RuntimeError("attrs module is not available")
         # store a reference to the item's fields to avoid O(n) lookups and O(n^2) traversals
-        self._fields_dict = attr.fields_dict(self.item.__class__)
+        self._fields_dict = attrs.fields_dict(self.item.__class__)
 
     @classmethod
     def is_item_class(cls, item_class: type) -> bool:
@@ -142,20 +142,20 @@ class AttrsAdapter(_MixinAttrsDataclassAdapter, AdapterInterface):
     def get_field_meta_from_class(
         cls, item_class: type, field_name: str
     ) -> MappingProxyType[str, Any]:
-        if attr is None:
-            raise RuntimeError("attr module is not available")
+        if attrs is None:
+            raise RuntimeError("attrs module is not available")
         try:
             return cast(
-                "MappingProxyType[str, Any]", attr.fields_dict(item_class)[field_name].metadata
+                "MappingProxyType[str, Any]", attrs.fields_dict(item_class)[field_name].metadata
             )
         except KeyError as ex:
             raise KeyError(f"{item_class.__name__} does not support field: {field_name}") from ex
 
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
-        if attr is None:
-            raise RuntimeError("attr module is not available")
-        return [a.name for a in attr.fields(item_class)]
+        if attrs is None:
+            raise RuntimeError("attrs module is not available")
+        return [a.name for a in attrs.fields(item_class)]
 
     @classmethod
     def get_json_schema(

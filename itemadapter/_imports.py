@@ -34,11 +34,11 @@ else:
     _is_typeddict = typing_extensions.is_typeddict
     _get_type_hints = typing_extensions.get_type_hints
 
-attr: Any
+attrs: Any
 try:
-    import attr
+    import attrs
 except ImportError:
-    attr = None
+    attrs = None
 
 pydantic: Any = None
 PydanticUndefined: object = None

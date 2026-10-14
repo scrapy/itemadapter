@@ -30,7 +30,7 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
   implementation
 * [`scrapy`](https://scrapy.org/) 2.7+: optional, needed to interact with
   `scrapy` items
-* [`attrs`](https://pypi.org/project/attrs/) 20.1.0+: optional, needed to
+* [`attrs`](https://pypi.org/project/attrs/) 22.1.0+: optional, needed to
   interact with `attrs`-based items
 * [`pydantic`](https://pypi.org/project/pydantic/) 2.7+: optional, needed to
   interact with `pydantic`-based items
@@ -215,7 +215,7 @@ The returned value is taken from the following sources, depending on the item ty
     for `scrapy.item.Item`s
   * [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
     for `dataclass`-based items
-  * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
+  * [`attrs.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
   * [`pydantic.fields.FieldInfo`](https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.FieldInfo)
     for `pydantic`-based items
@@ -419,11 +419,11 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 #### `attrs` objects
 
 ```python
->>> import attr
->>> @attr.s
+>>> import attrs
+>>> @attrs.define
 ... class InventoryItem:
-...     name = attr.ib(metadata={"serializer": str})
-...     value = attr.ib(metadata={"serializer": int, "limit": 100})
+...     name: str = attrs.field(metadata={"serializer": str})
+...     value: int = attrs.field(metadata={"serializer": int, "limit": 100})
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")
@@ -646,12 +646,12 @@ InventoryItem(name='bar', price=5)
 ### `attrs` objects
 
 ```python
->>> import attr
+>>> import attrs
 >>> from itemadapter import ItemAdapter
->>> @attr.s
+>>> @attrs.define
 ... class InventoryItem:
-...     name = attr.ib()
-...     price = attr.ib()
+...     name: str
+...     price: int
 ...
 >>> item = InventoryItem(name="foo", price=10)
 >>> adapter = ItemAdapter(item)

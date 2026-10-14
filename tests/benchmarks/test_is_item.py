@@ -7,7 +7,7 @@ import pytest
 
 import itemadapter
 from itemadapter import ItemAdapter
-from itemadapter._imports import attr, pydantic, scrapy
+from itemadapter._imports import attrs, pydantic, scrapy
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -35,9 +35,9 @@ def _non_item_class(index: int) -> type:
 
 
 def _attrs_class(index: int) -> type:
-    return attr.make_class(
+    return attrs.make_class(
         f"AttrsItem{index}",
-        {"name": attr.ib(default=None), "value": attr.ib(default=None)},
+        {"name": attrs.field(default=None), "value": attrs.field(default=None)},
     )
 
 
@@ -58,7 +58,7 @@ ITEM_CLASS_FACTORIES: dict[str, Callable[[int], type]] = {
     "dataclass": _dataclass_class,
     "non-item": _non_item_class,
 }
-if attr is not None:
+if attrs is not None:
     ITEM_CLASS_FACTORIES["attrs"] = _attrs_class
 if pydantic is not None:
     ITEM_CLASS_FACTORIES["pydantic"] = _pydantic_class

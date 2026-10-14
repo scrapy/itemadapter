@@ -5,7 +5,14 @@ import pytest
 
 from itemadapter import ItemAdapter
 from itemadapter.utils import get_field_meta_from_class, is_item
-from tests import AttrsItem, DataClassItem, PydanticModel, ScrapyItem, ScrapySubclassedItem
+from tests import (
+    AttrsClassicItem,
+    AttrsItem,
+    DataClassItem,
+    PydanticModel,
+    ScrapyItem,
+    ScrapySubclassedItem,
+)
 
 
 class FieldMetaFromClassTestCase(unittest.TestCase):
@@ -64,6 +71,8 @@ class ItemLikeTestCase(unittest.TestCase):
     def test_true_attrs(self):
         assert is_item(AttrsItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(AttrsItem)
+        assert is_item(AttrsClassicItem(name="asdf", value=1234))
+        assert ItemAdapter.is_item_class(AttrsClassicItem)
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     def test_true_pydantic(self):
