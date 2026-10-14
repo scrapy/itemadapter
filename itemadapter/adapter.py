@@ -212,10 +212,7 @@ class PydanticAdapter(AdapterInterface):
 
     @classmethod
     def get_field_names_from_class(cls, item_class: type) -> list[str] | None:
-        try:
-            return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
-        except AttributeError:
-            return list(item_class.__fields__.keys())  # type: ignore[attr-defined]
+        return list(item_class.model_fields.keys())  # type: ignore[attr-defined]
 
     @classmethod
     def get_json_schema(
@@ -224,65 +221,31 @@ class PydanticAdapter(AdapterInterface):
         return _json_schema_from_pydantic(cls, item_class, _state)
 
     def field_names(self) -> KeysView[str]:
-        try:
-            return KeysView(self.item.__class__.model_fields)
-        except AttributeError:
-            return KeysView(self.item.__fields__)
+        return KeysView(self.item.__class__.model_fields)
 
     def __getitem__(self, field_name: str) -> Any:
-        try:
-            self.item.__class__.model_fields  # noqa: B018
-        except AttributeError:
-            if field_name in self.item.__fields__:
-                return getattr(self.item, field_name)
-        else:
-            if field_name in self.item.__class__.model_fields:
-                return getattr(self.item, field_name)
-        raise KeyError(field_name)
+        if field_name not in self.item.__class__.model_fields:
+            raise KeyError(field_name)
+        return getattr(self.item, field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
-        try:
-            self.item.__class__.model_fields  # noqa: B018
-        except AttributeError:
-            if field_name in self.item.__fields__:
-                setattr(self.item, field_name, value)
-                return
-        else:
-            if field_name in self.item.__class__.model_fields:
-                setattr(self.item, field_name, value)
-                return
-        raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+        if field_name not in self.item.__class__.model_fields:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+        setattr(self.item, field_name, value)
 
     def __delitem__(self, field_name: str) -> None:
+        if field_name not in self.item.__class__.model_fields:
+            raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
         try:
-            self.item.__class__.model_fields  # noqa: B018
+            if hasattr(self.item, field_name):
+                delattr(self.item, field_name)
+                return
+            raise AttributeError
         except AttributeError as ex:
-            if field_name in self.item.__fields__:
-                try:
-                    if hasattr(self.item, field_name):
-                        delattr(self.item, field_name)
-                        return
-                    raise AttributeError from ex
-                except AttributeError as ex2:
-                    raise KeyError(field_name) from ex2
-        else:
-            if field_name in self.item.__class__.model_fields:
-                try:
-                    if hasattr(self.item, field_name):
-                        delattr(self.item, field_name)
-                        return
-                    raise AttributeError
-                except AttributeError as ex:
-                    raise KeyError(field_name) from ex
-        raise KeyError(f"{self.item.__class__.__name__} does not support field: {field_name}")
+            raise KeyError(field_name) from ex
 
     def __iter__(self) -> Iterator[str]:
-        try:
-            return iter(
-                attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr)
-            )
-        except AttributeError:
-            return iter(attr for attr in self.item.__fields__ if hasattr(self.item, attr))
+        return iter(attr for attr in self.item.__class__.model_fields if hasattr(self.item, attr))
 
     def __len__(self) -> int:
         return len(list(iter(self)))
