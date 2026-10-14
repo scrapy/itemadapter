@@ -17,7 +17,7 @@ Currently supported types are:
   subclasses
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
-* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
+* [`pydantic`](https://pydantic.dev/docs/validation/)-based classes
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -217,7 +217,7 @@ The returned value is taken from the following sources, depending on the item ty
     for `dataclass`-based items
   * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
-  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation)
+  * [`pydantic.fields.FieldInfo`](https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.FieldInfo)
     for `pydantic`-based items
   * the first mapping in the
     [`typing.Annotated`](https://docs.python.org/3/library/typing.html#typing.Annotated)
