@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import typing
 import unittest
@@ -577,6 +578,36 @@ class JsonSchemaTestCase(unittest.TestCase):
             "required": ["foo"],
         }
         check_schemas(actual, expected)
+
+    def test_field_docstring_source_reads(self) -> None:
+        """The source of each class in the MRO of an item class is read once,
+        not once per field, and not again on later calls."""
+
+        @dataclass
+        class ParentItem:
+            foo: str
+            """Parent item foo"""
+
+        @dataclass
+        class ChildItem(ParentItem):
+            bar: str
+            baz: str
+            """Child item baz"""
+
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "foo": {"type": "string", "description": "Parent item foo"},
+                "bar": {"type": "string"},
+                "baz": {"type": "string", "description": "Child item baz"},
+            },
+            "required": ["foo", "bar", "baz"],
+        }
+        with mock.patch("inspect.getsource", wraps=inspect.getsource) as getsource:
+            check_schemas(ItemAdapter.get_json_schema(ChildItem), expected)
+            check_schemas(ItemAdapter.get_json_schema(ChildItem), expected)
+        assert [call.args[0] for call in getsource.call_args_list] == list(ChildItem.__mro__)
 
     def test_field_docstring_cleandoc(self):
         """Test that field docstrings are properly dedented and trimmed."""
