@@ -8,16 +8,16 @@ from typing import Annotated, Any, NotRequired, Required, get_args, get_origin
 from itemadapter._imports import (
     PydanticUndefined,
     _get_type_hints,
-    attr,
+    attrs,
     pydantic,
     typing_extensions,
 )
 
 
 def _is_attrs_class(obj: type) -> bool:
-    if attr is None:
+    if attrs is None:
         return False
-    return bool(attr.has(obj))
+    return bool(attrs.has(obj))
 
 
 def _is_pydantic_model(obj: type) -> bool:

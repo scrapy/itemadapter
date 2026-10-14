@@ -34,7 +34,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 attrs = [
-    "attrs>=20.1.0",
+    "attrs>=22.1.0",
 ]
 pydantic = [
     "pydantic>=2.7",
@@ -119,7 +119,7 @@ max-line-length = 99
 
 [tool.pylint.IMPORTS]
 allow-any-import-level = [
-    "attr",
+    "attrs",
     "dataclasses",
     "scrapy"
 ]
@@ -256,6 +256,9 @@ ignore = [
     # Yoda condition detected
     "SIM300",
 ]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-decorators = ["attrs.define"]
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false

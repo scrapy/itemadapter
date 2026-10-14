@@ -190,9 +190,9 @@ class JsonSchemaTestCase(unittest.TestCase):
         generation of Pydantic item classes generate nested $defs (which we
         don’t since we do not run Pydantic’s JSON Schema generation but our
         own)."""
-        import attr
+        import attrs
 
-        @attr.s(auto_attribs=True)
+        @attrs.define
         class TestAttrsItem:
             pydantic: PydanticEnumModel
 
@@ -522,9 +522,9 @@ class JsonSchemaTestCase(unittest.TestCase):
 
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_modern_optional_annotations(self):
-        import attr
+        import attrs
 
-        @attr.define
+        @attrs.define
         class Product:
             name: str
             """Product name"""
@@ -619,9 +619,9 @@ class CrossNestingTestCase(unittest.TestCase):
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_attrs_pydantic(self):
-        import attr
+        import attrs
 
-        @attr.s(auto_attribs=True)
+        @attrs.define
         class TestItem:
             nested: PydanticModelJsonSchemaNested
 
@@ -842,11 +842,11 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
     @unittest.skipIf(not AttrsItem, "attrs module is not available")
     def test_attrs_unhandled_validator(self):
         """Validators that map to no JSON Schema keyword are ignored."""
-        import attr
+        import attrs
 
-        @attr.define
+        @attrs.define
         class TestAttrsItem:
-            foo: str = attr.field(validator=attr.validators.instance_of(str))
+            foo: str = attrs.field(validator=attrs.validators.instance_of(str))
 
         actual = ItemAdapter.get_json_schema(TestAttrsItem)
         expected = {
