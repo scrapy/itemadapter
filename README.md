@@ -12,10 +12,12 @@ regardless of their underlying implementation.
 Currently supported types are:
 
 * [`scrapy.item.Item`](https://docs.scrapy.org/en/latest/topics/items.html#scrapy.item.Item)
-* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict)
+* [`dict`](https://docs.python.org/3/library/stdtypes.html#dict), including
+  [`TypedDict`](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+  subclasses
 * [`dataclass`](https://docs.python.org/3/library/dataclasses.html)-based classes
 * [`attrs`](https://www.attrs.org)-based classes
-* [`pydantic`](https://pydantic-docs.helpmanual.io/)-based classes
+* [`pydantic`](https://pydantic.dev/docs/validation/)-based classes
 
 Additionally, interaction with arbitrary types is supported, by implementing
 a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
@@ -24,13 +26,13 @@ a pre-defined interface (see [extending `itemadapter`](#extending-itemadapter)).
 
 ## Requirements
 
-* Python 3.10+, either the CPython implementation (default) or the PyPy
+* Python 3.11+, either the CPython implementation (default) or the PyPy
   implementation
-* [`scrapy`](https://scrapy.org/) 2.2+: optional, needed to interact with
+* [`scrapy`](https://scrapy.org/) 2.7+: optional, needed to interact with
   `scrapy` items
-* [`attrs`](https://pypi.org/project/attrs/) 20.1.0+: optional, needed to
+* [`attrs`](https://pypi.org/project/attrs/) 22.1.0+: optional, needed to
   interact with `attrs`-based items
-* [`pydantic`](https://pypi.org/project/pydantic/) 1.8+: optional, needed to
+* [`pydantic`](https://pypi.org/project/pydantic/) 2.7+: optional, needed to
   interact with `pydantic`-based items
 
 ---
@@ -153,7 +155,8 @@ but it doesn't traverse the object recursively converting nested items:
 The following adapters are included by default:
 
 * `itemadapter.adapter.ScrapyItemAdapter`: handles `Scrapy` items
-* `itemadapter.adapter.DictAdapter`: handles `Python` dictionaries
+* `itemadapter.adapter.DictAdapter`: handles `Python` dictionaries, including
+  `TypedDict` subclasses when used as item classes
 * `itemadapter.adapter.DataclassAdapter`: handles `dataclass` objects
 * `itemadapter.adapter.AttrsAdapter`: handles `attrs` objects
 * `itemadapter.adapter.PydanticAdapter`: handles `pydantic` objects
@@ -212,10 +215,13 @@ The returned value is taken from the following sources, depending on the item ty
     for `scrapy.item.Item`s
   * [`dataclasses.field.metadata`](https://docs.python.org/3/library/dataclasses.html#dataclasses.field)
     for `dataclass`-based items
-  * [`attr.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
+  * [`attrs.Attribute.metadata`](https://www.attrs.org/en/stable/examples.html#metadata)
     for `attrs`-based items
-  * [`pydantic.fields.FieldInfo`](https://pydantic-docs.helpmanual.io/usage/schema/#field-customisation)
+  * [`pydantic.fields.FieldInfo`](https://pydantic.dev/docs/validation/latest/api/pydantic/fields/#pydantic.fields.FieldInfo)
     for `pydantic`-based items
+  * the first mapping in the
+    [`typing.Annotated`](https://docs.python.org/3/library/typing.html#typing.Annotated)
+    metadata of the field type hint for `TypedDict`-based items
 
 #### class method `get_field_names_from_class(item_class: type) -> Optional[list[str]]`
 
@@ -366,8 +372,8 @@ Alias for `itemadapter.adapter.ItemAdapter.get_field_meta_from_class`
 
 ## Metadata support
 
-`scrapy.item.Item`, `dataclass`, `attrs`, and `pydantic` objects allow the definition of
-arbitrary field metadata. This can be accessed through a
+`scrapy.item.Item`, `dataclass`, `attrs`, `pydantic` and `TypedDict` objects
+allow the definition of arbitrary field metadata. This can be accessed through a
 [`MappingProxyType`](https://docs.python.org/3/library/types.html#types.MappingProxyType)
 object, which can be retrieved from an item instance with
 `itemadapter.adapter.ItemAdapter.get_field_meta`, or from an item class
@@ -413,11 +419,11 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 #### `attrs` objects
 
 ```python
->>> import attr
->>> @attr.s
+>>> import attrs
+>>> @attrs.define
 ... class InventoryItem:
-...     name = attr.ib(metadata={"serializer": str})
-...     value = attr.ib(metadata={"serializer": int, "limit": 100})
+...     name: str = attrs.field(metadata={"serializer": str})
+...     value: int = attrs.field(metadata={"serializer": int, "limit": 100})
 ...
 >>> adapter = ItemAdapter(InventoryItem(name="foo", value=10))
 >>> adapter.get_field_meta("name")
@@ -440,6 +446,26 @@ mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 mappingproxy({'annotation': <class 'str'>, 'json_schema_extra': {'serializer': <class 'str'>}, 'repr': True})
 >>> adapter.get_field_meta("value")
 mappingproxy({'annotation': <class 'int'>, 'json_schema_extra': {'serializer': <class 'int'>, 'limit': 100}, 'repr': True})
+>>>
+```
+
+#### `TypedDict` objects
+
+`TypedDict` instances are plain dictionaries at run time, with no reference to
+the `TypedDict` subclass they were declared as, so metadata can only be read
+from the item class:
+
+```python
+>>> from typing import Annotated, TypedDict
+>>> from itemadapter import ItemAdapter
+>>> class InventoryItem(TypedDict):
+...     name: Annotated[str, {"serializer": str}]
+...     value: Annotated[int, {"serializer": int, "limit": 100}]
+...
+>>> ItemAdapter.get_field_meta_from_class(InventoryItem, "name")
+mappingproxy({'serializer': <class 'str'>})
+>>> ItemAdapter.get_field_meta_from_class(InventoryItem, "value")
+mappingproxy({'serializer': <class 'int'>, 'limit': 100})
 >>>
 ```
 
@@ -620,12 +646,12 @@ InventoryItem(name='bar', price=5)
 ### `attrs` objects
 
 ```python
->>> import attr
+>>> import attrs
 >>> from itemadapter import ItemAdapter
->>> @attr.s
+>>> @attrs.define
 ... class InventoryItem:
-...     name = attr.ib()
-...     price = attr.ib()
+...     name: str
+...     price: int
 ...
 >>> item = InventoryItem(name="foo", price=10)
 >>> adapter = ItemAdapter(item)

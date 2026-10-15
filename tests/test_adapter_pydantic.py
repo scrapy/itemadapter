@@ -70,7 +70,6 @@ class PydanticTestCase(unittest.TestCase):
 
     @unittest.skipIf(not PydanticModel, "pydantic module is not available")
     @mock.patch("itemadapter._utils.pydantic", None)
-    @mock.patch("itemadapter._utils.pydantic_v1", None)
     def test_module_not_available(self):
         from itemadapter.adapter import PydanticAdapter
 
