@@ -105,6 +105,7 @@ disable = [
     "pointless-statement",
     "protected-access",
     "too-few-public-methods",
+    "too-many-public-methods",
     "too-many-return-statements",
     "unused-argument",
 ]

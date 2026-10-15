@@ -9,8 +9,9 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from copy import copy
 from enum import Enum
+from functools import lru_cache
 from textwrap import dedent
-from types import UnionType
+from types import MappingProxyType, UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -263,7 +264,7 @@ def _setdefault_attribute_types_on_json_schema(
         update_prop_from_type(prop, prop_type, state)
 
 
-def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[tuple[str, str]]:
+def iter_docstrings(item_class: type) -> Iterator[tuple[str, str]]:
     try:
         source = inspect.getsource(item_class)
     except (OSError, TypeError):
@@ -286,8 +287,6 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
             attr_name = child.target.id
         else:
             continue
-        if attr_name not in attr_names:
-            continue
         next_idx = class_node.body.index(child) + 1
         if next_idx >= len(class_node.body):
             continue
@@ -300,12 +299,23 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
             yield attr_name, next_node.value.value
 
 
+@lru_cache(maxsize=1024)
+def get_attr_docstrings(item_class: type) -> Mapping[str, str]:
+    """Return the docstrings of the attributes defined in the source of the
+    given class, by attribute name."""
+    docstrings: dict[str, str] = {}
+    for attr_name, doc in iter_docstrings(item_class):
+        docstrings.setdefault(attr_name, doc)
+    return MappingProxyType(docstrings)
+
+
 def get_inherited_attr_docstring(item_class: type, attr_name: str) -> str | None:
     """Recursively search the MRO for a docstring for the given attribute
     name."""
     for cls in item_class.__mro__:
-        for _, doc in iter_docstrings(cls, {attr_name}):
-            return doc
+        docstrings = get_attr_docstrings(cls)
+        if attr_name in docstrings:
+            return docstrings[attr_name]
     return None
 
 
