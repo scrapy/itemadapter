@@ -181,6 +181,7 @@ class TypedDictTestCase(unittest.TestCase):
             "$ref": "#/$defs/TypedDictItemRecursive",
         }
         check_schemas(actual, expected)
+        check_schemas(DictAdapter.get_json_schema(TypedDictItemRecursive), expected)
 
     def test_json_schema_not_required(self):
         class TypedDictItemNotRequired(TypedDict):
