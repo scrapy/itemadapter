@@ -5,10 +5,10 @@ import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from itemadapter import ItemAdapter
-from itemadapter._imports import pydantic, pydantic_v1
+from itemadapter._imports import pydantic
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
@@ -101,6 +101,7 @@ class DataClassItemJsonSchema:
 
 try:
     import attr
+    import attrs
 except ImportError:
     AttrsItem = None
     AttrsItemNested = None
@@ -109,16 +110,76 @@ except ImportError:
     AttrsItemEmpty = None
     AttrsItemJsonSchema = None
     AttrsItemJsonSchemaNested = None
+    AttrsClassicItem = None
+    AttrsClassicItemNested = None
+    AttrsClassicItemWithoutInit = None
+    AttrsClassicItemSubclassed = None
+    AttrsClassicItemEmpty = None
+    AttrsClassicItemJsonSchema = None
+    AttrsClassicItemJsonSchemaNested = None
 else:
 
-    @attr.s
+    @attrs.define
     class AttrsItem:
+        name = attrs.field(default=None, metadata={"serializer": str})
+        value = attrs.field(default=None, metadata={"serializer": int})
+
+    @attrs.define
+    class AttrsItemNested:
+        nested: AttrsItem
+        adapter: ItemAdapter
+        dict_: dict
+        list_: list
+        set_: set
+        tuple_: tuple
+        int_: int
+
+    @attrs.define(init=False)
+    class AttrsItemWithoutInit:
+        name = attrs.field(default=None, metadata={"serializer": str})
+        value = attrs.field(default=None, metadata={"serializer": int})
+
+    @attrs.define(init=False)
+    class AttrsItemSubclassed(AttrsItem):
+        subclassed: bool = True
+
+    @attrs.define
+    class AttrsItemEmpty:
+        pass
+
+    @attrs.define
+    class AttrsItemJsonSchemaNested:
+        is_nested: bool = True
+
+    @attrs.define
+    class AttrsItemJsonSchema:
+        __json_schema_extra__ = {
+            "llmHint": "Hi model!",
+        }
+        name: str = attrs.field(metadata={"json_schema_extra": {"title": "Name"}})
+        """Display name"""
+        color: Color
+        answer: str | float | int | None
+        numbers: list[float]
+        aliases: dict[str, str]
+        nested: AttrsItemJsonSchemaNested
+        nested_list: list[AttrsItemJsonSchemaNested]
+        nested_dict: dict[str, AttrsItemJsonSchemaNested]
+        nested_dict_list: list[dict[str, AttrsItemJsonSchemaNested]]
+        value: Any = None
+        produced: bool = attrs.field(factory=lambda: True)
+
+    # Classic API (attr.s, attr.ib): dict-based classes, unlike the slotted
+    # ones created by attrs.define.
+
+    @attr.s
+    class AttrsClassicItem:
         name = attr.ib(default=None, metadata={"serializer": str})
         value = attr.ib(default=None, metadata={"serializer": int})
 
     @attr.s
-    class AttrsItemNested:
-        nested = attr.ib(type=AttrsItem)
+    class AttrsClassicItemNested:
+        nested = attr.ib(type=AttrsClassicItem)
         adapter = attr.ib(type=ItemAdapter)
         dict_ = attr.ib(type=dict)
         list_ = attr.ib(type=list)
@@ -127,24 +188,24 @@ else:
         int_ = attr.ib(type=int)
 
     @attr.s(init=False)
-    class AttrsItemWithoutInit:
+    class AttrsClassicItemWithoutInit:
         name = attr.ib(default=None, metadata={"serializer": str})
         value = attr.ib(default=None, metadata={"serializer": int})
 
     @attr.s(init=False)
-    class AttrsItemSubclassed(AttrsItem):
+    class AttrsClassicItemSubclassed(AttrsClassicItem):
         subclassed = attr.ib(default=True, type=bool)
 
     @attr.s
-    class AttrsItemEmpty:
+    class AttrsClassicItemEmpty:
         pass
 
     @attr.s
-    class AttrsItemJsonSchemaNested:
+    class AttrsClassicItemJsonSchemaNested:
         is_nested: bool = attr.ib(default=True)
 
     @attr.s
-    class AttrsItemJsonSchema:
+    class AttrsClassicItemJsonSchema:
         __json_schema_extra__ = {
             "llmHint": "Hi model!",
         }
@@ -154,84 +215,12 @@ else:
         answer: str | float | int | None = attr.ib()
         numbers: list[float] = attr.ib()
         aliases: dict[str, str] = attr.ib()
-        nested: AttrsItemJsonSchemaNested = attr.ib()
-        nested_list: list[AttrsItemJsonSchemaNested] = attr.ib()
-        nested_dict: dict[str, AttrsItemJsonSchemaNested] = attr.ib()
-        nested_dict_list: list[dict[str, AttrsItemJsonSchemaNested]] = attr.ib()
+        nested: AttrsClassicItemJsonSchemaNested = attr.ib()
+        nested_list: list[AttrsClassicItemJsonSchemaNested] = attr.ib()
+        nested_dict: dict[str, AttrsClassicItemJsonSchemaNested] = attr.ib()
+        nested_dict_list: list[dict[str, AttrsClassicItemJsonSchemaNested]] = attr.ib()
         value: Any = attr.ib(default=None)
         produced: bool = attr.ib(factory=lambda: True)
-
-
-if pydantic_v1 is None:
-    PydanticV1Model = None
-    PydanticV1SpecialCasesModel = None
-    PydanticV1ModelNested = None
-    PydanticV1ModelSubclassed = None
-    PydanticV1ModelEmpty = None
-    PydanticV1ModelJsonSchema = None
-    PydanticV1ModelJsonSchemaNested = None
-else:
-
-    class PydanticV1Model(pydantic_v1.BaseModel):
-        name: Optional[str] = pydantic_v1.Field(  # noqa: UP045
-            default_factory=lambda: None,
-            serializer=str,
-        )
-        value: Optional[int] = pydantic_v1.Field(  # noqa: UP045
-            default_factory=lambda: None,
-            serializer=int,
-        )
-
-    class PydanticV1SpecialCasesModel(pydantic_v1.BaseModel):
-        special_cases: Optional[int] = pydantic_v1.Field(  # noqa: UP045
-            default_factory=lambda: None,
-            alias="special_cases",
-            allow_mutation=False,
-        )
-
-        class Config:
-            validate_assignment = True
-
-    class PydanticV1ModelNested(pydantic_v1.BaseModel):
-        nested: PydanticV1Model
-        adapter: ItemAdapter
-        dict_: dict
-        list_: list
-        set_: set
-        tuple_: tuple
-        int_: int
-
-        class Config:
-            arbitrary_types_allowed = True
-
-    class PydanticV1ModelSubclassed(PydanticV1Model):
-        subclassed: bool = pydantic_v1.Field(
-            default_factory=lambda: True,
-        )
-
-    class PydanticV1ModelEmpty(pydantic_v1.BaseModel):
-        pass
-
-    class PydanticV1ModelJsonSchemaNested(pydantic_v1.BaseModel):
-        is_nested: bool = True
-
-    class PydanticV1ModelJsonSchema(pydantic_v1.BaseModel):
-        name: str = pydantic_v1.Field(title="Name", description="Display name")
-        value: Any = None
-        color: Color
-        produced: bool
-        answer: Union[str, float, int, None]  # noqa: UP007
-        numbers: list[float]
-        aliases: dict[str, str]
-        nested: PydanticV1ModelJsonSchemaNested
-        nested_list: list[PydanticV1ModelJsonSchemaNested]
-        nested_dict: dict[str, PydanticV1ModelJsonSchemaNested]
-        nested_dict_list: list[dict[str, PydanticV1ModelJsonSchemaNested]]
-
-        class Config:
-            schema_extra = {
-                "llmHint": "Hi model!",
-            }
 
 
 if pydantic is None:

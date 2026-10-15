@@ -11,17 +11,17 @@ authors = [
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Operating System :: OS Independent",
@@ -34,13 +34,13 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 attrs = [
-    "attrs>=20.1.0",
+    "attrs>=22.1.0",
 ]
 pydantic = [
-    "pydantic>=1.8",
+    "pydantic>=2.7",
 ]
 scrapy = [
-    "scrapy>=2.2",
+    "scrapy>=2.7",
 ]
 
 [project.urls]
@@ -77,6 +77,9 @@ filename = "itemadapter/__init__.py"
 [tool.coverage.run]
 branch = true
 
+[tool.mypy]
+strict = true
+
 [tool.pylint.MASTER]
 persistent = "no"
 load-plugins=[
@@ -102,11 +105,12 @@ disable = [
     "pointless-statement",
     "protected-access",
     "too-few-public-methods",
+    "too-many-public-methods",
     "too-many-return-statements",
     "unused-argument",
 ]
 per-file-ignores = [
-    "tests/*:disallowed-name,too-many-instance-attributes,too-many-public-methods",
+    "tests/*:disallowed-name,too-many-instance-attributes,too-many-lines,too-many-public-methods",
     "itemadapter/_imports.py:unused-import,ungrouped-imports",
 ]
 
@@ -116,14 +120,9 @@ max-line-length = 99
 
 [tool.pylint.IMPORTS]
 allow-any-import-level = [
-    "attr",
+    "attrs",
     "dataclasses",
     "scrapy"
-]
-
-[tool.pytest.ini_options]
-filterwarnings = [
-    "ignore:.*BaseItem.*",
 ]
 
 [tool.ruff]
@@ -258,6 +257,9 @@ ignore = [
     # Yoda condition detected
     "SIM300",
 ]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-decorators = ["attrs.define"]
 
 [tool.ruff.lint.isort]
 split-on-trailing-comma = false

@@ -9,6 +9,12 @@ from packaging.version import Version
 
 from itemadapter.adapter import ItemAdapter, PydanticAdapter
 from tests import (
+    AttrsClassicItem,
+    AttrsClassicItemEmpty,
+    AttrsClassicItemJsonSchema,
+    AttrsClassicItemNested,
+    AttrsClassicItemSubclassed,
+    AttrsClassicItemWithoutInit,
     AttrsItem,
     AttrsItemEmpty,
     AttrsItemJsonSchema,
@@ -26,11 +32,6 @@ from tests import (
     PydanticModelJsonSchema,
     PydanticModelNested,
     PydanticModelSubclassed,
-    PydanticV1Model,
-    PydanticV1ModelEmpty,
-    PydanticV1ModelJsonSchema,
-    PydanticV1ModelNested,
-    PydanticV1ModelSubclassed,
     ScrapySubclassedItem,
     ScrapySubclassedItemEmpty,
     ScrapySubclassedItemJsonSchema,
@@ -87,11 +88,27 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         adapter["name"] = "set after init"
         assert repr(adapter) == "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
 
-    @unittest.skipIf(not PydanticV1Model, "pydantic <2 module is not available")
-    def test_repr_pydantic(self):
-        item = PydanticV1Model(name="asdf", value=1234)
+    @unittest.skipIf(not AttrsClassicItem, "attrs module is not available")
+    def test_repr_attrs_classic(self):
+        item = AttrsClassicItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
-        assert repr(adapter) == "<ItemAdapter for PydanticV1Model(name='asdf', value=1234)>"
+        assert repr(adapter) == "<ItemAdapter for AttrsClassicItem(name='asdf', value=1234)>"
+
+    @unittest.skipIf(not AttrsClassicItemWithoutInit, "attrs module is not available")
+    def test_repr_attrs_classic_init_false(self):
+        item = AttrsClassicItemWithoutInit()
+        adapter = ItemAdapter(item)
+        assert repr(adapter) == "<ItemAdapter for AttrsClassicItemWithoutInit()>"
+        adapter["name"] = "set after init"
+        assert (
+            repr(adapter) == "<ItemAdapter for AttrsClassicItemWithoutInit(name='set after init')>"
+        )
+
+    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    def test_repr_pydantic(self):
+        item = PydanticModel(name="asdf", value=1234)
+        adapter = ItemAdapter(item)
+        assert repr(adapter) == "<ItemAdapter for PydanticModel(name='asdf', value=1234)>"
 
 
 class ItemAdapterInitError(unittest.TestCase):
@@ -425,51 +442,6 @@ _PYDANTIC_NESTED_JSON_SCHEMA = {
 }
 
 
-class PydanticV1ModelTestCase(NonDictTestMixin, unittest.TestCase):
-    item_class = PydanticV1Model
-    item_class_nested = PydanticV1ModelNested
-    item_class_subclassed = PydanticV1ModelSubclassed
-    item_class_empty = PydanticV1ModelEmpty
-    item_class_json_schema = PydanticV1ModelJsonSchema
-    expected_json_schema = _with_nested_refs(
-        {
-            **{
-                k: v
-                for k, v in NonDictTestMixin.expected_json_schema.items()
-                if k != "additionalProperties"
-            },
-            "required": [
-                *NonDictTestMixin.expected_json_schema["required"][:2],
-                "produced",
-                *NonDictTestMixin.expected_json_schema["required"][2:],
-            ],
-        },
-        "PydanticV1ModelJsonSchemaNested",
-        _PYDANTIC_NESTED_JSON_SCHEMA,
-    )
-
-    def test_get_field_meta_defined_fields(self):
-        adapter = ItemAdapter(self.item_class())
-
-        name_actual = adapter.get_field_meta("name")
-        name_expected = MappingProxyType(
-            {
-                "serializer": str,
-                "default_factory": name_actual["default_factory"],
-            }
-        )
-        assert name_expected == name_actual
-
-        value_actual = adapter.get_field_meta("value")
-        value_expected = MappingProxyType(
-            {
-                "serializer": int,
-                "default_factory": value_actual["default_factory"],
-            }
-        )
-        assert value_expected == value_actual
-
-
 class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
     item_class = PydanticModel
     item_class_nested = PydanticModelNested
@@ -538,5 +510,18 @@ class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
     expected_json_schema = _with_nested_refs(
         _DATACLASS_ATTRS_JSON_SCHEMA,
         "AttrsItemJsonSchemaNested",
+        _NESTED_JSON_SCHEMA,
+    )
+
+
+class AttrsClassicItemTestCase(NonDictTestMixin, unittest.TestCase):
+    item_class = AttrsClassicItem
+    item_class_nested = AttrsClassicItemNested
+    item_class_subclassed = AttrsClassicItemSubclassed
+    item_class_empty = AttrsClassicItemEmpty
+    item_class_json_schema = AttrsClassicItemJsonSchema
+    expected_json_schema = _with_nested_refs(
+        _DATACLASS_ATTRS_JSON_SCHEMA,
+        "AttrsClassicItemJsonSchemaNested",
         _NESTED_JSON_SCHEMA,
     )

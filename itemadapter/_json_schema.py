@@ -6,10 +6,11 @@ import inspect
 import operator
 import re
 from collections import Counter
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from copy import copy
 from enum import Enum
+from functools import lru_cache
 from textwrap import dedent
 from types import MappingProxyType, UnionType
 from typing import (
@@ -23,10 +24,12 @@ from typing import (
     runtime_checkable,
 )
 
-from ._imports import PydanticUndefined, PydanticV1Undefined, attr
-from ._utils import _is_pydantic_model
+from ._imports import PydanticUndefined, _get_type_hints, attrs
+from ._utils import _split_typed_dict_hint
 
 if TYPE_CHECKING:
+    from attrs import Attribute
+
     from .adapter import AdapterInterface, ItemAdapter
 
 
@@ -55,21 +58,23 @@ class _JsonSchemaState:
     """Definition name of every item class found so far."""
 
 
-def dedupe_types(types: Sequence[type]) -> list[type]:
+def dedupe_types(types: Sequence[Any]) -> list[Any]:
     seen = set()
     result = []
+    # JSON Schema's number type includes integers, but not the other way around.
+    numeric_type = float if float in types else int
     for t in types:
-        key = float if t in (int, float) else t
+        key = numeric_type if t in (int, float) else t
         if key not in seen:
             seen.add(key)
-            result.append(t)
+            result.append(key)
     return result
 
 
 def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
     prop_types = dedupe_types(get_args(prop_type))
     simple_types = [v for k, v in SIMPLE_TYPES.items() if k in prop_types]
-    complex_types = sorted([t for t in prop_types if t not in SIMPLE_TYPES])  # type: ignore[type-var]
+    complex_types = [t for t in prop_types if t not in SIMPLE_TYPES]
     if not complex_types:
         prop.setdefault("type", simple_types)
         return
@@ -77,7 +82,8 @@ def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSch
     any_of = prop.setdefault("anyOf", new_any_of)
     if any_of is not new_any_of:
         return
-    any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
+    if simple_types:
+        any_of.append({"type": simple_types if len(simple_types) > 1 else simple_types[0]})
     for complex_type in complex_types:
         complex_prop: dict[str, Any] = {}
         update_prop_from_type(complex_prop, complex_type, state)
@@ -88,7 +94,7 @@ def update_prop_from_union(prop: dict[str, Any], prop_type: Any, state: _JsonSch
 class ArrayProtocol(Protocol):
     def __iter__(self) -> Iterator[Any]: ...
     def __len__(self) -> int: ...
-    def __contains__(self, item: Any) -> bool: ...
+    def __contains__(self, item: object) -> bool: ...
 
 
 @runtime_checkable
@@ -96,13 +102,13 @@ class ObjectProtocol(Protocol):  # noqa: PLW1641
     def __getitem__(self, key: str) -> Any: ...
     def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
-    def __contains__(self, key: str) -> bool: ...
-    def keys(self): ...
-    def items(self): ...
-    def values(self): ...
-    def get(self, key: str, default: Any = ...): ...
-    def __eq__(self, other): ...
-    def __ne__(self, other): ...
+    def __contains__(self, key: object) -> bool: ...
+    def keys(self) -> Iterable[str]: ...
+    def items(self) -> Iterable[tuple[str, Any]]: ...
+    def values(self) -> Iterable[Any]: ...
+    def get(self, key: str, default: Any = ...) -> Any: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __ne__(self, other: object) -> bool: ...
 
 
 INVALID_PATTERN_SUBSTRINGS = [
@@ -145,7 +151,7 @@ def json_schema_pattern(pattern: str | re.Pattern[str]) -> str | None:
     return pattern if is_valid_pattern(pattern) else None
 
 
-def array_type(type_hint):
+def array_type(type_hint: Any) -> Any:
     """Given the type hint of a Python type that maps to a JSON Schema array,
     such as a list, a tuple or a set, return the type of the items in that
     array."""
@@ -349,7 +355,7 @@ def _setdefault_attribute_types_on_json_schema(
         update_prop_from_type(prop, prop_type, state)
 
 
-def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[tuple[str, str]]:
+def iter_docstrings(item_class: type) -> Iterator[tuple[str, str]]:
     try:
         source = inspect.getsource(item_class)
     except (OSError, TypeError):
@@ -372,8 +378,6 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
             attr_name = child.target.id
         else:
             continue
-        if attr_name not in attr_names:
-            continue
         next_idx = class_node.body.index(child) + 1
         if next_idx >= len(class_node.body):
             continue
@@ -386,13 +390,23 @@ def iter_docstrings(item_class: type, attr_names: AbstractSet[str]) -> Iterator[
             yield attr_name, next_node.value.value
 
 
+@lru_cache(maxsize=1024)
+def get_attr_docstrings(item_class: type) -> Mapping[str, str]:
+    """Return the docstrings of the attributes defined in the source of the
+    given class, by attribute name."""
+    docstrings: dict[str, str] = {}
+    for attr_name, doc in iter_docstrings(item_class):
+        docstrings.setdefault(attr_name, doc)
+    return MappingProxyType(docstrings)
+
+
 def get_inherited_attr_docstring(item_class: type, attr_name: str) -> str | None:
     """Recursively search the MRO for a docstring for the given attribute
     name."""
     for cls in item_class.__mro__:
-        for name, doc in iter_docstrings(cls, {attr_name}):
-            if name == attr_name:
-                return doc
+        docstrings = get_attr_docstrings(cls)
+        if attr_name in docstrings:
+            return docstrings[attr_name]
     return None
 
 
@@ -463,13 +477,11 @@ def update_required_fields(
 
 def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
     schema = base_json_schema_from_item_class(item_class)
-    fields = attr.fields(item_class)
+    fields = attrs.fields(item_class)
     if not fields:
         return schema
 
-    from attr import resolve_types
-
-    resolve_types(item_class)  # Ensure field.type annotations are resolved
+    attrs.resolve_types(item_class)  # Ensure field.type annotations are resolved
 
     schema["properties"] = {
         field.name: copy(field.metadata.get("json_schema_extra", {})) for field in fields
@@ -485,14 +497,14 @@ def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[s
 
 def _update_attrs_prop(
     prop: dict[str, Any],
-    field: attr.Attribute,
+    field: Attribute[Any],
     state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
     update_prop_from_type(prop, field.type, state)
-    if isinstance(field.default, attr.Factory):
+    if isinstance(field.default, attrs.Factory):
         default_factory_fields.add(field.name)
-    elif field.default is not attr.NOTHING:
+    elif field.default is not attrs.NOTHING:
         prop.setdefault("default", field.default)
     _update_attrs_prop_validation(prop, field)
 
@@ -507,12 +519,12 @@ ATTRS_NUMBER_VALIDATORS = {
 
 def _update_attrs_prop_validation(
     prop: dict[str, Any],
-    field: attr.Attribute,
+    field: Attribute[Any],
 ) -> None:
     if not field.validator:
         return
     if type(field.validator).__name__ == "_AndValidator":
-        validators = field.validator._validators
+        validators = field.validator._validators  # type: ignore[attr-defined]
     else:
         validators = [field.validator]
     for validator in validators:
@@ -531,11 +543,34 @@ def _update_attrs_prop_validation(
             key = "maxLength" if field.type is str else "maxItems"
             prop.setdefault(key, validator.max_length)
         elif validator_type_name == "_MatchesReValidator":
-            pattern_obj = getattr(validator, "pattern", None) or validator.regex
-            pattern = json_schema_pattern(pattern_obj)
+            pattern = json_schema_pattern(validator.pattern)
             if pattern is not None:
                 prefix, suffix = MATCH_FUNC_ANCHORS[validator.match_func.__name__]
                 prop.setdefault("pattern", f"{prefix}{pattern}{suffix}")
+
+
+def _json_schema_from_typed_dict(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
+    schema = base_json_schema_from_item_class(item_class)
+    type_hints = _get_type_hints(item_class)
+    if not type_hints:
+        return schema
+    extra_type_hints = _get_type_hints(item_class, include_extras=True)
+    schema["properties"] = {}
+    required = []
+    required_keys = item_class.__required_keys__  # type: ignore[attr-defined]
+    for field_name, field_type in type_hints.items():
+        field_metadata, field_required = _split_typed_dict_hint(extra_type_hints[field_name])
+        prop = copy(field_metadata.get("json_schema_extra", {}))
+        update_prop_from_type(prop, field_type, state)
+        schema["properties"][field_name] = prop
+        if field_required is None:
+            field_required = field_name in required_keys
+        if field_required:
+            required.append(field_name)
+    if required:
+        schema.setdefault("required", required)
+    _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
+    return schema
 
 
 def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> dict[str, Any]:
@@ -549,9 +584,7 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
         }
         for field in fields:
             prop = schema["properties"][field.name]
-            field_type = resolved_field_types.get(field.name)
-            if field_type is not None:
-                update_prop_from_type(prop, field_type, state)
+            update_prop_from_type(prop, resolved_field_types.get(field.name), state)
             if field.default_factory is not dataclasses.MISSING:
                 default_factory_fields.add(field.name)
             elif field.default is not dataclasses.MISSING:
@@ -564,9 +597,7 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
 def _json_schema_from_pydantic(
     adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState
 ) -> dict[str, Any]:
-    if not _is_pydantic_model(item_class):
-        return _json_schema_from_pydantic_v1(adapter, item_class, state)
-    schema = copy(
+    schema: dict[str, Any] = copy(
         item_class.model_config.get("json_schema_extra", {})  # type: ignore[attr-defined]
     )
     extra = item_class.model_config.get("extra")  # type: ignore[attr-defined]
@@ -594,14 +625,12 @@ def _json_schema_from_pydantic(
 def _update_pydantic_prop(
     prop: dict[str, Any],
     name: str,
-    metadata: MappingProxyType,
+    metadata: Mapping[str, Any],
     _state: _JsonSchemaState,
     default_factory_fields: set[str],
 ) -> None:
-    if "annotation" in metadata:
-        field_type = metadata["annotation"]
-        if field_type is not None:
-            update_prop_from_type(prop, field_type, _state)
+    field_type = metadata.get("annotation")
+    update_prop_from_type(prop, field_type, _state)
     if "default_factory" in metadata:
         default_factory_fields.add(name)
     elif "default" in metadata and metadata["default"] is not PydanticUndefined:
@@ -622,7 +651,7 @@ def _update_pydantic_prop(
 def _update_pydantic_prop_validation(
     prop: dict[str, Any],
     metadata: Sequence[Any],
-    field_type: type,
+    field_type: object,
 ) -> None:
     for metadata_item in metadata:
         metadata_item_type = type(metadata_item).__name__
@@ -645,78 +674,3 @@ def _update_pydantic_prop_validation(
             ):
                 if metadata_item_type == metadata_key.capitalize():
                     prop.setdefault(json_schema_field, getattr(metadata_item, metadata_key))
-
-
-def _json_schema_from_pydantic_v1(
-    adapter: type[AdapterInterface], item_class: type, state: _JsonSchemaState
-) -> dict[str, Any]:
-    schema = copy(
-        getattr(item_class.Config, "schema_extra", {})  # type: ignore[attr-defined]
-    )
-    extra = getattr(item_class.Config, "extra", None)  # type: ignore[attr-defined]
-    schema.setdefault("type", "object")
-    if extra == "forbid":
-        schema.setdefault("additionalProperties", False)
-    fields = {
-        name: adapter.get_field_meta_from_class(item_class, name)
-        for name in adapter.get_field_names_from_class(item_class) or ()
-    }
-    if not fields:
-        return schema
-    schema["properties"] = {
-        name: copy(metadata.get("json_schema_extra", {})) for name, metadata in fields.items()
-    }
-    default_factory_fields: set[str] = set()
-    field_type_hints = get_type_hints(item_class)
-    for name, metadata in fields.items():
-        prop = schema["properties"][name]
-        _update_pydantic_v1_prop(
-            prop, name, metadata, field_type_hints, default_factory_fields, state
-        )
-    update_required_fields(schema, default_factory_fields)
-    _setdefault_attribute_docstrings_on_json_schema(schema, item_class)
-    return schema
-
-
-def _update_pydantic_v1_prop(  # pylint: disable=too-many-positional-arguments,too-many-arguments
-    prop: dict[str, Any],
-    name: str,
-    metadata: Mapping[str, Any],
-    field_type_hints: dict[str, Any],
-    default_factory_fields: set[str],
-    state: _JsonSchemaState,
-) -> None:
-    field_type = field_type_hints[name]
-    if field_type is not None:
-        update_prop_from_type(prop, field_type, state)
-    if "default_factory" in metadata:
-        default_factory_fields.add(name)
-    elif "default" in metadata and metadata["default"] not in (
-        Ellipsis,
-        PydanticV1Undefined,
-    ):
-        prop.setdefault("default", metadata["default"])
-    for metadata_key, json_schema_field in (
-        ("title", "title"),
-        ("description", "description"),
-        ("examples", "examples"),
-        ("ge", "minimum"),
-        ("gt", "exclusiveMinimum"),
-        ("le", "maximum"),
-        ("lt", "exclusiveMaximum"),
-    ):
-        if metadata_key in metadata:
-            prop.setdefault(json_schema_field, metadata[metadata_key])
-    for prefix in ("min", "max"):
-        if f"{prefix}_length" in metadata:
-            key = f"{prefix}Length" if field_type is str else f"{prefix}Items"
-            prop.setdefault(key, metadata[f"{prefix}_length"])
-        elif f"{prefix}_items" in metadata:
-            prop.setdefault(f"{prefix}Items", metadata[f"{prefix}_items"])
-    for metadata_key in ("pattern", "regex"):
-        if metadata_key in metadata:
-            pattern = metadata[metadata_key]
-            update_prop_from_pattern(prop, pattern)
-            break
-    if "deprecated" in metadata:
-        prop.setdefault("deprecated", bool(metadata["deprecated"]))
