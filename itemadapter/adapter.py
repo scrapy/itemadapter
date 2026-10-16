@@ -483,6 +483,10 @@ class ItemAdapter(MutableMapping[str, Any]):
     def _asdict(cls, obj: object) -> object:
         if isinstance(obj, dict):
             return {key: cls._asdict(value) for key, value in obj.items()}
+        if isinstance(obj, tuple) and hasattr(obj, "_fields"):
+            make = getattr(type(obj), "_make", None)
+            if callable(make):
+                return cast("Any", make)(cls._asdict(x) for x in obj)
         if isinstance(obj, (list, set, tuple)):
             return obj.__class__(cls._asdict(x) for x in obj)
         if isinstance(obj, cls):
