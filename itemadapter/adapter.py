@@ -98,7 +98,10 @@ class _MixinAttrsDataclassAdapter:
 
     def __getitem__(self, field_name: str) -> Any:
         if field_name in self._fields_dict:
-            return getattr(self.item, field_name)
+            try:
+                return getattr(self.item, field_name)
+            except AttributeError as ex:
+                raise KeyError(field_name) from ex
         raise KeyError(field_name)
 
     def __setitem__(self, field_name: str, value: Any) -> None:
@@ -226,7 +229,10 @@ class PydanticAdapter(AdapterInterface):
     def __getitem__(self, field_name: str) -> Any:
         if field_name not in self.item.__class__.model_fields:
             raise KeyError(field_name)
-        return getattr(self.item, field_name)
+        try:
+            return getattr(self.item, field_name)
+        except AttributeError as ex:
+            raise KeyError(field_name) from ex
 
     def __setitem__(self, field_name: str, value: Any) -> None:
         if field_name not in self.item.__class__.model_fields:

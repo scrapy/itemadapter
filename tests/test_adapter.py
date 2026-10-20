@@ -156,6 +156,27 @@ class BaseTestMixin:
         with pytest.raises(KeyError):
             adapter["undefined_field"]
 
+    def test_deleted_field_keyerror(self):
+        adapter = ItemAdapter(self.item_class(name="asdf", value=1234))
+        del adapter["name"]
+        with pytest.raises(KeyError) as exc_info:
+            adapter["name"]
+        assert exc_info.value.args == ("name",)
+
+    def test_deleted_field_get_default(self):
+        adapter = ItemAdapter(self.item_class(name="asdf", value=1234))
+        del adapter["name"]
+        assert adapter.get("name", "fallback") == "fallback"
+        assert adapter.pop("name", "fallback") == "fallback"
+
+    def test_deleted_field_membership(self):
+        adapter = ItemAdapter(self.item_class(name="asdf", value=1234))
+        del adapter["name"]
+        assert "name" not in adapter
+        adapter["name"] = "restored"
+        assert "name" in adapter
+        assert adapter["name"] == "restored"
+
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
         adapter = ItemAdapter(item)
