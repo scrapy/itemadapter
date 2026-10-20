@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import unittest
 from collections.abc import KeysView
+from dataclasses import dataclass
 from types import MappingProxyType
+from typing import NamedTuple
 
 import pytest
 from packaging.version import Version
@@ -39,6 +41,55 @@ from tests import (
     ScrapySubclassedItemSubclassed,
 )
 from tests.test_json_schema import check_schemas
+
+
+class _SingleFieldTuple(NamedTuple):
+    value: object
+
+
+class _PairTuple(NamedTuple):
+    left: object
+    right: object
+
+
+class _TupleWithFields(tuple):
+    __slots__ = ()
+    _fields = ("value",)
+
+    def __new__(cls, values):
+        return tuple.__new__(cls, values)
+
+
+@dataclass
+class _NestedData:
+    value: str
+
+
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        (_SingleFieldTuple(_NestedData("single")), _SingleFieldTuple({"value": "single"})),
+        (
+            _PairTuple(_NestedData("left"), _NestedData("right")),
+            _PairTuple({"value": "left"}, {"value": "right"}),
+        ),
+    ],
+)
+def test_as_dict_nested_namedtuple(item: tuple[object, ...], expected: tuple[object, ...]) -> None:
+    actual = ItemAdapter({"nested": item}).asdict()
+
+    assert actual == {"nested": expected}
+    assert type(actual["nested"]) is type(item)
+
+
+def test_as_dict_tuple_subclass_with_fields_without_make() -> None:
+    item = _TupleWithFields([_NestedData("custom")])
+
+    actual = ItemAdapter({"nested": item}).asdict()
+
+    assert actual == {"nested": _TupleWithFields([{"value": "custom"}])}
+    assert type(actual["nested"]) is type(item)
+
 
 try:
     import scrapy
