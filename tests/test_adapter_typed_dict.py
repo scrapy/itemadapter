@@ -170,12 +170,18 @@ class TypedDictTestCase(unittest.TestCase):
     def test_json_schema_recursion(self):
         actual = ItemAdapter.get_json_schema(TypedDictItemRecursive)
         expected = {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {"child": {"type": "object"}},
-            "required": ["child"],
+            "$defs": {
+                "TypedDictItemRecursive": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": {"child": {"$ref": "#/$defs/TypedDictItemRecursive"}},
+                    "required": ["child"],
+                },
+            },
+            "$ref": "#/$defs/TypedDictItemRecursive",
         }
         check_schemas(actual, expected)
+        check_schemas(DictAdapter.get_json_schema(TypedDictItemRecursive), expected)
 
     def test_json_schema_not_required(self):
         class TypedDictItemNotRequired(TypedDict):
