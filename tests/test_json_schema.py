@@ -14,7 +14,7 @@ from unittest import mock
 import pytest
 
 from itemadapter._imports import pydantic
-from itemadapter._json_schema import is_valid_pattern, json_schema_pattern
+from itemadapter._json_schema import json_schema_pattern
 from itemadapter.adapter import AttrsAdapter, ItemAdapter, PydanticAdapter, ScrapyItemAdapter
 from tests import (
     AttrsItem,
@@ -911,50 +911,51 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
     ("pattern", "expected"),
     [
         # Shared syntax.
-        (r"^[A-Za-z]+$", True),
-        (r"\bD\d{2}\b", True),
-        (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", True),
-        (r"\x41é\t\n", True),
-        (r"(a)\1", True),
-        (r"[a\]b^-]", True),
+        (r"^[A-Za-z]+$", r"^[A-Za-z]+$"),
+        (r"\bD\d{2}\b", r"\bD\d{2}\b"),
+        (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", r"a(b|c)?(?:d)(?=e)(?!f)\.\\"),
+        (r"\x41\u00e9\t\n", r"\x41\u00e9\t\n"),
+        (r"(a)\1", r"(a)\1"),
+        (r"[a\]b^-]", r"[a\]b^-]"),
+        (r"[a.b]", r"[a.b]"),
+        (r"(?<=a)b", r"(?<=a)b"),
+        (r"(?<!a)b", r"(?<!a)b"),
+        (r"a{2", r"a{2"),
+        # Translated syntax.
+        (r"\Aab\Z", r"^ab$"),
+        (r"(?P<year>\d{4})", r"(\d{4})"),
+        (r"a(?#comment)b", r"ab"),
+        (r"(?s)a.b", r"a[\s\S]b"),
+        (re.compile(r"a.b", re.DOTALL), r"a[\s\S]b"),
+        ("(?x)a  # comment\n  \\d+", r"a\d+"),
+        (re.compile("a  # comment\n  b", re.VERBOSE), r"ab"),
+        (r"(?ax)a b", r"ab"),
+        ("(?x)a # unterminated comment", "a"),
         # Python-only syntax.
-        (r"\A", False),
-        (r"\Z", False),
-        (r"\a", False),
-        (r"[\a]", False),
-        (r"\N{BULLET}", False),
-        (r"\U0001F600", False),
-        (r"(?P<name>a)", False),
-        (r"(?P=name)", False),
-        (r"(?i)a", False),
-        (r"(?i:a)", False),
-        (r"(?#comment)", False),
-        (r"(?>a)", False),
-        (r"(?<=a)b", False),
-        (r"a*+", False),
-        (r"a{2,3}+", False),
-        # Syntax that both dialects accept with a different meaning.
-        (r"[]]", False),
-        (r"[^]]", False),
-        (r"\0", False),
-        (r"\01", False),
-        # Malformed patterns.
-        ("\\", False),
-        (r"[abc", False),
-        (r"\x4", False),
-    ],
-)
-def test_is_valid_pattern(pattern, expected):
-    assert is_valid_pattern(pattern) is expected
-
-
-@pytest.mark.parametrize(
-    ("pattern", "expected"),
-    [
-        (r"a", "a"),
-        (r"\A", None),
-        (re.compile(r"a"), "a"),
+        (r"\a", None),
+        (r"[\a]", None),
+        (r"\N{BULLET}", None),
+        (r"\U0001F600", None),
+        (r"(?P=name)", None),
+        (r"(?i)a", None),
         (re.compile(r"a", re.IGNORECASE), None),
+        (r"(?m)a", None),
+        (r"(?i:a)", None),
+        (r"(?>a)", None),
+        (r"a*+", None),
+        (r"a{2,3}+", None),
+        # Syntax that both dialects accept with a different meaning.
+        (r"[]]", None),
+        (r"[^]]", None),
+        (r"\0", None),
+        (r"\01", None),
+        (r"(?x)a{2, 3}", None),
+        # Malformed patterns.
+        ("\\", None),
+        (r"[abc", None),
+        (r"\x4", None),
+        (r"(?#unterminated", None),
+        (r"(?P<unterminated", None),
     ],
 )
 def test_json_schema_pattern(pattern, expected):
