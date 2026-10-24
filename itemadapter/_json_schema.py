@@ -7,7 +7,7 @@ import operator
 import re
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
-from copy import copy
+from copy import copy, deepcopy
 from enum import Enum
 from functools import lru_cache
 from textwrap import dedent
@@ -439,7 +439,7 @@ def _json_schema_from_item_class(
     if not fields_meta:
         return schema
     schema["properties"] = {
-        field_name: copy(field_meta.get("json_schema_extra", {}))
+        field_name: deepcopy(field_meta.get("json_schema_extra", {}))
         for field_name, field_meta in fields_meta.items()
     }
     required = [
@@ -476,7 +476,7 @@ def _json_schema_from_attrs(item_class: type, state: _JsonSchemaState) -> dict[s
     attrs.resolve_types(item_class)  # Ensure field.type annotations are resolved
 
     schema["properties"] = {
-        field.name: copy(field.metadata.get("json_schema_extra", {})) for field in fields
+        field.name: deepcopy(field.metadata.get("json_schema_extra", {})) for field in fields
     }
     default_factory_fields: set[str] = set()
     for field in fields:
@@ -552,7 +552,7 @@ def _json_schema_from_typed_dict(item_class: type, state: _JsonSchemaState) -> d
     required_keys = item_class.__required_keys__  # type: ignore[attr-defined]
     for field_name, field_type in type_hints.items():
         field_metadata, field_required = _split_typed_dict_hint(extra_type_hints[field_name])
-        prop = copy(field_metadata.get("json_schema_extra", {}))
+        prop = deepcopy(field_metadata.get("json_schema_extra", {}))
         update_prop_from_type(prop, field_type, state)
         schema["properties"][field_name] = prop
         if field_required is None:
@@ -572,7 +572,7 @@ def _json_schema_from_dataclass(item_class: type, state: _JsonSchemaState) -> di
     default_factory_fields = set()
     if fields:
         schema["properties"] = {
-            field.name: copy(field.metadata.get("json_schema_extra", {})) for field in fields
+            field.name: deepcopy(field.metadata.get("json_schema_extra", {})) for field in fields
         }
         for field in fields:
             prop = schema["properties"][field.name]
@@ -604,7 +604,7 @@ def _json_schema_from_pydantic(
     if not fields:
         return schema
     schema["properties"] = {
-        name: copy(metadata.get("json_schema_extra", {})) for name, metadata in fields.items()
+        name: deepcopy(metadata.get("json_schema_extra", {})) for name, metadata in fields.items()
     }
     default_factory_fields: set[str] = set()
     for name, metadata in fields.items():
