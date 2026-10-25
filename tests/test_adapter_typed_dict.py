@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import unittest
 from typing import TYPE_CHECKING, Annotated, NotRequired, Required, TypedDict
-from unittest import mock
 
 import pytest
 
@@ -286,9 +285,9 @@ class TestTypedDictTypeHint:
         }
         check_schemas(actual, expected)
 
-    @mock.patch("builtins.__import__", make_mock_import("typing_extensions"))
-    def test_typing_extensions_import_error(self):
-        with clear_itemadapter_imports():
+    def test_typing_extensions_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("typing_extensions"))
             import itemadapter.adapter
 
             names = itemadapter.adapter.ItemAdapter.get_field_names_from_class(TypedDictItem)

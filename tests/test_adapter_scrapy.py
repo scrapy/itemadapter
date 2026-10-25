@@ -1,5 +1,4 @@
 from types import MappingProxyType
-from unittest import mock
 
 import pytest
 
@@ -44,9 +43,9 @@ class TestScrapyItem:
             assert not ScrapyItemAdapter.is_item(PydanticModel())
 
     @requires_scrapy
-    @mock.patch("builtins.__import__", make_mock_import("scrapy"))
-    def test_module_import_error(self):
-        with clear_itemadapter_imports():
+    def test_module_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("scrapy"))
             from itemadapter import utils
             from itemadapter.adapter import ScrapyItemAdapter
 
@@ -57,10 +56,10 @@ class TestScrapyItem:
                 utils.get_field_meta_from_class(ScrapySubclassedItem, "name")
 
     @requires_scrapy
-    @mock.patch("itemadapter.adapter._scrapy_item_classes", ())
-    def test_module_not_available(self):
+    def test_module_not_available(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from itemadapter.adapter import ScrapyItemAdapter
 
+        monkeypatch.setattr("itemadapter.adapter._scrapy_item_classes", ())
         assert not ScrapyItemAdapter.is_item(ScrapySubclassedItem(name="asdf", value=1234))
         with pytest.raises(
             TypeError, match=r"tests.ScrapySubclassedItem'\> is not a valid item class"

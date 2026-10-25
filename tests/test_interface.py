@@ -3,14 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterator, KeysView
 from types import MappingProxyType
 from typing import Any
-from unittest import mock
 
 import pytest
 
 from itemadapter.adapter import AdapterInterface, ItemAdapter
 
 
-@mock.patch.multiple(AdapterInterface, __abstractmethods__=set())
 def test_interface_class_methods() -> None:
     with pytest.raises(NotImplementedError):
         AdapterInterface.is_item(object())
@@ -78,12 +76,11 @@ class TestBaseFakeItemAdapter:
     item_class = FakeItemClass
     adapter_class = BaseFakeItemAdapter
 
-    def setup_method(self):
-        self._adapter_classes = ItemAdapter.ADAPTER_CLASSES  # pylint: disable=attribute-defined-outside-init
-        ItemAdapter.ADAPTER_CLASSES = (self.adapter_class, *self._adapter_classes)
-
-    def teardown_method(self):
-        ItemAdapter.ADAPTER_CLASSES = self._adapter_classes
+    @pytest.fixture(autouse=True)
+    def _prepend_adapter_class(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            ItemAdapter, "ADAPTER_CLASSES", (self.adapter_class, *ItemAdapter.ADAPTER_CLASSES)
+        )
 
     def test_repr(self):
         item = self.item_class()

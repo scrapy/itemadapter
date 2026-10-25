@@ -1,6 +1,5 @@
 import re
 from types import MappingProxyType
-from unittest import mock
 
 import pytest
 
@@ -49,9 +48,9 @@ class TestAttrs:
             assert not AttrsAdapter.is_item(ScrapySubclassedItem())
 
     @requires_attrs
-    @mock.patch("builtins.__import__", make_mock_import("attrs"))
-    def test_module_import_error(self):
-        with clear_itemadapter_imports():
+    def test_module_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("attrs"))
             from itemadapter import utils
             from itemadapter.adapter import AttrsAdapter
 
@@ -66,10 +65,10 @@ class TestAttrs:
                 utils.get_field_meta_from_class(AttrsItem, "name")
 
     @requires_attrs
-    @mock.patch("itemadapter._utils.attrs", None)
-    def test_module_not_available(self):
+    def test_module_not_available(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from itemadapter.adapter import AttrsAdapter
 
+        monkeypatch.setattr("itemadapter._utils.attrs", None)
         assert not AttrsAdapter.is_item(AttrsItem(name="asdf", value=1234))
         with pytest.raises(TypeError, match=r"'tests.AttrsItem'\> is not a valid item class"):
             get_field_meta_from_class(AttrsItem, "name")

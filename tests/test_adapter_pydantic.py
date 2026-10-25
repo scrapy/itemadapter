@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from types import MappingProxyType
-from unittest import mock
 
 import pytest
 
@@ -54,9 +53,9 @@ class TestPydantic:
             assert not PydanticAdapter.is_item(ScrapySubclassedItem())
 
     @requires_pydantic
-    @mock.patch("builtins.__import__", make_mock_import("pydantic"))
-    def test_module_import_error(self):
-        with clear_itemadapter_imports():
+    def test_module_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("pydantic"))
             from itemadapter import utils
             from itemadapter.adapter import PydanticAdapter
 
@@ -67,10 +66,10 @@ class TestPydantic:
                 utils.get_field_meta_from_class(PydanticModel, "name")
 
     @requires_pydantic
-    @mock.patch("itemadapter._utils.pydantic", None)
-    def test_module_not_available(self):
+    def test_module_not_available(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from itemadapter.adapter import PydanticAdapter
 
+        monkeypatch.setattr("itemadapter._utils.pydantic", None)
         assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
         with pytest.raises(TypeError, match=r"tests.PydanticModel'\> is not a valid item class"):
             get_field_meta_from_class(PydanticModel, "name")

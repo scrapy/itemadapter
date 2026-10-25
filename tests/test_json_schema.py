@@ -8,7 +8,6 @@ from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field, make_dataclass
 from enum import Enum
 from typing import Any, Generic, TypeVar, Union
-from unittest import mock
 
 import pytest
 
@@ -217,7 +216,7 @@ class TestJsonSchema:
         check_schemas(actual, expected)
 
     @requires_scrapy
-    def test_unreachable_source(self):
+    def test_unreachable_source(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Reading the item class source to find attribute docstrings is not
         always a possibility, e.g. for classes defined in a REPL. In those
         cases, only the extraction of those docstrings should fail."""
@@ -237,7 +236,12 @@ class TestJsonSchema:
             },
         }
         for exception in (OSError, TypeError):
-            with mock.patch("inspect.getsource", side_effect=exception):
+
+            def getsource(_obj: Any, _exception: type[Exception] = exception) -> str:
+                raise _exception
+
+            with monkeypatch.context() as m:
+                m.setattr(inspect, "getsource", getsource)
                 actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
             check_schemas(actual, expected)
 
@@ -581,7 +585,7 @@ class TestJsonSchema:
         }
         check_schemas(actual, expected)
 
-    def test_field_docstring_source_reads(self) -> None:
+    def test_field_docstring_source_reads(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The source of each class in the MRO of an item class is read once,
         not once per field, and not again on later calls."""
 
@@ -606,10 +610,18 @@ class TestJsonSchema:
             },
             "required": ["foo", "bar", "baz"],
         }
-        with mock.patch("inspect.getsource", wraps=inspect.getsource) as getsource:
+        original_getsource = inspect.getsource
+        calls = []
+
+        def getsource(obj: Any) -> str:
+            calls.append(obj)
+            return original_getsource(obj)
+
+        with monkeypatch.context() as m:
+            m.setattr(inspect, "getsource", getsource)
             check_schemas(ItemAdapter.get_json_schema(ChildItem), expected)
             check_schemas(ItemAdapter.get_json_schema(ChildItem), expected)
-        assert [call.args[0] for call in getsource.call_args_list] == list(ChildItem.__mro__)
+        assert calls == list(ChildItem.__mro__)
 
     def test_field_docstring_cleandoc(self):
         """Test that field docstrings are properly dedented and trimmed."""
@@ -847,7 +859,7 @@ class TestJsonSchemaEdgeCase:
         }
         check_schemas(actual, expected)
 
-    def test_source_of_a_different_class(self):
+    def test_source_of_a_different_class(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Reading the item class source can find the source of a different
         class, e.g. for classes that are renamed after their definition. Only
         the extraction of attribute docstrings should be affected."""
@@ -858,7 +870,8 @@ class TestJsonSchemaEdgeCase:
             """Foo"""
 
         source = "@dataclass\nclass SomethingElse:\n    foo: str\n    '''Bar'''\n"
-        with mock.patch("inspect.getsource", return_value=source):
+        with monkeypatch.context() as m:
+            m.setattr(inspect, "getsource", lambda _obj: source)
             actual = ItemAdapter.get_json_schema(RenamedItem)
         expected = {
             "type": "object",
