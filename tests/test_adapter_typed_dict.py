@@ -49,9 +49,7 @@ class TypedDictItemSubclass(TypedDictItemBase, total=False):
     optional: str
 
 
-class TypedDictTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestTypedDict:
     def test_is_item_class(self):
         assert ItemAdapter.is_item_class(TypedDictItem)
         assert DictAdapter.is_item_class(TypedDictItem)
@@ -221,9 +219,7 @@ class TypedDictTestCase(unittest.TestCase):
         check_schemas(actual, expected)
 
 
-class TypedDictTypeHintTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestTypedDictTypeHint:
     def test_qualifiers_in_any_order(self):
         class TypedDictItemQualifiers(TypedDict, total=False):
             required: Annotated[Required[int], {"json_schema_extra": {"minimum": 0}}]
@@ -299,9 +295,7 @@ class TypedDictTypeHintTestCase(unittest.TestCase):
             assert names == ["name", "value"]
 
 
-class TypedDictCrossNestingTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestTypedDictCrossNesting:
     def test_typed_dict_in_dataclass(self):
         from dataclasses import dataclass
 

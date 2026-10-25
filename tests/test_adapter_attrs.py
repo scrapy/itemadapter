@@ -1,5 +1,4 @@
 import re
-import unittest
 from types import MappingProxyType
 from unittest import mock
 
@@ -16,11 +15,12 @@ from tests import (
     ScrapySubclassedItem,
     clear_itemadapter_imports,
     make_mock_import,
+    requires_attrs,
 )
 from tests.test_json_schema import check_schemas
 
 
-class AttrsTestCase(unittest.TestCase):
+class TestAttrs:
     def test_false(self):
         from itemadapter.adapter import AttrsAdapter
 
@@ -48,7 +48,7 @@ class AttrsTestCase(unittest.TestCase):
             assert not AttrsAdapter.is_item(ScrapyItem())
             assert not AttrsAdapter.is_item(ScrapySubclassedItem())
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     @mock.patch("builtins.__import__", make_mock_import("attrs"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
@@ -65,7 +65,7 @@ class AttrsTestCase(unittest.TestCase):
             with pytest.raises(TypeError, match=r"'tests.AttrsItem'\> is not a valid item class"):
                 utils.get_field_meta_from_class(AttrsItem, "name")
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     @mock.patch("itemadapter._utils.attrs", None)
     def test_module_not_available(self):
         from itemadapter.adapter import AttrsAdapter
@@ -74,7 +74,7 @@ class AttrsTestCase(unittest.TestCase):
         with pytest.raises(TypeError, match=r"'tests.AttrsItem'\> is not a valid item class"):
             get_field_meta_from_class(AttrsItem, "name")
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     def test_true(self):
         from itemadapter.adapter import AttrsAdapter
 
@@ -90,7 +90,7 @@ class AttrsTestCase(unittest.TestCase):
         with pytest.raises(KeyError, match="AttrsItem does not support field: non_existent"):
             get_field_meta_from_class(AttrsItem, "non_existent")
 
-    @unittest.skipIf(not AttrsClassicItem, "attrs module is not available")
+    @requires_attrs
     def test_true_classic(self):
         from itemadapter.adapter import AttrsAdapter
 
@@ -109,7 +109,7 @@ class AttrsTestCase(unittest.TestCase):
         ):
             get_field_meta_from_class(AttrsClassicItem, "non_existent")
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     def test_json_schema_validators(self):
         import attrs
         from attrs import validators

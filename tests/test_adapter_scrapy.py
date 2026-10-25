@@ -1,4 +1,3 @@
-import unittest
 from types import MappingProxyType
 from unittest import mock
 
@@ -13,10 +12,11 @@ from tests import (
     ScrapySubclassedItem,
     clear_itemadapter_imports,
     make_mock_import,
+    requires_scrapy,
 )
 
 
-class ScrapyItemTestCase(unittest.TestCase):
+class TestScrapyItem:
     def test_false(self):
         from itemadapter.adapter import ScrapyItemAdapter
 
@@ -43,7 +43,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         if PydanticModel is not None:
             assert not ScrapyItemAdapter.is_item(PydanticModel())
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     @mock.patch("builtins.__import__", make_mock_import("scrapy"))
     def test_module_import_error(self):
         with clear_itemadapter_imports():
@@ -56,7 +56,7 @@ class ScrapyItemTestCase(unittest.TestCase):
             ):
                 utils.get_field_meta_from_class(ScrapySubclassedItem, "name")
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     @mock.patch("itemadapter.adapter._scrapy_item_classes", ())
     def test_module_not_available(self):
         from itemadapter.adapter import ScrapyItemAdapter
@@ -67,7 +67,7 @@ class ScrapyItemTestCase(unittest.TestCase):
         ):
             get_field_meta_from_class(ScrapySubclassedItem, "name")
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true(self):
         from itemadapter.adapter import ScrapyItemAdapter
 

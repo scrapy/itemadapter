@@ -1,4 +1,3 @@
-import unittest
 from typing import Any
 
 import pytest
@@ -20,7 +19,7 @@ class EmptyDictAdapter(DictAdapter):
         return isinstance(item, dict) and not item
 
 
-class ItemAdapterTestCase(unittest.TestCase):
+class TestItemAdapter:
     def test_repr(self):
         adapter = ItemAdapter({"foo": "bar"})
         assert repr(adapter) == "<ItemAdapter for dict(foo='bar')>"
