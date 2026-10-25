@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import unittest
 from collections.abc import KeysView
 from types import MappingProxyType
 
@@ -125,10 +124,6 @@ class BaseTestMixin:
     item_class = None
     item_class_nested = None
     item_class_json_schema = None
-
-    def setup_method(self):
-        if self.item_class is None:
-            raise unittest.SkipTest
 
     def test_get_set_value(self):
         item = self.item_class()
@@ -413,6 +408,7 @@ if SCRAPY_VERSION is not None and SCRAPY_VERSION < Version("2.17"):
     _SCRAPY_JSON_SCHEMA_PROPERTIES = dict(sorted(_SCRAPY_JSON_SCHEMA_PROPERTIES.items()))
 
 
+@requires_scrapy
 class TestScrapySubclassedItem(NonDictTestMixin):
     item_class = ScrapySubclassedItem
     item_class_nested = ScrapySubclassedItemNested
@@ -438,6 +434,7 @@ _PYDANTIC_NESTED_JSON_SCHEMA = {
 }
 
 
+@requires_pydantic
 class TestPydanticModel(NonDictTestMixin):
     item_class = PydanticModel
     item_class_nested = PydanticModelNested
@@ -512,6 +509,7 @@ class TestDataClassItem(NonDictTestMixin):
     }
 
 
+@requires_attrs
 class TestAttrsItem(NonDictTestMixin):
     item_class = AttrsItem
     item_class_nested = AttrsItemNested
@@ -521,6 +519,7 @@ class TestAttrsItem(NonDictTestMixin):
     expected_json_schema = TestDataClassItem.expected_json_schema
 
 
+@requires_attrs
 class TestAttrsClassicItem(NonDictTestMixin):
     item_class = AttrsClassicItem
     item_class_nested = AttrsClassicItemNested
