@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import unittest
 from typing import TYPE_CHECKING, Annotated, NotRequired, Required, TypedDict
 
 import pytest
@@ -259,7 +258,7 @@ class TestTypedDictTypeHint:
 
         assert ItemAdapter.get_field_names_from_class(TypedDictItemUnresolvable) == ["price"]
 
-    @unittest.skipIf(not typing_extensions, "typing_extensions module is not available")
+    @pytest.mark.skipif(not typing_extensions, reason="typing_extensions module is not available")
     def test_typing_extensions(self):
         class TypedDictItemTypingExtensions(typing_extensions.TypedDict):
             name: typing_extensions.ReadOnly[Annotated[str, {"json_schema_extra": {"x": 1}}]]
