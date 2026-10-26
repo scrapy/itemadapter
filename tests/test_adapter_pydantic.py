@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import unittest
 from types import MappingProxyType
-from unittest import mock
 
 import pytest
 
@@ -17,13 +15,12 @@ from tests import (
     ScrapySubclassedItem,
     clear_itemadapter_imports,
     make_mock_import,
+    requires_pydantic,
 )
 from tests.test_json_schema import check_schemas
 
 
-class PydanticTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestPydantic:
     def test_false(self):
         from itemadapter.adapter import PydanticAdapter
 
@@ -55,10 +52,10 @@ class PydanticTestCase(unittest.TestCase):
             assert not PydanticAdapter.is_item(ScrapyItem())
             assert not PydanticAdapter.is_item(ScrapySubclassedItem())
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @mock.patch("builtins.__import__", make_mock_import("pydantic"))
-    def test_module_import_error(self):
-        with clear_itemadapter_imports():
+    @requires_pydantic
+    def test_module_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("pydantic"))
             from itemadapter import utils
             from itemadapter.adapter import PydanticAdapter
 
@@ -68,16 +65,16 @@ class PydanticTestCase(unittest.TestCase):
             ):
                 utils.get_field_meta_from_class(PydanticModel, "name")
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @mock.patch("itemadapter._utils.pydantic", None)
-    def test_module_not_available(self):
+    @requires_pydantic
+    def test_module_not_available(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from itemadapter.adapter import PydanticAdapter
 
+        monkeypatch.setattr("itemadapter._utils.pydantic", None)
         assert not PydanticAdapter.is_item(PydanticModel(name="asdf", value=1234))
         with pytest.raises(TypeError, match=r"tests.PydanticModel'\> is not a valid item class"):
             get_field_meta_from_class(PydanticModel, "name")
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_true(self):
         from itemadapter.adapter import PydanticAdapter
 
@@ -118,7 +115,7 @@ class PydanticTestCase(unittest.TestCase):
         with pytest.raises(KeyError, match="PydanticModel does not support field: non_existent"):
             get_field_meta_from_class(PydanticModel, "non_existent")
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_json_schema_forbid(self):
         from itemadapter._imports import pydantic
 
@@ -140,7 +137,7 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_json_schema_field_deprecated_bool(self):
         from itemadapter._imports import pydantic
 
@@ -157,7 +154,7 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_json_schema_field_deprecated_str(self):
         from itemadapter._imports import pydantic
 
@@ -174,7 +171,7 @@ class PydanticTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_json_schema_validators(self):
         from itemadapter._imports import pydantic
 

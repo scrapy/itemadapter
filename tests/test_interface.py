@@ -1,23 +1,19 @@
 from __future__ import annotations
 
-import unittest
 from collections.abc import Iterator, KeysView
 from types import MappingProxyType
 from typing import Any
-from unittest import mock
 
 import pytest
 
 from itemadapter.adapter import AdapterInterface, ItemAdapter
 
 
-class AdapterInterfaceTest(unittest.TestCase):
-    @mock.patch.multiple(AdapterInterface, __abstractmethods__=set())
-    def test_interface_class_methods(self):
-        with pytest.raises(NotImplementedError):
-            AdapterInterface.is_item(object())
-        with pytest.raises(NotImplementedError):
-            AdapterInterface.is_item_class(object)
+def test_interface_class_methods() -> None:
+    with pytest.raises(NotImplementedError):
+        AdapterInterface.is_item(object())
+    with pytest.raises(NotImplementedError):
+        AdapterInterface.is_item_class(object)
 
 
 class FakeItemClass:
@@ -76,16 +72,15 @@ class MetadataFakeItemAdapter(BaseFakeItemAdapter):
         return MappingProxyType(item_class._fields.get(field_name) or {})
 
 
-class BaseFakeItemAdapterTest(unittest.TestCase):
+class TestBaseFakeItemAdapter:
     item_class = FakeItemClass
     adapter_class = BaseFakeItemAdapter
 
-    def setUp(self):
-        self._adapter_classes = ItemAdapter.ADAPTER_CLASSES
-        ItemAdapter.ADAPTER_CLASSES = (self.adapter_class, *self._adapter_classes)
-
-    def tearDown(self):
-        ItemAdapter.ADAPTER_CLASSES = self._adapter_classes
+    @pytest.fixture(autouse=True)
+    def _prepend_adapter_class(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            ItemAdapter, "ADAPTER_CLASSES", (self.adapter_class, *ItemAdapter.ADAPTER_CLASSES)
+        )
 
     def test_repr(self):
         item = self.item_class()
@@ -188,7 +183,7 @@ class BaseFakeItemAdapterTest(unittest.TestCase):
         assert sorted(adapter.field_names()) == ["name", "value"]
 
 
-class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
+class TestMetadataFakeItemAdapter(TestBaseFakeItemAdapter):
     item_class = FakeItemClass
     adapter_class = MetadataFakeItemAdapter
 
@@ -210,7 +205,7 @@ class MetadataFakeItemAdapterTest(BaseFakeItemAdapterTest):
         )
 
 
-class FieldNamesFakeItemAdapterTest(BaseFakeItemAdapterTest):
+class TestFieldNamesFakeItemAdapter(TestBaseFakeItemAdapter):
     item_class = FakeItemClass
     adapter_class = FieldNamesFakeItemAdapter
 

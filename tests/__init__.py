@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+import pytest
+
 from itemadapter import ItemAdapter
 from itemadapter._imports import pydantic
 
@@ -363,3 +365,12 @@ else:
         nested_list: list[ScrapySubclassedItemJsonSchemaNested] = Field()
         nested_dict: dict[str, ScrapySubclassedItemJsonSchemaNested] = Field()
         nested_dict_list: list[dict[str, ScrapySubclassedItemJsonSchemaNested]] = Field()
+
+
+requires_attrs = pytest.mark.skipif(AttrsItem is None, reason="attrs module is not available")
+requires_pydantic = pytest.mark.skipif(
+    PydanticModel is None, reason="pydantic module is not available"
+)
+requires_scrapy = pytest.mark.skipif(
+    ScrapySubclassedItem is None, reason="scrapy module is not available"
+)

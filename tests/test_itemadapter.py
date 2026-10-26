@@ -1,4 +1,3 @@
-import unittest
 from typing import Any
 
 import pytest
@@ -20,20 +19,17 @@ class EmptyDictAdapter(DictAdapter):
         return isinstance(item, dict) and not item
 
 
-class ItemAdapterTestCase(unittest.TestCase):
+class TestItemAdapter:
     def test_repr(self):
         adapter = ItemAdapter({"foo": "bar"})
         assert repr(adapter) == "<ItemAdapter for dict(foo='bar')>"
 
-    def test_adapter_classes_change(self):
+    def test_adapter_classes_change(self, monkeypatch: pytest.MonkeyPatch) -> None:
         item = DataClassItem()
-        adapter_classes = ItemAdapter.ADAPTER_CLASSES
         assert ItemAdapter.is_item(item)
-        ItemAdapter.ADAPTER_CLASSES = (DictAdapter,)
-        try:
+        with monkeypatch.context() as m:
+            m.setattr(ItemAdapter, "ADAPTER_CLASSES", (DictAdapter,))
             assert not ItemAdapter.is_item(item)
-        finally:
-            ItemAdapter.ADAPTER_CLASSES = adapter_classes
         assert ItemAdapter.is_item(item)
 
     def test_repr_subclass(self):
