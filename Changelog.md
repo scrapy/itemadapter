@@ -1,6 +1,6 @@
 # Changelog
 
-### 0.14.0 (unreleased)
+### 0.14.0 (2026-10-29)
 
 Removed support for Python 3.9 and 3.10, and added support for Python 3.15
 ([#112](https://github.com/scrapy/itemadapter/pull/112),
