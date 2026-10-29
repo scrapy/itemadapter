@@ -1,5 +1,4 @@
 from types import MappingProxyType
-from unittest import TestCase
 
 import pytest
 
@@ -7,7 +6,7 @@ from itemadapter.utils import get_field_meta_from_class
 from tests import AttrsItem, DataClassItem, PydanticModel, ScrapyItem, ScrapySubclassedItem
 
 
-class DataclassTestCase(TestCase):
+class TestDataclass:
     def test_false(self):
         from itemadapter.adapter import DataclassAdapter
 

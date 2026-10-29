@@ -1,5 +1,68 @@
 # Changelog
 
+### 0.14.0 (2026-10-29)
+
+Removed support for Python 3.9 and 3.10, and added support for Python 3.15
+([#112](https://github.com/scrapy/itemadapter/pull/112),
+[#130](https://github.com/scrapy/itemadapter/pull/130),
+[#137](https://github.com/scrapy/itemadapter/pull/137)).
+
+Raised the minimum supported versions of optional dependencies: `attrs` 22.1.0
+(was 20.1.0), `pydantic` 2.7 (was 1.8) and `scrapy` 2.7 (was 2.2)
+([#137](https://github.com/scrapy/itemadapter/pull/137),
+[#139](https://github.com/scrapy/itemadapter/pull/139),
+[#140](https://github.com/scrapy/itemadapter/pull/140)).
+
+Removed support for Pydantic 1 models, including `pydantic.v1` models from
+Pydantic 2, and for `scrapy.item.BaseItem` subclasses that are not
+`scrapy.Item` subclasses
+([#139](https://github.com/scrapy/itemadapter/pull/139)).
+
+`ItemAdapter.ADAPTER_CLASSES` is now a `tuple` instead of a
+`collections.deque`, so it no longer supports `appendleft()` and other
+in-place changes. To register an adapter class, reassign it instead, e.g.
+`ItemAdapter.ADAPTER_CLASSES = (MyAdapter, *ItemAdapter.ADAPTER_CLASSES)`
+([#118](https://github.com/scrapy/itemadapter/pull/118),
+[#128](https://github.com/scrapy/itemadapter/pull/128)).
+
+Which adapter class handles each item class is now cached, making
+`ItemAdapter()` and `is_item()` faster. As a result, the `is_item_class()`
+class method of adapter classes must return the same result every time it is
+called with the same item class
+([#128](https://github.com/scrapy/itemadapter/pull/128)).
+
+Overriding the `is_item()` class method in an adapter class is deprecated,
+override `is_item_class()` instead. Adapter classes that override `is_item()`
+still work, but trigger a `DeprecationWarning` and disable the cache above
+([#128](https://github.com/scrapy/itemadapter/pull/128)).
+
+Added support for
+[`TypedDict`](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+item classes, including `typing_extensions.TypedDict` ones: field names, field
+metadata from the first mapping in
+[`Annotated`](https://docs.python.org/3/library/typing.html#typing.Annotated)
+type hints, and `get_json_schema()` support, which honors `Required` and
+`NotRequired` ([#123](https://github.com/scrapy/itemadapter/pull/123)).
+
+`get_json_schema()` is much faster on repeated calls, as field docstrings read
+from source code are now cached
+([#141](https://github.com/scrapy/itemadapter/pull/141)).
+
+`get_json_schema()` no longer fails on unions of 2 or more non-simple types,
+e.g. 2 item classes ([#123](https://github.com/scrapy/itemadapter/pull/123)).
+
+`get_json_schema()` now maps `int | float` to `number` regardless of the order
+of the union members; `float | int` already did
+([#133](https://github.com/scrapy/itemadapter/pull/133)).
+
+`get_json_schema()` now handles `attrs.validators.matches_re()` validators
+better: patterns are anchored to match their match function (`re.fullmatch()`
+by default), and patterns with flags that JSON Schema cannot express, e.g.
+`re.IGNORECASE`, are left out
+([#122](https://github.com/scrapy/itemadapter/pull/122)).
+
+Improved type hints ([#138](https://github.com/scrapy/itemadapter/pull/138)).
+
 ### 0.13.1 (2026-01-08)
 
 Fixed `get_json_schema()` to properly format multiline field docstrings using

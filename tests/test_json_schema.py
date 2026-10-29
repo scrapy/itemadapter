@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import inspect
 import json
+import re
 import typing
-import unittest
 from collections.abc import Mapping, Sequence  # noqa: TC003
 from dataclasses import dataclass, field, make_dataclass
 from enum import Enum
 from typing import Any, Generic, TypeVar, Union
-from unittest import mock
 
 import pytest
 
 from itemadapter._imports import pydantic
+from itemadapter._json_schema import json_schema_pattern
 from itemadapter.adapter import (
     AttrsAdapter,
     DataclassAdapter,
@@ -29,6 +29,9 @@ from tests import (
     PydanticModelJsonSchemaNested,
     ScrapySubclassedItem,
     ScrapySubclassedItemJsonSchemaNested,
+    requires_attrs,
+    requires_pydantic,
+    requires_scrapy,
 )
 
 _T = TypeVar("_T")
@@ -215,11 +218,9 @@ def test_numeric_union(field_type, expected):
     check_schemas(actual, expected)
 
 
-class JsonSchemaTestCase(unittest.TestCase):
-    maxDiff = None
-
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+class TestJsonSchema:
+    @requires_attrs
+    @requires_pydantic
     def test_attrs_pydantic_enum(self):
         """This test exists to ensure that we do not let the JSON Schema
         generation of Pydantic item classes generate nested $defs (which we
@@ -248,8 +249,8 @@ class JsonSchemaTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    def test_unreachable_source(self):
+    @requires_scrapy
+    def test_unreachable_source(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Reading the item class source to find attribute docstrings is not
         always a possibility, e.g. for classes defined in a REPL. In those
         cases, only the extraction of those docstrings should fail."""
@@ -269,7 +270,12 @@ class JsonSchemaTestCase(unittest.TestCase):
             },
         }
         for exception in (OSError, TypeError):
-            with mock.patch("inspect.getsource", side_effect=exception):
+
+            def getsource(_obj: Any, _exception: type[Exception] = exception) -> str:
+                raise _exception
+
+            with monkeypatch.context() as m:
+                m.setattr(inspect, "getsource", getsource)
                 actual = ItemAdapter.get_json_schema(ScrapySubclassedItemUnreachable)
             check_schemas(actual, expected)
 
@@ -672,7 +678,7 @@ class JsonSchemaTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     def test_modern_optional_annotations(self):
         import attrs
 
@@ -730,7 +736,7 @@ class JsonSchemaTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    def test_field_docstring_source_reads(self) -> None:
+    def test_field_docstring_source_reads(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The source of each class in the MRO of an item class is read once,
         not once per field, and not again on later calls."""
 
@@ -755,10 +761,18 @@ class JsonSchemaTestCase(unittest.TestCase):
             },
             "required": ["foo", "bar", "baz"],
         }
-        with mock.patch("inspect.getsource", wraps=inspect.getsource) as getsource:
+        original_getsource = inspect.getsource
+        calls = []
+
+        def getsource(obj: Any) -> str:
+            calls.append(obj)
+            return original_getsource(obj)
+
+        with monkeypatch.context() as m:
+            m.setattr(inspect, "getsource", getsource)
             check_schemas(ItemAdapter.get_json_schema(ChildItem), expected)
             check_schemas(ItemAdapter.get_json_schema(ChildItem), expected)
-        assert [call.args[0] for call in getsource.call_args_list] == list(ChildItem.__mro__)
+        assert calls == list(ChildItem.__mro__)
 
     def test_field_docstring_cleandoc(self):
         """Test that field docstrings are properly dedented and trimmed."""
@@ -792,14 +806,12 @@ class JsonSchemaTestCase(unittest.TestCase):
         check_schemas(actual, expected)
 
 
-class CrossNestingTestCase(unittest.TestCase):
+class TestCrossNesting:
     """Test item nesting across different item types, with all supported types
     acting as parent or child in one test."""
 
-    maxDiff = None
-
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_pydantic
+    @requires_attrs
     def test_attrs_pydantic(self):
         import attrs
 
@@ -832,8 +844,8 @@ class CrossNestingTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_scrapy
+    @requires_attrs
     def test_scrapy_attrs(self):
         actual = ItemAdapter.get_json_schema(ScrapySubclassedItemCrossNested)  # pylint: disable=possibly-used-before-assignment
         expected = {
@@ -859,7 +871,7 @@ class CrossNestingTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_pydantic_dataclass(self):
         class TestItem(pydantic.BaseModel):
             nested: DataClassItemJsonSchemaNested
@@ -890,8 +902,8 @@ class CrossNestingTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_pydantic
+    @requires_scrapy
     def test_pydantic_scrapy(self):
         class TestItem(pydantic.BaseModel):
             nested: ScrapySubclassedItemJsonSchemaNested
@@ -927,11 +939,9 @@ class CrossNestingTestCase(unittest.TestCase):
         check_schemas(actual, expected)
 
 
-class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
+class TestJsonSchemaEdgeCase:
     """Inputs that map to no JSON Schema output, or that the JSON Schema
     generation cannot take at face value."""
-
-    maxDiff = None
 
     def test_unhandled_types(self):
         actual = ItemAdapter.get_json_schema(UnhandledTypeItem)
@@ -1003,7 +1013,7 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    def test_source_of_a_different_class(self):
+    def test_source_of_a_different_class(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Reading the item class source can find the source of a different
         class, e.g. for classes that are renamed after their definition. Only
         the extraction of attribute docstrings should be affected."""
@@ -1014,7 +1024,8 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
             """Foo"""
 
         source = "@dataclass\nclass SomethingElse:\n    foo: str\n    '''Bar'''\n"
-        with mock.patch("inspect.getsource", return_value=source):
+        with monkeypatch.context() as m:
+            m.setattr(inspect, "getsource", lambda _obj: source)
             actual = ItemAdapter.get_json_schema(RenamedItem)
         expected = {
             "type": "object",
@@ -1024,7 +1035,7 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     def test_attrs_unhandled_validator(self):
         """Validators that map to no JSON Schema keyword are ignored."""
         import attrs
@@ -1042,7 +1053,7 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_pydantic_general_metadata_without_pattern(self):
         """General metadata that carries no pattern maps to no JSON Schema
         keyword."""
@@ -1057,3 +1068,58 @@ class JsonSchemaEdgeCaseTestCase(unittest.TestCase):
             "required": ["foo"],
         }
         check_schemas(actual, expected)
+
+
+@pytest.mark.parametrize(
+    ("pattern", "expected"),
+    [
+        # Shared syntax.
+        (r"^[A-Za-z]+$", r"^[A-Za-z]+$"),
+        (r"\bD\d{2}\b", r"\bD\d{2}\b"),
+        (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", r"a(b|c)?(?:d)(?=e)(?!f)\.\\"),
+        (r"\x41\u00e9\t\n", r"\x41\u00e9\t\n"),
+        (r"(a)\1", r"(a)\1"),
+        (r"[a\]b^-]", r"[a\]b^-]"),
+        (r"[a.b]", r"[a.b]"),
+        (r"(?<=a)b", r"(?<=a)b"),
+        (r"(?<!a)b", r"(?<!a)b"),
+        (r"a{2", r"a{2"),
+        # Translated syntax.
+        (r"\Aab\Z", r"^ab$"),
+        (r"(?P<year>\d{4})", r"(\d{4})"),
+        (r"a(?#comment)b", r"ab"),
+        (r"(?s)a.b", r"a[\s\S]b"),
+        (re.compile(r"a.b", re.DOTALL), r"a[\s\S]b"),
+        ("(?x)a  # comment\n  \\d+", r"a\d+"),
+        (re.compile("a  # comment\n  b", re.VERBOSE), r"ab"),
+        (r"(?ax)a b", r"ab"),
+        ("(?x)a # unterminated comment", "a"),
+        # Python-only syntax.
+        (r"\a", None),
+        (r"[\a]", None),
+        (r"\N{BULLET}", None),
+        (r"\U0001F600", None),
+        (r"(?P=name)", None),
+        (r"(?i)a", None),
+        (re.compile(r"a", re.IGNORECASE), None),
+        (r"(?m)a", None),
+        (r"(?i:a)", None),
+        (r"(?>a)", None),
+        (r"a*+", None),
+        (r"a{2,3}+", None),
+        # Syntax that both dialects accept with a different meaning.
+        (r"[]]", None),
+        (r"[^]]", None),
+        (r"\0", None),
+        (r"\01", None),
+        (r"(?x)a{2, 3}", None),
+        # Malformed patterns.
+        ("\\", None),
+        (r"[abc", None),
+        (r"\x4", None),
+        (r"(?#unterminated", None),
+        (r"(?P<unterminated", None),
+    ],
+)
+def test_json_schema_pattern(pattern: str | re.Pattern[str], expected: str | None) -> None:
+    assert json_schema_pattern(pattern) == expected

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import unittest
 from collections.abc import KeysView
 from types import MappingProxyType
 
@@ -37,6 +36,9 @@ from tests import (
     ScrapySubclassedItemJsonSchema,
     ScrapySubclassedItemNested,
     ScrapySubclassedItemSubclassed,
+    requires_attrs,
+    requires_pydantic,
+    requires_scrapy,
 )
 from tests.test_json_schema import check_schemas
 
@@ -48,25 +50,23 @@ except ImportError:
     SCRAPY_VERSION = None
 
 
-class ItemAdapterReprTestCase(unittest.TestCase):
+class TestItemAdapterRepr:
     def test_repr_dict(self):
         item = {"name": "asdf", "value": 1234}
         adapter = ItemAdapter(item)
         assert repr(adapter) == "<ItemAdapter for dict(name='asdf', value=1234)>"
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_repr_scrapy_item(self):
         item = ScrapySubclassedItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         assert repr(adapter) == "<ItemAdapter for ScrapySubclassedItem(name='asdf', value=1234)>"
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_repr_dataclass(self):
         item = DataClassItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         assert repr(adapter) == "<ItemAdapter for DataClassItem(name='asdf', value=1234)>"
 
-    @unittest.skipIf(not DataClassWithoutInit, "dataclasses module is not available")
     def test_repr_dataclass_init_false(self):
         item = DataClassWithoutInit()
         adapter = ItemAdapter(item)
@@ -74,13 +74,13 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         adapter["name"] = "set after init"
         assert repr(adapter) == "<ItemAdapter for DataClassWithoutInit(name='set after init')>"
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     def test_repr_attrs(self):
         item = AttrsItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         assert repr(adapter) == "<ItemAdapter for AttrsItem(name='asdf', value=1234)>"
 
-    @unittest.skipIf(not AttrsItemWithoutInit, "attrs module is not available")
+    @requires_attrs
     def test_repr_attrs_init_false(self):
         item = AttrsItemWithoutInit()
         adapter = ItemAdapter(item)
@@ -88,13 +88,13 @@ class ItemAdapterReprTestCase(unittest.TestCase):
         adapter["name"] = "set after init"
         assert repr(adapter) == "<ItemAdapter for AttrsItemWithoutInit(name='set after init')>"
 
-    @unittest.skipIf(not AttrsClassicItem, "attrs module is not available")
+    @requires_attrs
     def test_repr_attrs_classic(self):
         item = AttrsClassicItem(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         assert repr(adapter) == "<ItemAdapter for AttrsClassicItem(name='asdf', value=1234)>"
 
-    @unittest.skipIf(not AttrsClassicItemWithoutInit, "attrs module is not available")
+    @requires_attrs
     def test_repr_attrs_classic_init_false(self):
         item = AttrsClassicItemWithoutInit()
         adapter = ItemAdapter(item)
@@ -104,32 +104,26 @@ class ItemAdapterReprTestCase(unittest.TestCase):
             repr(adapter) == "<ItemAdapter for AttrsClassicItemWithoutInit(name='set after init')>"
         )
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_repr_pydantic(self):
         item = PydanticModel(name="asdf", value=1234)
         adapter = ItemAdapter(item)
         assert repr(adapter) == "<ItemAdapter for PydanticModel(name='asdf', value=1234)>"
 
 
-class ItemAdapterInitError(unittest.TestCase):
-    def test_non_item(self):
-        with pytest.raises(TypeError):
-            ItemAdapter(ScrapySubclassedItem)
-        with pytest.raises(TypeError):
-            ItemAdapter(dict)
-        with pytest.raises(TypeError):
-            ItemAdapter(1234)
+def test_non_item() -> None:
+    with pytest.raises(TypeError):
+        ItemAdapter(ScrapySubclassedItem)
+    with pytest.raises(TypeError):
+        ItemAdapter(dict)
+    with pytest.raises(TypeError):
+        ItemAdapter(1234)
 
 
 class BaseTestMixin:
-    maxDiff = None
     item_class = None
     item_class_nested = None
     item_class_json_schema = None
-
-    def setUp(self):
-        if self.item_class is None:
-            raise unittest.SkipTest
 
     def test_get_set_value(self):
         item = self.item_class()
@@ -155,6 +149,27 @@ class BaseTestMixin:
         adapter = ItemAdapter(item)
         with pytest.raises(KeyError):
             adapter["undefined_field"]
+
+    def test_deleted_field_keyerror(self):
+        adapter = ItemAdapter(self.item_class(name="asdf", value=1234))
+        del adapter["name"]
+        with pytest.raises(KeyError) as exc_info:
+            adapter["name"]
+        assert exc_info.value.args == ("name",)
+
+    def test_deleted_field_get_default(self):
+        adapter = ItemAdapter(self.item_class(name="asdf", value=1234))
+        del adapter["name"]
+        assert adapter.get("name", "fallback") == "fallback"
+        assert adapter.pop("name", "fallback") == "fallback"
+
+    def test_deleted_field_membership(self):
+        adapter = ItemAdapter(self.item_class(name="asdf", value=1234))
+        del adapter["name"]
+        assert "name" not in adapter
+        adapter["name"] = "restored"
+        assert "name" in adapter
+        assert adapter["name"] == "restored"
 
     def test_as_dict(self):
         item = self.item_class(name="asdf", value=1234)
@@ -346,7 +361,7 @@ class NonDictTestMixin(BaseTestMixin):
         assert field_names == []
 
 
-class DictTestCase(unittest.TestCase, BaseTestMixin):
+class TestDict(BaseTestMixin):
     item_class = dict
     item_class_nested = dict
     item_class_json_schema = dict
@@ -413,7 +428,8 @@ if SCRAPY_VERSION is not None and SCRAPY_VERSION < Version("2.17"):
     _SCRAPY_JSON_SCHEMA_PROPERTIES = dict(sorted(_SCRAPY_JSON_SCHEMA_PROPERTIES.items()))
 
 
-class ScrapySubclassedItemTestCase(NonDictTestMixin, unittest.TestCase):
+@requires_scrapy
+class TestScrapySubclassedItem(NonDictTestMixin):
     item_class = ScrapySubclassedItem
     item_class_nested = ScrapySubclassedItemNested
     item_class_subclassed = ScrapySubclassedItemSubclassed
@@ -442,7 +458,8 @@ _PYDANTIC_NESTED_JSON_SCHEMA = {
 }
 
 
-class PydanticModelTestCase(NonDictTestMixin, unittest.TestCase):
+@requires_pydantic
+class TestPydanticModel(NonDictTestMixin):
     item_class = PydanticModel
     item_class_nested = PydanticModelNested
     item_class_subclassed = PydanticModelSubclassed
@@ -488,7 +505,7 @@ _DATACLASS_ATTRS_JSON_SCHEMA = {
 }
 
 
-class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
+class TestDataClassItem(NonDictTestMixin):
     item_class = DataClassItem
     item_class_nested = DataClassItemNested
     item_class_subclassed = DataClassItemSubclassed
@@ -501,7 +518,8 @@ class DataClassItemTestCase(NonDictTestMixin, unittest.TestCase):
     )
 
 
-class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
+@requires_attrs
+class TestAttrsItem(NonDictTestMixin):
     item_class = AttrsItem
     item_class_nested = AttrsItemNested
     item_class_subclassed = AttrsItemSubclassed
@@ -514,7 +532,8 @@ class AttrsItemTestCase(NonDictTestMixin, unittest.TestCase):
     )
 
 
-class AttrsClassicItemTestCase(NonDictTestMixin, unittest.TestCase):
+@requires_attrs
+class TestAttrsClassicItem(NonDictTestMixin):
     item_class = AttrsClassicItem
     item_class_nested = AttrsClassicItemNested
     item_class_subclassed = AttrsClassicItemSubclassed

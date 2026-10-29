@@ -1,4 +1,3 @@
-import unittest
 from types import MappingProxyType
 
 import pytest
@@ -12,10 +11,13 @@ from tests import (
     PydanticModel,
     ScrapyItem,
     ScrapySubclassedItem,
+    requires_attrs,
+    requires_pydantic,
+    requires_scrapy,
 )
 
 
-class FieldMetaFromClassTestCase(unittest.TestCase):
+class TestFieldMetaFromClass:
     def test_invalid_item_class(self):
         with pytest.raises(TypeError, match=r"issubclass\(\) arg 1 must be a class"):
             get_field_meta_from_class(1, "field")
@@ -30,7 +32,7 @@ class FieldMetaFromClassTestCase(unittest.TestCase):
         assert get_field_meta_from_class(dict, "name") == MappingProxyType({})
 
 
-class ItemLikeTestCase(unittest.TestCase):
+class TestItemLike:
     def test_false(self):
         assert not is_item(int)
         assert not is_item(sum)
@@ -55,26 +57,25 @@ class ItemLikeTestCase(unittest.TestCase):
         assert is_item({"a": "dict"})
         assert ItemAdapter.is_item_class(dict)
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true_scrapy(self):
         assert is_item(ScrapyItem())
         assert is_item(ScrapySubclassedItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(ScrapyItem)
         assert ItemAdapter.is_item_class(ScrapySubclassedItem)
 
-    @unittest.skipIf(not DataClassItem, "dataclasses module is not available")
     def test_true_dataclass(self):
         assert is_item(DataClassItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(DataClassItem)
 
-    @unittest.skipIf(not AttrsItem, "attrs module is not available")
+    @requires_attrs
     def test_true_attrs(self):
         assert is_item(AttrsItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(AttrsItem)
         assert is_item(AttrsClassicItem(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(AttrsClassicItem)
 
-    @unittest.skipIf(not PydanticModel, "pydantic module is not available")
+    @requires_pydantic
     def test_true_pydantic(self):
         assert is_item(PydanticModel(name="asdf", value=1234))
         assert ItemAdapter.is_item_class(PydanticModel)

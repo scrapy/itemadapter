@@ -365,8 +365,9 @@ itemadapter:
     and may not be readable at run time in some cases. For such cases, define
     `description` within `json_schema_extra` instead (see below).
 
--   String pattern contraints are silently ignored if they are not compatible
-    with JSON Schema. No effort is made to make them compatible.
+-   String pattern contraints are translated to the regular expression dialect
+    of JSON Schema where possible, and silently ignored where not, e.g. when
+    they are case-insensitive or multiline.
 
 #### `get_field_meta(field_name: str) -> MappingProxyType`
 

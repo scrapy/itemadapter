@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import unittest
 from typing import TYPE_CHECKING, Annotated, NotRequired, Required, TypedDict
-from unittest import mock
 
 import pytest
 
@@ -49,9 +47,7 @@ class TypedDictItemSubclass(TypedDictItemBase, total=False):
     optional: str
 
 
-class TypedDictTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestTypedDict:
     def test_is_item_class(self):
         assert ItemAdapter.is_item_class(TypedDictItem)
         assert DictAdapter.is_item_class(TypedDictItem)
@@ -227,9 +223,7 @@ class TypedDictTestCase(unittest.TestCase):
         check_schemas(actual, expected)
 
 
-class TypedDictTypeHintTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestTypedDictTypeHint:
     def test_qualifiers_in_any_order(self):
         class TypedDictItemQualifiers(TypedDict, total=False):
             required: Annotated[Required[int], {"json_schema_extra": {"minimum": 0}}]
@@ -270,7 +264,7 @@ class TypedDictTypeHintTestCase(unittest.TestCase):
 
         assert ItemAdapter.get_field_names_from_class(TypedDictItemUnresolvable) == ["price"]
 
-    @unittest.skipIf(not typing_extensions, "typing_extensions module is not available")
+    @pytest.mark.skipif(not typing_extensions, reason="typing_extensions module is not available")
     def test_typing_extensions(self):
         class TypedDictItemTypingExtensions(typing_extensions.TypedDict):
             name: typing_extensions.ReadOnly[Annotated[str, {"json_schema_extra": {"x": 1}}]]
@@ -296,18 +290,16 @@ class TypedDictTypeHintTestCase(unittest.TestCase):
         }
         check_schemas(actual, expected)
 
-    @mock.patch("builtins.__import__", make_mock_import("typing_extensions"))
-    def test_typing_extensions_import_error(self):
-        with clear_itemadapter_imports():
+    def test_typing_extensions_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("typing_extensions"))
             import itemadapter.adapter
 
             names = itemadapter.adapter.ItemAdapter.get_field_names_from_class(TypedDictItem)
             assert names == ["name", "value"]
 
 
-class TypedDictCrossNestingTestCase(unittest.TestCase):
-    maxDiff = None
-
+class TestTypedDictCrossNesting:
     def test_typed_dict_in_dataclass(self):
         from dataclasses import dataclass
 

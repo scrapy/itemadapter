@@ -1,6 +1,4 @@
-import unittest
 from types import MappingProxyType
-from unittest import mock
 
 import pytest
 
@@ -13,10 +11,11 @@ from tests import (
     ScrapySubclassedItem,
     clear_itemadapter_imports,
     make_mock_import,
+    requires_scrapy,
 )
 
 
-class ScrapyItemTestCase(unittest.TestCase):
+class TestScrapyItem:
     def test_false(self):
         from itemadapter.adapter import ScrapyItemAdapter
 
@@ -43,10 +42,10 @@ class ScrapyItemTestCase(unittest.TestCase):
         if PydanticModel is not None:
             assert not ScrapyItemAdapter.is_item(PydanticModel())
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @mock.patch("builtins.__import__", make_mock_import("scrapy"))
-    def test_module_import_error(self):
-        with clear_itemadapter_imports():
+    @requires_scrapy
+    def test_module_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        with monkeypatch.context() as m, clear_itemadapter_imports():
+            m.setattr("builtins.__import__", make_mock_import("scrapy"))
             from itemadapter import utils
             from itemadapter.adapter import ScrapyItemAdapter
 
@@ -56,18 +55,18 @@ class ScrapyItemTestCase(unittest.TestCase):
             ):
                 utils.get_field_meta_from_class(ScrapySubclassedItem, "name")
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
-    @mock.patch("itemadapter.adapter._scrapy_item_classes", ())
-    def test_module_not_available(self):
+    @requires_scrapy
+    def test_module_not_available(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from itemadapter.adapter import ScrapyItemAdapter
 
+        monkeypatch.setattr("itemadapter.adapter._scrapy_item_classes", ())
         assert not ScrapyItemAdapter.is_item(ScrapySubclassedItem(name="asdf", value=1234))
         with pytest.raises(
             TypeError, match=r"tests.ScrapySubclassedItem'\> is not a valid item class"
         ):
             get_field_meta_from_class(ScrapySubclassedItem, "name")
 
-    @unittest.skipIf(not ScrapySubclassedItem, "scrapy module is not available")
+    @requires_scrapy
     def test_true(self):
         from itemadapter.adapter import ScrapyItemAdapter
 
