@@ -921,22 +921,24 @@ class TestJsonSchemaEdgeCase:
     [
         # Shared syntax.
         (r"^[A-Za-z]+$", r"^[A-Za-z]+$"),
-        (r"\bD\d{2}\b", r"\bD\d{2}\b"),
+        (r"(?a)\bD\d{2}\b", r"\bD\d{2}\b"),
         (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", r"a(b|c)?(?:d)(?=e)(?!f)\.\\"),
         (r"\x41\u00e9\t\n", r"\x41\u00e9\t\n"),
         (r"(a)\1", r"(a)\1"),
         (r"[a\]b^-]", r"[a\]b^-]"),
         (r"[a.b]", r"[a.b]"),
+        (r"\\d", r"\\d"),
+        (r"[\\d]", r"[\\d]"),
         (r"(?<=a)b", r"(?<=a)b"),
         (r"(?<!a)b", r"(?<!a)b"),
         (r"a{2", r"a{2"),
         # Translated syntax.
         (r"\Aab\Z", r"^ab$"),
-        (r"(?P<year>\d{4})", r"(\d{4})"),
+        (r"(?a)(?P<year>\d{4})", r"(\d{4})"),
         (r"a(?#comment)b", r"ab"),
         (r"(?s)a.b", r"a[\s\S]b"),
         (re.compile(r"a.b", re.DOTALL), r"a[\s\S]b"),
-        ("(?x)a  # comment\n  \\d+", r"a\d+"),
+        ("(?ax)a  # comment\n  \\d+", r"a\d+"),
         (re.compile("a  # comment\n  b", re.VERBOSE), r"ab"),
         (r"(?ax)a b", r"ab"),
         ("(?x)a # unterminated comment", "a"),
@@ -969,3 +971,24 @@ class TestJsonSchemaEdgeCase:
 )
 def test_json_schema_pattern(pattern: str | re.Pattern[str], expected: str | None) -> None:
     assert json_schema_pattern(pattern) == expected
+
+
+@pytest.mark.parametrize("pattern", [r"\d+", r"\D+", r"[\d]+", r"[^\D]+"])
+@pytest.mark.parametrize("compiled", [False, True])
+@pytest.mark.parametrize("ascii_only", [False, True])
+def test_json_schema_digit_semantics(pattern, compiled, ascii_only):
+    flags = re.ASCII if ascii_only else 0
+    source = re.compile(pattern, flags) if compiled else ("(?a)" if ascii_only else "") + pattern
+    assert json_schema_pattern(source) == (pattern if ascii_only else None)
+
+
+@requires_attrs
+@pytest.mark.parametrize(("pattern", "value"), [(r"\d+", "\u0661\u0662\u0663"), (r"\D+", "abc")])
+def test_attrs_unicode_digit_pattern_omitted(pattern, value):
+    import attrs
+
+    item_class = attrs.make_class(
+        "Digits", {"code": attrs.field(type=str, validator=attrs.validators.matches_re(pattern))}
+    )
+    item_class(code=value)
+    assert ItemAdapter.get_json_schema(item_class)["properties"]["code"] == {"type": "string"}

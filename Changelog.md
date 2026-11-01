@@ -1,5 +1,10 @@
 # Changelog
 
+### Unreleased
+
+Omit Unicode digit-class patterns from generated JSON Schema unless ASCII mode
+is explicit, avoiding differences between Python and ECMA-262 digit classes.
+
 ### 0.14.0 (2026-10-29)
 
 Removed support for Python 3.9 and 3.10, and added support for Python 3.15

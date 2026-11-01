@@ -335,7 +335,9 @@ itemadapter:
 
 -   String pattern contraints are translated to the regular expression dialect
     of JSON Schema where possible, and silently ignored where not, e.g. when
-    they are case-insensitive or multiline.
+    they are case-insensitive or multiline. Unicode digit classes (`\d` and
+    `\D`) are also omitted unless the pattern uses ASCII mode, because JSON
+    Schema digit classes only match ASCII digits.
 
 -   Recursion is silently ignored: if you have an item class that has an
     attribute with that same item class as a type or as part of its type, a
