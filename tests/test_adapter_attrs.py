@@ -149,13 +149,13 @@ class TestAttrs:
             # Unanchored pattern
             day: str = attrs.field(
                 validator=[
-                    validators.matches_re(r"\bD\d{2}\b", func=re.search),
+                    validators.matches_re(r"\bD[0-9]{2}\b", func=re.search),
                 ],
             )
             # Prefix-anchored pattern
             hour: str = attrs.field(
                 validator=[
-                    validators.matches_re(r"H\d{2}", func=re.match),
+                    validators.matches_re(r"H[0-9]{2}", func=re.match),
                 ],
             )
             # Len limits on sequences/sets.
@@ -190,11 +190,11 @@ class TestAttrs:
                 },
                 "day": {
                     "type": "string",
-                    "pattern": r"\bD\p{Nd}{2}\b",
+                    "pattern": r"\bD[0-9]{2}\b",
                 },
                 "hour": {
                     "type": "string",
-                    "pattern": r"^(?:H\p{Nd}{2})",
+                    "pattern": r"^(?:H[0-9]{2})",
                 },
                 "tags": {
                     "type": "array",

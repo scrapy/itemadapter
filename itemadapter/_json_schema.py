@@ -133,7 +133,9 @@ VERBOSE_WHITESPACE = frozenset(" \t\n\r\v\f")
 # Escape sequences that have the same meaning in Python and in ECMA-262. \b
 # and \B are included even though Python matches word boundaries against
 # Unicode word characters, while ECMA-262 only matches them against ASCII
-# ones.
+# ones. \d and \D are not included: without re.ASCII, Python matches Unicode
+# decimal digits, and flagless ECMA-262 matches only ASCII 0-9. \p{Nd} is
+# not a substitute, because it requires the unicode flag.
 SHARED_ESCAPE_LETTERS = frozenset("bfnrstvwSW")
 
 # Escape sequences with an ECMA-262 equivalent. ECMA-262 patterns are never
@@ -167,10 +169,10 @@ def scan_escape(
         if len(digits) != HEX_ESCAPE_SIZES[char] or not HEX_DIGITS.issuperset(digits):
             return None
         return end, pattern[index:end]
-    if char == "d":
-        return index + 2, r"\d" if flags & re.ASCII else r"\p{Nd}"
-    if char == "D":
-        return index + 2, r"\D" if flags & re.ASCII else r"\P{Nd}"
+    if char in {"d", "D"}:
+        if flags & re.ASCII:
+            return index + 2, pattern[index : index + 2]
+        return None
     if char in SHARED_ESCAPE_LETTERS or (char == "B" and not in_class):
         return index + 2, pattern[index : index + 2]
     if char in CONVERTED_ESCAPES and not in_class:
@@ -191,10 +193,9 @@ def scan_class(pattern: str, index: int, *, flags: int = 0) -> tuple[int, str] |
     """Return the ECMA-262 translation of the character class that starts at
     *index*, along with the index right after it, or ``None`` if that class
     has no ECMA-262 equivalent."""
-    output = ["["]
+    start = index
     index += 1
     if pattern[index : index + 1] == "^":
-        output.append("^")
         index += 1
     if pattern[index : index + 1] == "]":
         # Python reads a leading ] as a literal, ECMA-262 as the end of an
@@ -203,16 +204,15 @@ def scan_class(pattern: str, index: int, *, flags: int = 0) -> tuple[int, str] |
     while index < len(pattern):
         char = pattern[index]
         if char == "]":
-            output.append("]")
-            return index + 1, "".join(output)
+            return index + 1, pattern[start : index + 1]
         if char == "\\":
+            # Escape sequences are never translated within a character class,
+            # so the class can be copied verbatim when every escape is legal.
             escape = scan_escape(pattern, index, in_class=True, flags=flags)
             if escape is None:
                 return None
-            index, text = escape
-            output.append(text)
+            index = escape[0]
             continue
-        output.append(char)
         index += 1
     return None
 

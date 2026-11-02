@@ -932,22 +932,22 @@ class TestJsonSchemaEdgeCase:
         (r"a{2", r"a{2"),
         # Translated syntax.
         (r"\Aab\Z", r"^ab$"),
-        (r"(?P<year>\d{4})", r"(\p{Nd}{4})"),
+        (r"(?P<year>\d{4})", None),
         (r"a(?#comment)b", r"ab"),
         (r"(?s)a.b", r"a[\s\S]b"),
         (re.compile(r"a.b", re.DOTALL), r"a[\s\S]b"),
-        ("(?x)a  # comment\n  \\d+", r"a\p{Nd}+"),
+        ("(?x)a  # comment\n  \\d+", None),
         (re.compile("a  # comment\n  b", re.VERBOSE), r"ab"),
         (r"(?ax)a b", r"ab"),
         ("(?x)a # unterminated comment", "a"),
-        (r"\bD\d{2}\b", r"\bD\p{Nd}{2}\b"),
+        (r"\bD\d{2}\b", None),
         (r"(?a)\bD\d{2}\b", r"\bD\d{2}\b"),
-        (r"\d", r"\p{Nd}"),
-        (r"\D", r"\P{Nd}"),
+        (r"\d", None),
+        (r"\D", None),
         (r"(?a)\d", r"\d"),
         (r"(?a)\D", r"\D"),
-        (r"[\d]", r"[\p{Nd}]"),
-        (r"[\D]", r"[\P{Nd}]"),
+        (r"[\d]", None),
+        (r"[\D]", None),
         (r"(?a)[\d]", r"[\d]"),
         (r"(?a)[\D]", r"[\D]"),
         # Python-only syntax.
@@ -982,14 +982,14 @@ def test_json_schema_pattern(pattern: str | re.Pattern[str], expected: str | Non
 
 
 def test_json_schema_pattern_digits() -> None:
-    assert json_schema_pattern(r"^\d+$") == r"^\p{Nd}+$"
-    assert json_schema_pattern(r"^\D+$") == r"^\P{Nd}+$"
+    assert json_schema_pattern(r"^\d+$") is None
+    assert json_schema_pattern(r"^\D+$") is None
     assert json_schema_pattern(r"(?a)^\d+$") == r"^\d+$"
     assert json_schema_pattern(r"(?a)^\D+$") == r"^\D+$"
     assert json_schema_pattern(re.compile(r"^\d+$", re.ASCII)) == r"^\d+$"
     assert json_schema_pattern(re.compile(r"^\D+$", re.ASCII)) == r"^\D+$"
-    assert json_schema_pattern(r"^[\d]+$") == r"^[\p{Nd}]+$"
-    assert json_schema_pattern(r"^[\D]+$") == r"^[\P{Nd}]+$"
+    assert json_schema_pattern(r"^[\d]+$") is None
+    assert json_schema_pattern(r"^[\D]+$") is None
     assert json_schema_pattern(r"(?a)^[\d]+$") == r"^[\d]+$"
 
 
@@ -1003,4 +1003,4 @@ def test_attrs_matches_re_unicode_digits():
         {"code": attrs.field(type=str, validator=validators.matches_re(r"^\d+$"))},
     )
     schema = ItemAdapter.get_json_schema(Digits)
-    assert schema["properties"]["code"]["pattern"] == r"^(?:^\p{Nd}+$)$"
+    assert "pattern" not in schema["properties"]["code"]
