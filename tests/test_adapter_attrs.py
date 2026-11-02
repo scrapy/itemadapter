@@ -190,11 +190,11 @@ class TestAttrs:
                 },
                 "day": {
                     "type": "string",
-                    "pattern": r"\bD\d{2}\b",
+                    "pattern": r"\bD\p{Nd}{2}\b",
                 },
                 "hour": {
                     "type": "string",
-                    "pattern": r"^(?:H\d{2})",
+                    "pattern": r"^(?:H\p{Nd}{2})",
                 },
                 "tags": {
                     "type": "array",

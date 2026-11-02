@@ -921,7 +921,7 @@ class TestJsonSchemaEdgeCase:
     [
         # Shared syntax.
         (r"^[A-Za-z]+$", r"^[A-Za-z]+$"),
-        (r"\bD\d{2}\b", r"\bD\d{2}\b"),
+        (r"\bfoo\b", r"\bfoo\b"),
         (r"a(b|c)?(?:d)(?=e)(?!f)\.\\", r"a(b|c)?(?:d)(?=e)(?!f)\.\\"),
         (r"\x41\u00e9\t\n", r"\x41\u00e9\t\n"),
         (r"(a)\1", r"(a)\1"),
@@ -932,14 +932,24 @@ class TestJsonSchemaEdgeCase:
         (r"a{2", r"a{2"),
         # Translated syntax.
         (r"\Aab\Z", r"^ab$"),
-        (r"(?P<year>\d{4})", r"(\d{4})"),
+        (r"(?P<year>\d{4})", r"(\p{Nd}{4})"),
         (r"a(?#comment)b", r"ab"),
         (r"(?s)a.b", r"a[\s\S]b"),
         (re.compile(r"a.b", re.DOTALL), r"a[\s\S]b"),
-        ("(?x)a  # comment\n  \\d+", r"a\d+"),
+        ("(?x)a  # comment\n  \\d+", r"a\p{Nd}+"),
         (re.compile("a  # comment\n  b", re.VERBOSE), r"ab"),
         (r"(?ax)a b", r"ab"),
         ("(?x)a # unterminated comment", "a"),
+        (r"\bD\d{2}\b", r"\bD\p{Nd}{2}\b"),
+        (r"(?a)\bD\d{2}\b", r"\bD\d{2}\b"),
+        (r"\d", r"\p{Nd}"),
+        (r"\D", r"\P{Nd}"),
+        (r"(?a)\d", r"\d"),
+        (r"(?a)\D", r"\D"),
+        (r"[\d]", r"[\p{Nd}]"),
+        (r"[\D]", r"[\P{Nd}]"),
+        (r"(?a)[\d]", r"[\d]"),
+        (r"(?a)[\D]", r"[\D]"),
         # Python-only syntax.
         (r"\a", None),
         (r"[\a]", None),
@@ -969,3 +979,28 @@ class TestJsonSchemaEdgeCase:
 )
 def test_json_schema_pattern(pattern: str | re.Pattern[str], expected: str | None) -> None:
     assert json_schema_pattern(pattern) == expected
+
+
+def test_json_schema_pattern_digits() -> None:
+    assert json_schema_pattern(r"^\d+$") == r"^\p{Nd}+$"
+    assert json_schema_pattern(r"^\D+$") == r"^\P{Nd}+$"
+    assert json_schema_pattern(r"(?a)^\d+$") == r"^\d+$"
+    assert json_schema_pattern(r"(?a)^\D+$") == r"^\D+$"
+    assert json_schema_pattern(re.compile(r"^\d+$", re.ASCII)) == r"^\d+$"
+    assert json_schema_pattern(re.compile(r"^\D+$", re.ASCII)) == r"^\D+$"
+    assert json_schema_pattern(r"^[\d]+$") == r"^[\p{Nd}]+$"
+    assert json_schema_pattern(r"^[\D]+$") == r"^[\P{Nd}]+$"
+    assert json_schema_pattern(r"(?a)^[\d]+$") == r"^[\d]+$"
+
+
+@requires_attrs
+def test_attrs_matches_re_unicode_digits():
+    import attrs
+    from attrs import validators
+
+    Digits = attrs.make_class(
+        "Digits",
+        {"code": attrs.field(type=str, validator=validators.matches_re(r"^\d+$"))},
+    )
+    schema = ItemAdapter.get_json_schema(Digits)
+    assert schema["properties"]["code"]["pattern"] == r"^(?:^\p{Nd}+$)$"

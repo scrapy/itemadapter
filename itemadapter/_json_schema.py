@@ -134,7 +134,7 @@ VERBOSE_WHITESPACE = frozenset(" \t\n\r\v\f")
 # and \B are included even though Python matches word boundaries against
 # Unicode word characters, while ECMA-262 only matches them against ASCII
 # ones.
-SHARED_ESCAPE_LETTERS = frozenset("bdDfnrstvwSW")
+SHARED_ESCAPE_LETTERS = frozenset("bfnrstvwSW")
 
 # Escape sequences with an ECMA-262 equivalent. ECMA-262 patterns are never
 # multiline, so ^ and $ can only match at the start and at the end of the
@@ -152,7 +152,9 @@ DIGITS = frozenset("0123456789")
 SHARED_GROUP_PREFIXES = ("(?:", "(?=", "(?!", "(?<=", "(?<!")
 
 
-def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] | None:
+def scan_escape(
+    pattern: str, index: int, *, in_class: bool, flags: int = 0
+) -> tuple[int, str] | None:
     """Return the ECMA-262 translation of the escape sequence that starts at
     *index*, along with the index right after it, or ``None`` if that sequence
     has no ECMA-262 equivalent."""
@@ -165,6 +167,10 @@ def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] 
         if len(digits) != HEX_ESCAPE_SIZES[char] or not HEX_DIGITS.issuperset(digits):
             return None
         return end, pattern[index:end]
+    if char == "d":
+        return index + 2, r"\d" if flags & re.ASCII else r"\p{Nd}"
+    if char == "D":
+        return index + 2, r"\D" if flags & re.ASCII else r"\P{Nd}"
     if char in SHARED_ESCAPE_LETTERS or (char == "B" and not in_class):
         return index + 2, pattern[index : index + 2]
     if char in CONVERTED_ESCAPES and not in_class:
@@ -181,13 +187,14 @@ def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] 
     return index + 2, pattern[index : index + 2]
 
 
-def scan_class(pattern: str, index: int) -> tuple[int, str] | None:
+def scan_class(pattern: str, index: int, *, flags: int = 0) -> tuple[int, str] | None:
     """Return the ECMA-262 translation of the character class that starts at
     *index*, along with the index right after it, or ``None`` if that class
     has no ECMA-262 equivalent."""
-    start = index
+    output = ["["]
     index += 1
     if pattern[index : index + 1] == "^":
+        output.append("^")
         index += 1
     if pattern[index : index + 1] == "]":
         # Python reads a leading ] as a literal, ECMA-262 as the end of an
@@ -196,15 +203,16 @@ def scan_class(pattern: str, index: int) -> tuple[int, str] | None:
     while index < len(pattern):
         char = pattern[index]
         if char == "]":
-            return index + 1, pattern[start : index + 1]
+            output.append("]")
+            return index + 1, "".join(output)
         if char == "\\":
-            # Escape sequences are never translated within a character class,
-            # so the class can be copied verbatim.
-            escape = scan_escape(pattern, index, in_class=True)
+            escape = scan_escape(pattern, index, in_class=True, flags=flags)
             if escape is None:
                 return None
-            index = escape[0]
+            index, text = escape
+            output.append(text)
             continue
+        output.append(char)
         index += 1
     return None
 
@@ -259,9 +267,9 @@ def translate_pattern(pattern: str, flags: int) -> str | None:
     while index < len(pattern):
         char = pattern[index]
         if char == "\\":
-            result = scan_escape(pattern, index, in_class=False)
+            result = scan_escape(pattern, index, in_class=False, flags=flags)
         elif char == "[":
-            result = scan_class(pattern, index)
+            result = scan_class(pattern, index, flags=flags)
         elif char == "(":
             result = scan_group(pattern, index)
         elif char == "{":
