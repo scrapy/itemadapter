@@ -133,13 +133,25 @@ VERBOSE_WHITESPACE = frozenset(" \t\n\r\v\f")
 # Escape sequences that have the same meaning in Python and in ECMA-262. \b
 # and \B are included even though Python matches word boundaries against
 # Unicode word characters, while ECMA-262 only matches them against ASCII
-# ones.
-SHARED_ESCAPE_LETTERS = frozenset("bdDfnrstvwSW")
+# ones. \s and \S are kept for the same reason: the dialects differ around
+# Unicode whitespace, but still overlap enough for a useful translation.
+SHARED_ESCAPE_LETTERS = frozenset("bfnrsStv")
 
 # Escape sequences with an ECMA-262 equivalent. ECMA-262 patterns are never
 # multiline, so ^ and $ can only match at the start and at the end of the
 # string, like \A and \Z do in Python.
 CONVERTED_ESCAPES = {"A": "^", "Z": "$"}
+
+# Python \d/\w (and their negations) match Unicode by default, while
+# ECMA-262 only matches ASCII. Rewrite them to explicit ASCII classes so
+# the JSON Schema pattern matches the ECMA-262 dialect rather than quietly
+# changing which values validate.
+CONVERTED_SHORTHANDS = {
+    "d": "[0-9]",
+    "D": "[^0-9]",
+    "w": "[A-Za-z0-9_]",
+    "W": "[^A-Za-z0-9_]",
+}
 
 # Escape sequences made of a letter and a fixed number of hexadecimal digits.
 HEX_ESCAPE_SIZES = {"x": 2, "u": 4}
@@ -167,6 +179,12 @@ def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] 
         return end, pattern[index:end]
     if char in SHARED_ESCAPE_LETTERS or (char == "B" and not in_class):
         return index + 2, pattern[index : index + 2]
+    if char in CONVERTED_SHORTHANDS:
+        # Character classes are copied verbatim by scan_class; ECMA-262 \d
+        # inside a class already means [0-9], so leave the escape as-is there.
+        if in_class:
+            return index + 2, pattern[index : index + 2]
+        return index + 2, CONVERTED_SHORTHANDS[char]
     if char in CONVERTED_ESCAPES and not in_class:
         return index + 2, CONVERTED_ESCAPES[char]
     if char in DIGITS:

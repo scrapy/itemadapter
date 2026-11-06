@@ -190,11 +190,11 @@ class TestAttrs:
                 },
                 "day": {
                     "type": "string",
-                    "pattern": r"\bD\d{2}\b",
+                    "pattern": r"\bD[0-9]{2}\b",
                 },
                 "hour": {
                     "type": "string",
-                    "pattern": r"^(?:H\d{2})",
+                    "pattern": r"^(?:H[0-9]{2})",
                 },
                 "tags": {
                     "type": "array",
@@ -208,3 +208,35 @@ class TestAttrs:
             "required": ["name", "age", "color", "year", "month", "day", "hour", "tags"],
         }
         check_schemas(actual, expected)
+
+    @requires_attrs
+    def test_json_schema_digit_pattern_ascii(self):
+        """Python \\d accepts Unicode digits; JSON Schema patterns must use
+        an ASCII-safe translation (see scrapy/itemadapter#148)."""
+        import attrs
+        from attrs import validators
+
+        Digits = attrs.make_class(
+            "Digits",
+            {"code": attrs.field(type=str, validator=validators.matches_re(r"^\d+$"))},
+        )
+        Digits(code="\u0661\u0662\u0663")
+        Digits(code="123")
+
+        actual = ItemAdapter.get_json_schema(Digits)
+        expected = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "pattern": "^(?:^[0-9]+$)$",
+                },
+            },
+            "required": ["code"],
+        }
+        check_schemas(actual, expected)
+
+        pattern = re.compile(actual["properties"]["code"]["pattern"])
+        assert pattern.fullmatch("123")
+        assert pattern.fullmatch("\u0661\u0662\u0663") is None
