@@ -362,7 +362,11 @@ def update_prop_from_origin(
         update_prop_from_union(prop, prop_type, state)
 
 
-def update_prop_from_type(prop: dict[str, Any], prop_type: Any, state: _JsonSchemaState) -> None:
+def update_prop_from_type(
+    prop: dict[str, Any] | bool, prop_type: Any, state: _JsonSchemaState
+) -> None:
+    if isinstance(prop, bool):
+        return
     if (origin := get_origin(prop_type)) is not None:
         update_prop_from_origin(prop, origin, prop_type, state)
         return
