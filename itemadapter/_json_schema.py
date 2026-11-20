@@ -9,7 +9,7 @@ from collections.abc import Iterable, Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from copy import copy
 from enum import Enum
-from functools import lru_cache
+from functools import cache, lru_cache
 from textwrap import dedent
 from types import MappingProxyType, UnionType
 from typing import (
@@ -130,11 +130,26 @@ LEADING_INLINE_FLAGS = re.compile(r"\(\?([aiLmsux]+)\)")
 # Whitespace that re.VERBOSE ignores.
 VERBOSE_WHITESPACE = frozenset(" \t\n\r\v\f")
 
-# Escape sequences that have the same meaning in Python and in ECMA-262. \b
-# and \B are included even though Python matches word boundaries against
-# Unicode word characters, while ECMA-262 only matches them against ASCII
-# ones.
-SHARED_ESCAPE_LETTERS = frozenset("bdDfnrstvwSW")
+# Escape sequences that have the same meaning in Python and in ECMA-262.
+SHARED_ESCAPE_LETTERS = frozenset("fnrtv")
+
+# Escape sequences that match a different set of characters in Python than in
+# ECMA-262. Python matches them against Unicode characters, while ECMA-262
+# matches \d, \w, \b and their negations against ASCII characters only, and
+# \s and \S against a different set of whitespace characters (Python also
+# matches \x1c-\x1f and \x85, ECMA-262 also matches \ufeff).
+#
+# With re.ASCII, Python also matches \d, \w, \b and their negations against
+# ASCII characters only, so they can be copied as they are. \s and \S still
+# need translating, as they match fewer characters than they do in ECMA-262.
+#
+# Without re.ASCII, only \d, \s and \S can be translated, because the others
+# match too many characters to spell them out, or cannot be expressed at all.
+UNICODE_ESCAPE_LETTERS = frozenset("dDsSwWbB")
+
+# Body of an ECMA-262 character class that matches what \s matches in Python
+# with re.ASCII.
+ASCII_SPACE_RANGES = r"\u0009-\u000D\u0020"
 
 # Escape sequences with an ECMA-262 equivalent. ECMA-262 patterns are never
 # multiline, so ^ and $ can only match at the start and at the end of the
@@ -152,10 +167,93 @@ DIGITS = frozenset("0123456789")
 SHARED_GROUP_PREFIXES = ("(?:", "(?=", "(?!", "(?<=", "(?<!")
 
 
-def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] | None:
+@cache
+def unicode_ranges(escape_letter: str) -> tuple[tuple[int, int], ...]:
+    r"""Return the (first, last) code point ranges that the Python escape
+    sequence ``\<escape_letter>`` matches in a Unicode pattern.
+
+    The ranges are read from Python itself, so they always match the Unicode
+    version of the running interpreter."""
+    all_code_points = "".join(map(chr, range(0x110000)))
+    return tuple(
+        (match.start(), match.end() - 1)
+        for match in re.finditer(rf"\{escape_letter}+", all_code_points)
+    )
+
+
+def escape_code_unit(code_unit: int) -> str:
+    return f"\\u{code_unit:04X}"
+
+
+def code_unit_ranges(ranges: Iterable[tuple[int, int]]) -> str:
+    """Return the body of an ECMA-262 character class for the given ranges,
+    which must all be in the Basic Multilingual Plane."""
+    return "".join(
+        escape_code_unit(first)
+        if first == last
+        else f"{escape_code_unit(first)}-{escape_code_unit(last)}"
+        for first, last in ranges
+    )
+
+
+def split_ranges(escape_letter: str, *, ascii_only: bool = False) -> tuple[str, list[str]]:
+    r"""Return the Python escape sequence ``\<escape_letter>`` as the body of
+    an ECMA-262 character class that covers the characters in the Basic
+    Multilingual Plane, and a list of ECMA-262 alternatives, each made of a
+    surrogate pair, that cover the rest.
+
+    ECMA-262 patterns without the ``u`` flag, which are the ones JSON Schema
+    uses, read strings as UTF-16 code units, so characters above U+FFFF can
+    only be matched through their surrogate pairs."""
+    if ascii_only:
+        assert escape_letter == "s"
+        return ASCII_SPACE_RANGES, []
+    basic: list[tuple[int, int]] = []
+    low_surrogates_by_high_surrogate: dict[int, list[tuple[int, int]]] = {}
+    for range_first, range_last in unicode_ranges(escape_letter):
+        # No range of the supported escape sequences crosses U+FFFF.
+        if range_last <= 0xFFFF:
+            basic.append((range_first, range_last))
+            continue
+        first = range_first - 0x10000
+        last = range_last - 0x10000
+        for high in range(first >> 10, (last >> 10) + 1):
+            low_first = (first & 0x3FF) if high == first >> 10 else 0
+            low_last = (last & 0x3FF) if high == last >> 10 else 0x3FF
+            low_surrogates_by_high_surrogate.setdefault(high, []).append(
+                (0xDC00 + low_first, 0xDC00 + low_last)
+            )
+    alternatives = [
+        f"{escape_code_unit(0xD800 + high)}[{code_unit_ranges(lows)}]"
+        for high, lows in low_surrogates_by_high_surrogate.items()
+    ]
+    return code_unit_ranges(basic), alternatives
+
+
+def translate_unicode_escape(escape_letter: str, *, ascii_only: bool) -> str | None:
+    r"""Return the Python escape sequence ``\<escape_letter>``, used outside a
+    character class, as an ECMA-262 one, or ``None`` if there is none."""
+    if escape_letter not in "dsS":
+        # \D, \w and \W match too many characters (\w alone covers hundreds of
+        # ranges) to spell them out, and the Unicode-aware word boundaries
+        # \b and \B cannot be expressed at all.
+        return None
+    if escape_letter == "S":
+        return f"[^{split_ranges('s', ascii_only=ascii_only)[0]}]"
+    basic, alternatives = split_ranges(escape_letter, ascii_only=ascii_only)
+    if not alternatives:
+        return f"[{basic}]"
+    return "(?:" + "|".join([f"[{basic}]", *alternatives]) + ")"
+
+
+def scan_escape(
+    pattern: str, index: int, *, in_class: bool, ascii_only: bool
+) -> tuple[int, str] | None:
     """Return the ECMA-262 translation of the escape sequence that starts at
     *index*, along with the index right after it, or ``None`` if that sequence
-    has no ECMA-262 equivalent."""
+    has no ECMA-262 equivalent.
+
+    *ascii_only* indicates that re.ASCII is set."""
     char = pattern[index + 1 : index + 2]
     if not char:
         return None
@@ -165,8 +263,17 @@ def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] 
         if len(digits) != HEX_ESCAPE_SIZES[char] or not HEX_DIGITS.issuperset(digits):
             return None
         return end, pattern[index:end]
-    if char in SHARED_ESCAPE_LETTERS or (char == "B" and not in_class):
+    if char in SHARED_ESCAPE_LETTERS or (char == "b" and in_class):
+        # \b is a word boundary outside character classes, but a backspace
+        # within them, in both dialects.
         return index + 2, pattern[index : index + 2]
+    if char in UNICODE_ESCAPE_LETTERS and not (char == "B" and in_class):
+        if ascii_only and char not in "sS":
+            return index + 2, pattern[index : index + 2]
+        # Within character classes, scan_class() handles these escape
+        # sequences before they get here, except for \b.
+        translation = translate_unicode_escape(char, ascii_only=ascii_only)
+        return None if translation is None else (index + 2, translation)
     if char in CONVERTED_ESCAPES and not in_class:
         return index + 2, CONVERTED_ESCAPES[char]
     if char in DIGITS:
@@ -181,30 +288,54 @@ def scan_escape(pattern: str, index: int, *, in_class: bool) -> tuple[int, str] 
     return index + 2, pattern[index : index + 2]
 
 
-def scan_class(pattern: str, index: int) -> tuple[int, str] | None:
+def scan_class(pattern: str, index: int, *, ascii_only: bool) -> tuple[int, str] | None:
     """Return the ECMA-262 translation of the character class that starts at
     *index*, along with the index right after it, or ``None`` if that class
     has no ECMA-262 equivalent."""
-    start = index
     index += 1
-    if pattern[index : index + 1] == "^":
+    negated = pattern[index : index + 1] == "^"
+    if negated:
         index += 1
     if pattern[index : index + 1] == "]":
         # Python reads a leading ] as a literal, ECMA-262 as the end of an
         # empty class.
         return None
+    members: list[str] = []
+    # Characters above U+FFFF that the class matches through shorthand
+    # escapes, which can only be spelled out as surrogate pairs outside the
+    # class.
+    alternatives: list[str] = []
     while index < len(pattern):
         char = pattern[index]
         if char == "]":
-            return index + 1, pattern[start : index + 1]
+            text = f"[{'^' if negated else ''}{''.join(members)}]"
+            if alternatives:
+                text = f"(?:{'|'.join([text, *alternatives])})"
+            return index + 1, text
         if char == "\\":
-            # Escape sequences are never translated within a character class,
-            # so the class can be copied verbatim.
-            escape = scan_escape(pattern, index, in_class=True)
+            letter = pattern[index + 1 : index + 2]
+            if (
+                letter in UNICODE_ESCAPE_LETTERS
+                and letter != "b"
+                and (not ascii_only or letter in "sS")
+            ):
+                # \s can be spelled out within the class. \d can be as well,
+                # but only if the class is not negated, as the characters
+                # above U+FFFF that it matches are not part of the class.
+                if letter not in "ds" or (letter == "d" and negated):
+                    return None
+                basic, extra = split_ranges(letter, ascii_only=ascii_only)
+                members.append(basic)
+                alternatives.extend(extra)
+                index += 2
+                continue
+            escape = scan_escape(pattern, index, in_class=True, ascii_only=ascii_only)
             if escape is None:
                 return None
+            members.append(pattern[index : escape[0]])
             index = escape[0]
             continue
+        members.append(char)
         index += 1
     return None
 
@@ -254,14 +385,15 @@ def translate_pattern(pattern: str, flags: int) -> str | None:
     See https://ecma-international.org/publications-and-standards/standards/ecma-262/
     """
     verbose = bool(flags & re.VERBOSE)
+    ascii_only = bool(flags & re.ASCII)
     output = []
     index = 0
     while index < len(pattern):
         char = pattern[index]
         if char == "\\":
-            result = scan_escape(pattern, index, in_class=False)
+            result = scan_escape(pattern, index, in_class=False, ascii_only=ascii_only)
         elif char == "[":
-            result = scan_class(pattern, index)
+            result = scan_class(pattern, index, ascii_only=ascii_only)
         elif char == "(":
             result = scan_group(pattern, index)
         elif char == "{":

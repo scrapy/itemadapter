@@ -335,7 +335,12 @@ itemadapter:
 
 -   String pattern contraints are translated to the regular expression dialect
     of JSON Schema where possible, and silently ignored where not, e.g. when
-    they are case-insensitive or multiline.
+    they are case-insensitive or multiline. Shorthand escapes that match
+    different characters in Python than in JSON Schema are translated into
+    explicit character classes (`\d`, `\s`, `\S`) or cause the pattern to be
+    ignored (`\D`, `\w`, `\W`, `\b`, `\B`). With `re.ASCII`, `\d`, `\D`,
+    `\w`, `\W`, `\b` and `\B` are copied as they are, and `\s` and `\S` are
+    translated into `[\t\n\v\f\r ]` and its negation.
 
 -   Recursion is silently ignored: if you have an item class that has an
     attribute with that same item class as a type or as part of its type, a
