@@ -11,7 +11,7 @@ from copy import copy
 from enum import Enum
 from functools import lru_cache
 from textwrap import dedent
-from types import MappingProxyType, UnionType
+from types import MappingProxyType, NoneType, UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -588,7 +588,7 @@ def update_prop_from_length(
 ) -> None:
     types = get_args(field_type) if get_origin(field_type) in UNION_TYPES else (field_type,)
     for member in types:
-        if member is type(None):
+        if member is NoneType:
             continue
         base = get_origin(member) or member
         if base is str:
