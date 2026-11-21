@@ -109,6 +109,24 @@ class TestAttrs:
             get_field_meta_from_class(AttrsClassicItem, "non_existent")
 
     @requires_attrs
+    def test_json_schema_mapping_length(self):
+        import attrs
+        from attrs import validators
+
+        @attrs.define
+        class ItemClass:
+            counts: dict[str, int] = attrs.field(
+                validator=[validators.min_len(1), validators.max_len(2)]
+            )
+
+        assert ItemAdapter.get_json_schema(ItemClass)["properties"]["counts"] == {
+            "type": "object",
+            "additionalProperties": {"type": "integer"},
+            "minProperties": 1,
+            "maxProperties": 2,
+        }
+
+    @requires_attrs
     def test_json_schema_validators(self):
         import attrs
         from attrs import validators

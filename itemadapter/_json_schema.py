@@ -583,6 +583,23 @@ ATTRS_NUMBER_VALIDATORS = {
 }
 
 
+def update_prop_from_length(
+    prop: dict[str, Any], field_type: object, prefix: str, value: int
+) -> None:
+    types = get_args(field_type) if get_origin(field_type) in UNION_TYPES else (field_type,)
+    for member in types:
+        if member is type(None):
+            continue
+        base = get_origin(member) or member
+        if base is str:
+            suffix = "Length"
+        elif isinstance(base, type) and isinstance(base, ObjectProtocol):
+            suffix = "Properties"
+        else:
+            suffix = "Items"
+        prop.setdefault(f"{prefix}{suffix}", value)
+
+
 def _update_attrs_prop_validation(
     prop: dict[str, Any],
     field: Attribute[Any],
@@ -603,11 +620,9 @@ def _update_attrs_prop_validation(
         elif validator_type_name == "_InValidator":
             prop.setdefault("enum", list(validator.options))
         elif validator_type_name == "_MinLengthValidator":
-            key = "minLength" if field.type is str else "minItems"
-            prop.setdefault(key, validator.min_length)
+            update_prop_from_length(prop, field.type, "min", validator.min_length)
         elif validator_type_name == "_MaxLengthValidator":
-            key = "maxLength" if field.type is str else "maxItems"
-            prop.setdefault(key, validator.max_length)
+            update_prop_from_length(prop, field.type, "max", validator.max_length)
         elif validator_type_name == "_MatchesReValidator":
             pattern = json_schema_pattern(validator.pattern)
             if pattern is not None:
@@ -727,11 +742,9 @@ def _update_pydantic_prop_validation(
                 pattern = metadata_item.__dict__["pattern"]
                 update_prop_from_pattern(prop, pattern)
         elif metadata_item_type == "MinLen":
-            key = "minLength" if field_type is str else "minItems"
-            prop.setdefault(key, metadata_item.min_length)
+            update_prop_from_length(prop, field_type, "min", metadata_item.min_length)
         elif metadata_item_type == "MaxLen":
-            key = "maxLength" if field_type is str else "maxItems"
-            prop.setdefault(key, metadata_item.max_length)
+            update_prop_from_length(prop, field_type, "max", metadata_item.max_length)
         else:
             for metadata_key, json_schema_field in (
                 ("ge", "minimum"),
