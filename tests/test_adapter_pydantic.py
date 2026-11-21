@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping  # noqa: TC003
 from types import MappingProxyType
 
 import pytest
@@ -170,6 +171,27 @@ class TestPydantic:
             "required": ["foo"],
         }
         check_schemas(actual, expected)
+
+    @requires_pydantic
+    def test_json_schema_mapping_length(self):
+        from itemadapter._imports import pydantic
+
+        class Model(pydantic.BaseModel):
+            counts: Mapping[str, int] | list[int] | None = pydantic.Field(
+                min_length=1, max_length=2
+            )
+
+        assert ItemAdapter.get_json_schema(Model)["properties"]["counts"] == {
+            "anyOf": [
+                {"type": "null"},
+                {"type": "object", "additionalProperties": {"type": "integer"}},
+                {"type": "array", "items": {"type": "integer"}},
+            ],
+            "minProperties": 1,
+            "maxProperties": 2,
+            "minItems": 1,
+            "maxItems": 2,
+        }
 
     @requires_pydantic
     def test_json_schema_validators(self):
